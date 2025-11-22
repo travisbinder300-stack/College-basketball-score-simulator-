@@ -225,6 +225,10 @@ def create_sample_teams() -> Dict[str, Team]:
                       three_point_pct=0.35, free_throw_pct=0.72),
         'eastern_kentucky': Team('Eastern Kentucky Colonels', offense_rating=57, defense_rating=54,
                                 three_point_pct=0.34, free_throw_pct=0.71),
+        'northwestern': Team('Northwestern Wildcats', offense_rating=68, defense_rating=66,
+                            three_point_pct=0.36, free_throw_pct=0.74),
+        'duquesne': Team('Duquesne Dukes', offense_rating=65, defense_rating=62,
+                        three_point_pct=0.35, free_throw_pct=0.72),
     }
     return teams
 
