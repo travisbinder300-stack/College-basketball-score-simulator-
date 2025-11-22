@@ -205,6 +205,10 @@ def create_sample_teams() -> Dict[str, Team]:
                     three_point_pct=0.30, free_throw_pct=0.65),
         'csub': Team('Cal State Bakersfield Roadrunners', offense_rating=51, defense_rating=48,
                     three_point_pct=0.31, free_throw_pct=0.67),
+        'harvard': Team('Harvard Crimson', offense_rating=58, defense_rating=55,
+                       three_point_pct=0.34, free_throw_pct=0.72),
+        'bu': Team('Boston University Terriers', offense_rating=60, defense_rating=57,
+                  three_point_pct=0.35, free_throw_pct=0.73),
     }
     return teams
 
