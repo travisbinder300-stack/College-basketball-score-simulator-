@@ -197,6 +197,10 @@ def create_sample_teams() -> Dict[str, Team]:
                     three_point_pct=0.32, free_throw_pct=0.68),
         'navy': Team('Navy Midshipmen', offense_rating=56, defense_rating=54,
                     three_point_pct=0.34, free_throw_pct=0.71),
+        'wagner': Team('Wagner Seahawks', offense_rating=53, defense_rating=50,
+                      three_point_pct=0.32, free_throw_pct=0.69),
+        'georgetown': Team('Georgetown Hoyas', offense_rating=70, defense_rating=68,
+                          three_point_pct=0.35, free_throw_pct=0.73),
     }
     return teams
 
