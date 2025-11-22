@@ -201,6 +201,10 @@ def create_sample_teams() -> Dict[str, Team]:
                       three_point_pct=0.32, free_throw_pct=0.69),
         'georgetown': Team('Georgetown Hoyas', offense_rating=70, defense_rating=68,
                           three_point_pct=0.35, free_throw_pct=0.73),
+        'mvsu': Team('Mississippi Valley State Delta Devils', offense_rating=48, defense_rating=45,
+                    three_point_pct=0.30, free_throw_pct=0.65),
+        'csub': Team('Cal State Bakersfield Roadrunners', offense_rating=51, defense_rating=48,
+                    three_point_pct=0.31, free_throw_pct=0.67),
     }
     return teams
 
