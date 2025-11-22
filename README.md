@@ -130,9 +130,9 @@ The simulator uses a possession-based model:
 
 1. **Possessions**: Each game consists of approximately 140 possessions (70 per team)
 2. **Shot Types**: 
-   - 25% chance of 3-point attempt
+   - 30% chance of 3-point attempt
    - 50% chance of 2-point attempt
-   - 25% chance of free throw attempts (from fouls)
+   - 20% chance of free throw attempts (from fouls)
 3. **Success Rates**: Based on team offense vs defense ratings and shooting percentages
 4. **Randomization**: Uses random events to create realistic game variability
 
