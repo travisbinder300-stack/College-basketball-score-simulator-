@@ -217,6 +217,10 @@ def create_sample_teams() -> Dict[str, Team]:
                           three_point_pct=0.32, free_throw_pct=0.69),
         'dayton': Team('Dayton Flyers', offense_rating=72, defense_rating=70,
                       three_point_pct=0.37, free_throw_pct=0.75),
+        'cleveland_state': Team('Cleveland State Vikings', offense_rating=54, defense_rating=51,
+                               three_point_pct=0.33, free_throw_pct=0.70),
+        'kent_state': Team('Kent State Golden Flashes', offense_rating=56, defense_rating=53,
+                          three_point_pct=0.34, free_throw_pct=0.71),
     }
     return teams
 
