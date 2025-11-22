@@ -114,12 +114,12 @@ class TestBasketballSimulator(unittest.TestCase):
     
     def test_better_offense_tends_to_score_more(self):
         """Test that teams with better offense tend to score more over multiple games."""
-        strong_team = Team("Strong", offense_rating=90, defense_rating=50)
-        weak_team = Team("Weak", offense_rating=50, defense_rating=90)
+        strong_team = Team("Strong", offense_rating=90, defense_rating=60)
+        weak_team = Team("Weak", offense_rating=50, defense_rating=60)
         
         strong_total = 0
         weak_total = 0
-        games = 50
+        games = 100
         
         for _ in range(games):
             sim = BasketballSimulator(strong_team, weak_team)
@@ -127,7 +127,7 @@ class TestBasketballSimulator(unittest.TestCase):
             strong_total += strong_score
             weak_total += weak_score
         
-        # Strong offensive team should score more on average
+        # Strong offensive team should score more on average (with similar defense)
         self.assertGreater(strong_total / games, weak_total / games,
                           "Team with better offense should average more points")
 
