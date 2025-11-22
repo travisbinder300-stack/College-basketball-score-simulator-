@@ -209,6 +209,10 @@ def create_sample_teams() -> Dict[str, Team]:
                        three_point_pct=0.34, free_throw_pct=0.72),
         'bu': Team('Boston University Terriers', offense_rating=60, defense_rating=57,
                   three_point_pct=0.35, free_throw_pct=0.73),
+        'nicholls': Team('Nicholls State Colonels', offense_rating=50, defense_rating=47,
+                        three_point_pct=0.31, free_throw_pct=0.68),
+        'oklahoma_state': Team('Oklahoma State Cowboys', offense_rating=75, defense_rating=72,
+                              three_point_pct=0.36, free_throw_pct=0.74),
     }
     return teams
 
