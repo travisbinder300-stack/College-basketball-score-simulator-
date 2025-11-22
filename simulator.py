@@ -189,6 +189,10 @@ def create_sample_teams() -> Dict[str, Team]:
                         three_point_pct=0.33, free_throw_pct=0.69),
         'ut_arlington': Team('UT Arlington Mavericks', offense_rating=56, defense_rating=53,
                             three_point_pct=0.34, free_throw_pct=0.70),
+        'ball_state': Team('Ball State Cardinals', offense_rating=57, defense_rating=54,
+                          three_point_pct=0.35, free_throw_pct=0.71),
+        'indiana_state': Team('Indiana State Sycamores', offense_rating=55, defense_rating=52,
+                             three_point_pct=0.33, free_throw_pct=0.69),
     }
     return teams
 
