@@ -213,6 +213,10 @@ def create_sample_teams() -> Dict[str, Team]:
                         three_point_pct=0.31, free_throw_pct=0.68),
         'oklahoma_state': Team('Oklahoma State Cowboys', offense_rating=75, defense_rating=72,
                               three_point_pct=0.36, free_throw_pct=0.74),
+        'nc_central': Team('North Carolina Central Eagles', offense_rating=52, defense_rating=49,
+                          three_point_pct=0.32, free_throw_pct=0.69),
+        'dayton': Team('Dayton Flyers', offense_rating=72, defense_rating=70,
+                      three_point_pct=0.37, free_throw_pct=0.75),
     }
     return teams
 
