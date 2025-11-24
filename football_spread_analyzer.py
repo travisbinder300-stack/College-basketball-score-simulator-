@@ -243,7 +243,7 @@ class FootballSpreadAnalyzer:
         results = []
         for ou_value, games_list in sorted(over_under_groups.items()):
             if len(games_list) >= 5:  # Minimum 5 games
-                over_hits = sum(1 for g in games_list if g.hit_over())
+                over_hits = sum(1 for g in games_list if g.hit_over() is True)
                 over_rate = over_hits / len(games_list)
                 under_rate = 1 - over_rate
                 
@@ -259,7 +259,7 @@ class FootballSpreadAnalyzer:
                             'away_team': g.away_team,
                             'total_points': g.get_total_points(),
                             'over_under': g.over_under,
-                            'hit_over': g.hit_over()
+                            'hit_over': g.hit_over() if g.hit_over() is not None else False
                         } for g in games_list]
                     )
                     results.append(analysis)
@@ -276,7 +276,7 @@ class FootballSpreadAnalyzer:
                             'away_team': g.away_team,
                             'total_points': g.get_total_points(),
                             'over_under': g.over_under,
-                            'hit_over': g.hit_over()
+                            'hit_over': g.hit_over() if g.hit_over() is not None else False
                         } for g in games_list]
                     )
                     results.append(analysis)

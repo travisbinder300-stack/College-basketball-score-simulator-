@@ -106,8 +106,6 @@ Team: Vanderbilt (as favorite)
 Favorite Loss Rate: 100.0% (3/3 games)
    → Bet AGAINST this team when they are favored!
 ```
-   Coverage Rate: 80.0% (4/5 games)
-```
 
 ## How Spread Coverage Works
 
