@@ -11,6 +11,18 @@ import argparse
 from typing import Dict, Tuple
 
 
+# Basketball simulation constants
+BASE_TURNOVER_RATE = 0.15
+MIN_TURNOVER_RATE = 0.10
+MAX_TURNOVER_RATE = 0.25
+TURNOVER_RATING_FACTOR = 300
+
+BASE_TWO_PT_SUCCESS = 0.48
+MIN_TWO_PT_SUCCESS = 0.35
+MAX_TWO_PT_SUCCESS = 0.65
+TWO_PT_RATING_FACTOR = 200
+
+
 class Team:
     """Represents a college basketball team with performance statistics."""
     
@@ -68,18 +80,26 @@ class BasketballSimulator:
         simulations.
         """
         # Cache turnover rates
-        self.home_turnover_rate = 0.15 + (self.away_team.defense_rating - self.home_team.offense_rating) / 300
-        self.home_turnover_rate = max(0.10, min(0.25, self.home_turnover_rate))
+        self.home_turnover_rate = BASE_TURNOVER_RATE + (
+            self.away_team.defense_rating - self.home_team.offense_rating
+        ) / TURNOVER_RATING_FACTOR
+        self.home_turnover_rate = max(MIN_TURNOVER_RATE, min(MAX_TURNOVER_RATE, self.home_turnover_rate))
         
-        self.away_turnover_rate = 0.15 + (self.home_team.defense_rating - self.away_team.offense_rating) / 300
-        self.away_turnover_rate = max(0.10, min(0.25, self.away_turnover_rate))
+        self.away_turnover_rate = BASE_TURNOVER_RATE + (
+            self.home_team.defense_rating - self.away_team.offense_rating
+        ) / TURNOVER_RATING_FACTOR
+        self.away_turnover_rate = max(MIN_TURNOVER_RATE, min(MAX_TURNOVER_RATE, self.away_turnover_rate))
         
         # Cache two-point success rates
-        self.home_two_pt_rate = 0.48 + (self.home_team.offense_rating - self.away_team.defense_rating) / 200
-        self.home_two_pt_rate = max(0.35, min(0.65, self.home_two_pt_rate))
+        self.home_two_pt_rate = BASE_TWO_PT_SUCCESS + (
+            self.home_team.offense_rating - self.away_team.defense_rating
+        ) / TWO_PT_RATING_FACTOR
+        self.home_two_pt_rate = max(MIN_TWO_PT_SUCCESS, min(MAX_TWO_PT_SUCCESS, self.home_two_pt_rate))
         
-        self.away_two_pt_rate = 0.48 + (self.away_team.offense_rating - self.home_team.defense_rating) / 200
-        self.away_two_pt_rate = max(0.35, min(0.65, self.away_two_pt_rate))
+        self.away_two_pt_rate = BASE_TWO_PT_SUCCESS + (
+            self.away_team.offense_rating - self.home_team.defense_rating
+        ) / TWO_PT_RATING_FACTOR
+        self.away_two_pt_rate = max(MIN_TWO_PT_SUCCESS, min(MAX_TWO_PT_SUCCESS, self.away_two_pt_rate))
         
     def simulate_possession(self, offensive_team: Team, defensive_team: Team, is_home: bool) -> int:
         """

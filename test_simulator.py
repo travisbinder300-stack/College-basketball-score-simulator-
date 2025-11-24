@@ -4,7 +4,11 @@ Test suite for the College Basketball Score Simulator
 """
 
 import unittest
-from simulator import Team, BasketballSimulator
+from simulator import (
+    Team, BasketballSimulator,
+    MIN_TURNOVER_RATE, MAX_TURNOVER_RATE,
+    MIN_TWO_PT_SUCCESS, MAX_TWO_PT_SUCCESS
+)
 
 
 class TestTeam(unittest.TestCase):
@@ -190,11 +194,11 @@ class TestPerformance(unittest.TestCase):
         self.assertTrue(hasattr(sim, 'home_two_pt_rate'))
         self.assertTrue(hasattr(sim, 'away_two_pt_rate'))
         
-        # Verify cached values are in valid ranges
-        self.assertGreaterEqual(sim.home_turnover_rate, 0.10)
-        self.assertLessEqual(sim.home_turnover_rate, 0.25)
-        self.assertGreaterEqual(sim.home_two_pt_rate, 0.35)
-        self.assertLessEqual(sim.home_two_pt_rate, 0.65)
+        # Verify cached values are in valid ranges (using constants from simulator)
+        self.assertGreaterEqual(sim.home_turnover_rate, MIN_TURNOVER_RATE)
+        self.assertLessEqual(sim.home_turnover_rate, MAX_TURNOVER_RATE)
+        self.assertGreaterEqual(sim.home_two_pt_rate, MIN_TWO_PT_SUCCESS)
+        self.assertLessEqual(sim.home_two_pt_rate, MAX_TWO_PT_SUCCESS)
     
     def test_simulator_reuse(self):
         """Test that simulator can be reused for multiple games."""
