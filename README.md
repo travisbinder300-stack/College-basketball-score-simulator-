@@ -8,6 +8,8 @@ A Python tool for analyzing college football betting spreads to identify those w
 
 - Analyzes historical college football game data with spreads
 - Identifies spreads that cover at 80-100% rate
+- **NEW: Over/Under analysis** - finds O/U lines that hit consistently
+- **NEW: Wrong Favorite detection** - identifies teams that lose as favorites with 100% accuracy
 - Groups analysis by specific spread values and by favorite magnitude categories
 - Exports detailed results to JSON format
 - Includes sample data for demonstration
@@ -49,6 +51,7 @@ Create a JSON file with your game data:
     "home_score": 35,
     "away_score": 21,
     "spread": -7.0,
+    "over_under": 52.5,
     "season": "2023",
     "week": 5
   }
@@ -59,7 +62,7 @@ Then modify the script to load your data file.
 
 ### Understanding the Output
 
-The analyzer provides two types of analysis:
+The analyzer provides four types of analysis:
 
 1. **By Specific Spread Value**: Groups games by exact spread values (rounded to 0.5 increments)
 2. **By Favorite Magnitude**: Groups games by spread ranges:
@@ -68,6 +71,8 @@ The analyzer provides two types of analysis:
    - Large Favorite (-7.5 to -14)
    - Heavy Favorite (-14.5 to -21)
    - Huge Favorite (-21.5+)
+3. **Over/Under Analysis**: Identifies O/U lines where OVER or UNDER hits at 80-100% rate
+4. **Wrong Favorites**: Finds teams that lose as favorites with 100% accuracy (trap games)
 
 ### Example Output
 
@@ -77,7 +82,7 @@ COLLEGE FOOTBALL SPREAD ANALYSIS REPORT
 Finding spreads with 80% to 100% coverage rate
 ================================================================================
 
-Total games analyzed: 26
+Total games analyzed: 34
 
 --- ANALYSIS BY SPECIFIC SPREAD VALUE ---
 
@@ -90,7 +95,17 @@ Total games analyzed: 26
 3. Spread: -7.0
    Coverage Rate: 100.0% (9/9 games)
 
-4. Spread: -3.0
+--- OVER/UNDER ANALYSIS ---
+
+O/U 58.5 (OVER)
+Hit Rate: 100.0% (11/11 games)
+
+--- WRONG FAVORITES (100% ACCURACY) ---
+
+Team: Vanderbilt (as favorite)
+Favorite Loss Rate: 100.0% (3/3 games)
+   → Bet AGAINST this team when they are favored!
+```
    Coverage Rate: 80.0% (4/5 games)
 ```
 
@@ -109,6 +124,7 @@ Each game requires:
 - `home_score`: Final score for home team
 - `away_score`: Final score for away team
 - `spread`: Point spread (negative = home favored)
+- `over_under`: (Optional) Total points over/under line
 - `season`: Season identifier
 - `week`: Week number
 
@@ -118,7 +134,8 @@ Based on the sample data analysis:
 - **-7 point spreads**: 100% coverage rate (9/9 games)
 - **-14 point spreads**: 100% coverage rate (6/6 games)
 - **-21 point spreads**: 100% coverage rate (6/6 games)
-- **Medium Favorites (-3.5 to -7)**: 100% coverage (9/9 games)
+- **Over/Under 58.5 (OVER)**: 100% hit rate (11/11 games)
+- **Vanderbilt as favorite**: Loses 100% of the time (3/3 games) - bet against them!
 
 ## Files Generated
 
