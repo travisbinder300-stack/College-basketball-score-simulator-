@@ -57,11 +57,16 @@ class BasketballSimulator:
         
         # Pre-calculate matchup-specific statistics for performance
         self._cache_matchup_stats()
-        # Pre-calculate matchup-specific statistics for performance
-        self._cache_matchup_stats()
         
     def _cache_matchup_stats(self):
-        """Pre-calculate matchup-specific statistics to avoid redundant calculations."""
+        """
+        Pre-calculate matchup-specific statistics to avoid redundant calculations.
+        
+        Performance optimization: These calculations depend only on the team matchup,
+        not on individual possessions. By calculating once at initialization instead
+        of 140 times per game, we significantly improve performance for multi-game
+        simulations.
+        """
         # Cache turnover rates
         self.home_turnover_rate = 0.15 + (self.away_team.defense_rating - self.home_team.offense_rating) / 300
         self.home_turnover_rate = max(0.10, min(0.25, self.home_turnover_rate))
@@ -83,12 +88,12 @@ class BasketballSimulator:
         Args:
             offensive_team: Team on offense
             defensive_team: Team on defense
-            is_home: True if offensive team is home team
+            is_home: True if offensive team is home team (for cached stat lookup)
             
         Returns:
             Points scored on this possession (0, 1, 2, or 3)
         """
-        # Use cached turnover rate
+        # Use cached turnover rate (performance optimization)
         turnover_rate = self.home_turnover_rate if is_home else self.away_turnover_rate
         
         if random.random() < turnover_rate:
@@ -109,7 +114,7 @@ class BasketballSimulator:
                 return 0
                 
         elif shot_type < 0.80:  # 50% chance of 2-point attempt
-            # Use cached two-point success rate
+            # Use cached two-point success rate (performance optimization)
             two_point_success = self.home_two_pt_rate if is_home else self.away_two_pt_rate
             if random.random() < two_point_success:
                 if self.verbose:
@@ -327,7 +332,9 @@ Examples:
         total_home_score = 0
         total_away_score = 0
         
-        # Reuse the same simulator object for better performance
+        # Performance optimization: Reuse the same simulator object for all games
+        # instead of creating a new one each iteration. The simulate_game() method
+        # resets scores automatically, and cached matchup stats remain valid.
         simulator = BasketballSimulator(home_team, away_team, verbose=False)
         
         for game_num in range(args.games):
