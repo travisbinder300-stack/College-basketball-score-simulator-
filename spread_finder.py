@@ -190,6 +190,10 @@ def find_best_spread_bet():
     print("\n" + "="*70)
     analyzer.print_overvalued_spreads()
     
+    # NEW: Show undervalued spreads (favorite giving too many points)
+    print("\n" + "="*70)
+    analyzer.print_undervalued_spreads()
+    
     # Show detailed analysis for a specific spread
     print("\n" + "="*70)
     custom_spread = input("\nAnalyze a specific spread? (Enter number or press Enter to skip): ").strip()

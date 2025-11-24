@@ -204,6 +204,79 @@ class SpreadAnalyzer:
         
         return overvalued
     
+    def find_undervalued_spreads(self, min_points: float = 5.0, max_points: float = 20.0) -> List[Dict]:
+        """
+        Find spreads where the favorite is giving too many points (undervalued).
+        
+        An undervalued spread means the favorite has to cover more points than they
+        statistically should, making them a bad bet. The underdog is not getting enough
+        points, making the favorite overpriced.
+        
+        Args:
+            min_points: Minimum spread to check (default 5.0)
+            max_points: Maximum spread to check (default 20.0)
+        
+        Returns:
+            List of dictionaries with undervalued spread information
+        """
+        if not self.results:
+            raise ValueError("No simulation results available. Run run_simulations() first.")
+        
+        optimal = self.find_optimal_spread()
+        undervalued = []
+        
+        # Check spreads from min_points to max_points
+        for spread in range(int(min_points), int(max_points) + 1):
+            spread_float = float(spread)
+            
+            # Skip spreads close to the optimal (within 2 points)
+            if abs(spread_float - abs(optimal)) < 2:
+                continue
+            
+            # If the spread is much lower than the optimal, it's undervalued
+            # (favorite giving too few points / having to cover too much)
+            if spread_float < abs(optimal):
+                analysis = self.analyze_spread(spread_float)
+                
+                # Check if favorite (team1) fails to cover frequently
+                # When spread < optimal, favorite is giving too few points to underdog
+                if analysis['team1_cover_pct'] <= 40:  # 40% or less means bad bet
+                    shortage = abs(optimal) - spread_float  # Points short of optimal
+                    undervalued.append({
+                        'spread': spread_float,
+                        'favorite': self.team1_config['name'],
+                        'underdog': self.team2_config['name'],
+                        'favorite_covers_pct': analysis['team1_cover_pct'],
+                        'points_short': shortage,
+                        'optimal_spread': abs(optimal),
+                        'risk_rating': 'HIGH_RISK' if shortage >= 5 else 'MODERATE_RISK' if shortage >= 3 else 'LOW_RISK',
+                        'advice': f'AVOID betting {self.team1_config["name"]} at -{spread_float}'
+                    })
+            
+            # Also check negative spreads (team2 as favorite giving too many points)
+            negative_spread = -spread_float
+            if abs(negative_spread) < abs(optimal):
+                analysis = self.analyze_spread(negative_spread)
+                
+                # When negative spread, team2 is favorite - check if they fail to cover
+                if analysis['team2_cover_pct'] <= 40:
+                    shortage = abs(optimal) - abs(negative_spread)
+                    undervalued.append({
+                        'spread': negative_spread,
+                        'favorite': self.team2_config['name'],
+                        'underdog': self.team1_config['name'],
+                        'favorite_covers_pct': analysis['team2_cover_pct'],
+                        'points_short': shortage,
+                        'optimal_spread': abs(optimal),
+                        'risk_rating': 'HIGH_RISK' if shortage >= 5 else 'MODERATE_RISK' if shortage >= 3 else 'LOW_RISK',
+                        'advice': f'AVOID betting {self.team2_config["name"]} at -{abs(negative_spread)}'
+                    })
+        
+        # Sort by favorite cover percentage (worst bets first - lowest coverage)
+        undervalued.sort(key=lambda x: x['favorite_covers_pct'])
+        
+        return undervalued
+    
     def get_statistics(self) -> Dict:
         """Get comprehensive statistics from all simulations."""
         if not self.results:
@@ -338,6 +411,53 @@ class SpreadAnalyzer:
             print(f"Extra Points: {best['extra_points']:.1f} points above optimal")
             print(f"Value Rating: {best['value_rating']}")
             print("="*70)
+    
+    def print_undervalued_spreads(self):
+        """Print report of undervalued spreads (favorite giving too many points)."""
+        if not self.results:
+            print("No simulation results available. Run run_simulations() first.")
+            return
+        
+        undervalued = self.find_undervalued_spreads()
+        
+        print("\n" + "="*70)
+        print(" "*15 + "⚠️  UNDERVALUED SPREADS REPORT ⚠️")
+        print("="*70)
+        print("\nIdentifying spreads where the favorite is giving TOO MANY points")
+        print("(These are TRAPS - AVOID betting the favorite at these lines)")
+        print("-"*70)
+        
+        if not undervalued:
+            print("\nNo significantly undervalued spreads found in the 5-20 point range.")
+            print("Favorites appear capable of covering the spreads offered.")
+        else:
+            print(f"\nFound {len(undervalued)} undervalued spread(s) - AVOID THESE BETS:\n")
+            
+            for i, bet in enumerate(undervalued, 1):
+                print(f"{i}. {bet['favorite']} -{abs(bet['spread']):.1f}")
+                print(f"   Favorite only covers: {bet['favorite_covers_pct']:.1f}% of the time")
+                print(f"   Points short of optimal: {bet['points_short']:.1f} (Optimal: {bet['optimal_spread']:.1f})")
+                print(f"   Risk Rating: {bet['risk_rating']}")
+                print(f"   ⚠️  {bet['advice']}")
+                
+                if bet['risk_rating'] == 'HIGH_RISK':
+                    print(f"   🚫 HIGH RISK - Favorite unlikely to cover this spread!")
+                elif bet['risk_rating'] == 'MODERATE_RISK':
+                    print(f"   ⚠ MODERATE RISK - Favorite struggling to cover")
+                
+                print()
+            
+            # Highlight the worst bet (favorite least likely to cover)
+            worst = undervalued[0]
+            print("="*70)
+            print("🚫 WORST BET (Favorite Least Likely to Cover)")
+            print("="*70)
+            print(f"AVOID: {worst['favorite']} -{abs(worst['spread']):.1f}")
+            print(f"Coverage Rate: Only {worst['favorite_covers_pct']:.1f}%")
+            print(f"Favorite is {worst['points_short']:.1f} points short of what they should give")
+            print(f"Risk Rating: {worst['risk_rating']}")
+            print(f"\n💡 Better Option: Bet on {worst['underdog']} +{abs(worst['spread']):.1f} instead")
+            print("="*70)
 
 
 def main():
@@ -389,6 +509,10 @@ def main():
     # NEW: Find overvalued spreads
     print("\n" + "="*70)
     analyzer.print_overvalued_spreads()
+    
+    # NEW: Find undervalued spreads (favorites giving too many points)
+    print("\n" + "="*70)
+    analyzer.print_undervalued_spreads()
 
 
 if __name__ == "__main__":

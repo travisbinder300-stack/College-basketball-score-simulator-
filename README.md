@@ -16,6 +16,7 @@ A comprehensive and accurate college basketball game simulator that uses realist
   - Identify high-confidence betting opportunities (70%+ success rate)
   - Calculate optimal spreads for even matchups
   - **Find overvalued spreads** where underdog is getting too many points (value bets)
+  - **Find undervalued spreads** where favorite is giving too many points (trap bets)
 - **Overtime Support**: Automatically simulates overtime periods when games are tied
 - **Play-by-Play**: Optional detailed play-by-play commentary for each possession
 - **Box Score**: Comprehensive box score with detailed team statistics
@@ -65,6 +66,7 @@ This tool runs 1000+ simulations and identifies:
 - The optimal spread for a 50/50 matchup
 - High-confidence betting opportunities
 - **Overvalued spreads** where the underdog is getting too many points (value bets)
+- **Undervalued spreads** where the favorite is giving too many points (trap bets to avoid)
 
 **Example: Finding a team that covers the spread**
 
@@ -78,6 +80,7 @@ This runs automated analysis on preset matchups and shows:
 - Spread coverage rates at different lines
 - Confidence levels for each spread
 - **Overvalued spreads report** - identifies when underdogs are getting extra points
+- **Undervalued spreads report** - identifies when favorites can't cover (traps to avoid)
 
 **Programmatic Usage:**
 
@@ -98,11 +101,17 @@ print(f"Coverage rate: {analysis['cover_rate']:.1f}%")
 print(f"Best bet: {analysis['best_bet']}")
 print(f"Confidence: {analysis['confidence']}")
 
-# Find overvalued spreads (underdog getting too many points)
+# Find overvalued spreads (underdog getting too many points - VALUE BETS)
 overvalued = analyzer.find_overvalued_spreads()
 for bet in overvalued:
     print(f"{bet['underdog']} +{abs(bet['spread']):.1f}: {bet['underdog_covers_pct']:.1f}% coverage")
     print(f"Extra points: {bet['extra_points']:.1f} (Value: {bet['value_rating']})")
+
+# Find undervalued spreads (favorite giving too many points - TRAP BETS)
+undervalued = analyzer.find_undervalued_spreads()
+for bet in undervalued:
+    print(f"AVOID: {bet['favorite']} -{abs(bet['spread']):.1f} (only covers {bet['favorite_covers_pct']:.1f}%)")
+    print(f"Risk: {bet['risk_rating']} - {bet['advice']}")
 ```
 
 ## Team Statistics
