@@ -68,6 +68,19 @@ This tool runs 1000+ simulations and identifies:
 - **Overvalued spreads** where the underdog is getting too many points (value bets)
 - **Undervalued spreads** where the favorite is giving too many points (trap bets to avoid)
 
+**Find Today's Best Picks:**
+
+```bash
+python3 find_picks.py
+```
+
+This tool analyzes multiple games and provides betting recommendations:
+- Simulates each matchup to determine optimal spreads
+- Identifies HIGH confidence picks (70%+ coverage)
+- Shows value assessment (extra points given/needed)
+- Filters out trap bets and close calls
+- Provides clear betting summary with best picks
+
 **See a Complete Example:**
 
 ```bash
