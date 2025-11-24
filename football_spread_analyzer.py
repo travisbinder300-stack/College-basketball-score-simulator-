@@ -255,7 +255,7 @@ def main():
     # Try to load sample data if it exists
     try:
         analyzer.load_games_from_json('sample_games.json')
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         print("No sample_games.json found. Creating sample data...")
         # Create some sample games for demonstration
         create_sample_data()

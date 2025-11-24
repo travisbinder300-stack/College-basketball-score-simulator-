@@ -2,6 +2,8 @@
 
 A Python tool for analyzing college football betting spreads to identify those with high coverage rates (80-100%). This analyzer helps find point spreads that historically have covered at a high percentage.
 
+> **Note**: Despite the repository name referencing basketball, this tool is specifically designed for college football spread analysis.
+
 ## Features
 
 - Analyzes historical college football game data with spreads
