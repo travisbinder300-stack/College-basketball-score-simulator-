@@ -131,6 +131,79 @@ class SpreadAnalyzer:
         
         return avg_diff
     
+    def find_overvalued_spreads(self, min_points: float = 5.0, max_points: float = 20.0) -> List[Dict]:
+        """
+        Find spreads where the underdog is getting too many points (overvalued).
+        
+        An overvalued spread means the underdog is getting more points than they need,
+        making them a good bet to cover. This happens when the actual average margin
+        is much less than the spread being offered.
+        
+        Args:
+            min_points: Minimum spread to check (default 5.0)
+            max_points: Maximum spread to check (default 20.0)
+        
+        Returns:
+            List of dictionaries with overvalued spread information
+        """
+        if not self.results:
+            raise ValueError("No simulation results available. Run run_simulations() first.")
+        
+        optimal = self.find_optimal_spread()
+        overvalued = []
+        
+        # Check spreads from min_points to max_points
+        for spread in range(int(min_points), int(max_points) + 1):
+            spread_float = float(spread)
+            
+            # Skip spreads close to the optimal (within 2 points)
+            if abs(spread_float - abs(optimal)) < 2:
+                continue
+            
+            # If the spread is much higher than the optimal, it's overvalued
+            # (underdog getting too many points)
+            if spread_float > abs(optimal):
+                analysis = self.analyze_spread(spread_float)
+                
+                # Check if underdog (team2) covers with high confidence
+                # When spread > optimal, team2 is getting extra points
+                if analysis['team2_cover_pct'] >= 65:  # 65%+ is valuable
+                    value = spread_float - abs(optimal)  # Extra points being given
+                    overvalued.append({
+                        'spread': spread_float,
+                        'underdog': self.team2_config['name'],
+                        'favorite': self.team1_config['name'],
+                        'underdog_covers_pct': analysis['team2_cover_pct'],
+                        'extra_points': value,
+                        'optimal_spread': abs(optimal),
+                        'confidence': analysis['confidence'] if analysis['team2_cover_pct'] >= 70 else 'MEDIUM',
+                        'value_rating': 'EXCELLENT' if value >= 5 else 'GOOD' if value >= 3 else 'FAIR'
+                    })
+            
+            # Also check negative spreads (team2 favored)
+            negative_spread = -spread_float
+            if abs(negative_spread) > abs(optimal):
+                analysis = self.analyze_spread(negative_spread)
+                
+                # When negative spread, team1 is the underdog getting points
+                if analysis['team1_cover_pct'] >= 65:
+                    value = abs(negative_spread) - abs(optimal)
+                    overvalued.append({
+                        'spread': negative_spread,
+                        'underdog': self.team1_config['name'],
+                        'favorite': self.team2_config['name'],
+                        'underdog_covers_pct': analysis['team1_cover_pct'],
+                        'extra_points': value,
+                        'optimal_spread': abs(optimal),
+                        'confidence': analysis['confidence'] if analysis['team1_cover_pct'] >= 70 else 'MEDIUM',
+                        'value_rating': 'EXCELLENT' if value >= 5 else 'GOOD' if value >= 3 else 'FAIR'
+                    })
+        
+        # Sort by underdog cover percentage (best bets first)
+        overvalued.sort(key=lambda x: x['underdog_covers_pct'], reverse=True)
+        
+        return overvalued
+    
     def get_statistics(self) -> Dict:
         """Get comprehensive statistics from all simulations."""
         if not self.results:
@@ -217,6 +290,54 @@ class SpreadAnalyzer:
                 print(f"\n⚠ MEDIUM CONFIDENCE - {analysis['best_bet']} has slight edge at {analysis['cover_rate']:.1f}%")
             else:
                 print(f"\n✗ LOW CONFIDENCE - Too close to call ({analysis['cover_rate']:.1f}%)")
+    
+    def print_overvalued_spreads(self):
+        """Print report of overvalued spreads (underdog getting too many points)."""
+        if not self.results:
+            print("No simulation results available. Run run_simulations() first.")
+            return
+        
+        overvalued = self.find_overvalued_spreads()
+        
+        print("\n" + "="*70)
+        print(" "*15 + "⭐ OVERVALUED SPREADS REPORT ⭐")
+        print("="*70)
+        print("\nIdentifying spreads where the underdog is getting TOO MANY points")
+        print("(These are VALUE BETS - bet on the underdog)")
+        print("-"*70)
+        
+        if not overvalued:
+            print("\nNo significantly overvalued spreads found in the 5-20 point range.")
+            print("The lines appear to be fairly priced based on simulation results.")
+        else:
+            print(f"\nFound {len(overvalued)} overvalued spread(s):\n")
+            
+            for i, bet in enumerate(overvalued, 1):
+                spread_display = f"+{abs(bet['spread']):.1f}" if bet['spread'] < 0 else f"+{bet['spread']:.1f}"
+                
+                print(f"{i}. {bet['underdog']} {spread_display}")
+                print(f"   Underdog covers: {bet['underdog_covers_pct']:.1f}% of the time")
+                print(f"   Extra points given: {bet['extra_points']:.1f} (Optimal: {bet['optimal_spread']:.1f})")
+                print(f"   Value Rating: {bet['value_rating']}")
+                print(f"   Confidence: {bet['confidence']}")
+                
+                if bet['value_rating'] == 'EXCELLENT':
+                    print(f"   🎯 EXCELLENT VALUE - Underdog getting {bet['extra_points']:.1f} extra points!")
+                elif bet['value_rating'] == 'GOOD':
+                    print(f"   ✓ GOOD VALUE - Underdog has clear advantage")
+                
+                print()
+            
+            # Highlight the best value bet
+            best = overvalued[0]
+            print("="*70)
+            print("🏆 BEST VALUE BET (Underdog Getting Most Extra Points)")
+            print("="*70)
+            print(f"Bet on: {best['underdog']} +{abs(best['spread']):.1f}")
+            print(f"Coverage Rate: {best['underdog_covers_pct']:.1f}%")
+            print(f"Extra Points: {best['extra_points']:.1f} points above optimal")
+            print(f"Value Rating: {best['value_rating']}")
+            print("="*70)
 
 
 def main():
@@ -264,6 +385,10 @@ def main():
     optimal = analyzer.find_optimal_spread()
     print(f"\nOptimal spread for 50/50 split: {optimal:.1f} points")
     analyzer.print_report(spread=optimal)
+    
+    # NEW: Find overvalued spreads
+    print("\n" + "="*70)
+    analyzer.print_overvalued_spreads()
 
 
 if __name__ == "__main__":

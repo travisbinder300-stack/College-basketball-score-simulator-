@@ -186,6 +186,10 @@ def find_best_spread_bet():
             print(f"  Coverage: {best_bet['coverage']:.1f}%")
             print(f"  Confidence: {best_bet['confidence']}")
     
+    # NEW: Show overvalued spreads (underdog getting too many points)
+    print("\n" + "="*70)
+    analyzer.print_overvalued_spreads()
+    
     # Show detailed analysis for a specific spread
     print("\n" + "="*70)
     custom_spread = input("\nAnalyze a specific spread? (Enter number or press Enter to skip): ").strip()

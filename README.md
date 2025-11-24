@@ -15,6 +15,7 @@ A comprehensive and accurate college basketball game simulator that uses realist
   - Run 1000+ simulations to analyze spread coverage
   - Identify high-confidence betting opportunities (70%+ success rate)
   - Calculate optimal spreads for even matchups
+  - **Find overvalued spreads** where underdog is getting too many points (value bets)
 - **Overtime Support**: Automatically simulates overtime periods when games are tied
 - **Play-by-Play**: Optional detailed play-by-play commentary for each possession
 - **Box Score**: Comprehensive box score with detailed team statistics
@@ -63,6 +64,7 @@ This tool runs 1000+ simulations and identifies:
 - Which team can cover specific spreads with 70%+ confidence
 - The optimal spread for a 50/50 matchup
 - High-confidence betting opportunities
+- **Overvalued spreads** where the underdog is getting too many points (value bets)
 
 **Example: Finding a team that covers the spread**
 
@@ -75,6 +77,7 @@ This runs automated analysis on preset matchups and shows:
 - Average scores and point differentials
 - Spread coverage rates at different lines
 - Confidence levels for each spread
+- **Overvalued spreads report** - identifies when underdogs are getting extra points
 
 **Programmatic Usage:**
 
@@ -94,6 +97,12 @@ analysis = analyzer.analyze_spread(5.0)
 print(f"Coverage rate: {analysis['cover_rate']:.1f}%")
 print(f"Best bet: {analysis['best_bet']}")
 print(f"Confidence: {analysis['confidence']}")
+
+# Find overvalued spreads (underdog getting too many points)
+overvalued = analyzer.find_overvalued_spreads()
+for bet in overvalued:
+    print(f"{bet['underdog']} +{abs(bet['spread']):.1f}: {bet['underdog_covers_pct']:.1f}% coverage")
+    print(f"Extra points: {bet['extra_points']:.1f} (Value: {bet['value_rating']})")
 ```
 
 ## Team Statistics
