@@ -42,7 +42,7 @@ def test_shot_mechanics():
     
     # Test 2-point shot
     made, points = perfect_team.attempt_shot(is_three_pointer=False)
-    assert made == True
+    assert made
     assert points == 2
     assert perfect_team.score == 2
     assert perfect_team.field_goals_made == 1
@@ -50,7 +50,7 @@ def test_shot_mechanics():
     
     # Test 3-point shot
     made, points = perfect_team.attempt_shot(is_three_pointer=True)
-    assert made == True
+    assert made
     assert points == 3
     assert perfect_team.score == 5
     assert perfect_team.three_pointers_made == 1
@@ -58,7 +58,7 @@ def test_shot_mechanics():
     
     # Test free throw
     made, points = perfect_team.attempt_free_throw()
-    assert made == True
+    assert made
     assert points == 1
     assert perfect_team.score == 6
     assert perfect_team.free_throws_made == 1

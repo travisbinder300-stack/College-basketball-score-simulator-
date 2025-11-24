@@ -5,8 +5,7 @@ A realistic college basketball game simulator with accurate scoring mechanics.
 """
 
 import random
-import time
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 
 
 class Team:
@@ -79,7 +78,7 @@ class Team:
         """Record a turnover."""
         self.turnovers += 1
     
-    def get_rebound(self, offensive: bool = False):
+    def get_rebound(self):
         """Record a rebound."""
         self.rebounds += 1
     
@@ -112,11 +111,9 @@ class BasketballSimulator:
         self.team2 = team2
         self.verbose = verbose
         self.possession_count = 0
-        self.game_log = []
     
     def log(self, message: str):
         """Log a game event."""
-        self.game_log.append(message)
         if self.verbose:
             print(message)
     
@@ -158,7 +155,7 @@ class BasketballSimulator:
             
             # Rebound battle
             if random.random() < offense.offensive_rebound_rate:
-                offense.get_rebound(offensive=True)
+                offense.get_rebound()
                 self.log(f"  {offense.name} gets the offensive rebound!")
                 # Second chance - simplified (just attempt another shot)
                 made2, points2 = offense.attempt_shot(False)  # Usually 2-point attempts
@@ -230,7 +227,7 @@ class BasketballSimulator:
                         if random.random() < 0.70:
                             defense.get_rebound()
                         else:
-                            offense.get_rebound(offensive=True)
+                            offense.get_rebound()
                 continue
             
             # Regular possession
