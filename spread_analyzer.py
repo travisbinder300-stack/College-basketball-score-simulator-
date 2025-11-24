@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""
+Spread Analyzer for College Basketball Score Simulator
+Analyzes which team can cover a point spread based on simulation results.
+"""
+
+import sys
+from typing import Dict, List, Tuple
+from basketball_simulator import Team, BasketballSimulator
+
+
+class SpreadAnalyzer:
+    """Analyzes teams and spreads using multiple game simulations."""
+    
+    def __init__(self, team1_config: Dict, team2_config: Dict, num_simulations: int = 1000):
+        """
+        Initialize spread analyzer.
+        
+        Args:
+            team1_config: Configuration for team 1 (name and stats)
+            team2_config: Configuration for team 2 (name and stats)
+            num_simulations: Number of games to simulate (default 1000)
+        """
+        self.team1_config = team1_config
+        self.team2_config = team2_config
+        self.num_simulations = num_simulations
+        self.results = []
+    
+    def run_simulations(self) -> List[Dict]:
+        """Run multiple game simulations and collect results."""
+        print(f"\nRunning {self.num_simulations} simulations...")
+        print(f"{self.team1_config['name']} vs {self.team2_config['name']}\n")
+        
+        self.results = []
+        
+        for i in range(self.num_simulations):
+            # Create fresh team instances for each simulation
+            team1 = Team(**self.team1_config)
+            team2 = Team(**self.team2_config)
+            
+            # Run simulation
+            simulator = BasketballSimulator(team1, team2, verbose=False)
+            winner, summary = simulator.simulate_game()
+            
+            # Calculate point differential (team1 score - team2 score)
+            point_diff = team1.score - team2.score
+            
+            self.results.append({
+                'game_num': i + 1,
+                'team1_score': team1.score,
+                'team2_score': team2.score,
+                'point_diff': point_diff,
+                'winner': winner.name
+            })
+            
+            # Show progress every 100 games
+            if (i + 1) % 100 == 0:
+                print(f"  Completed {i + 1}/{self.num_simulations} simulations...")
+        
+        print(f"\nSimulations complete!\n")
+        return self.results
+    
+    def analyze_spread(self, spread: float) -> Dict:
+        """
+        Analyze if a team can cover the spread.
+        
+        Args:
+            spread: Point spread (positive means team1 is favored, negative means team2 is favored)
+                   Example: spread = 5.0 means team1 is favored by 5 points
+        
+        Returns:
+            Dictionary with spread coverage analysis
+        """
+        if not self.results:
+            raise ValueError("No simulation results available. Run run_simulations() first.")
+        
+        # Count how many times each team covers the spread
+        team1_covers = 0
+        team2_covers = 0
+        pushes = 0  # Exactly ties the spread
+        
+        for result in self.results:
+            point_diff = result['point_diff']
+            
+            # Team1 is favored (positive spread)
+            # Team1 covers if they win by more than the spread
+            # Team2 covers if they lose by less than the spread (or win)
+            if point_diff > spread:
+                team1_covers += 1
+            elif point_diff < spread:
+                team2_covers += 1
+            else:
+                pushes += 1
+        
+        team1_cover_pct = (team1_covers / self.num_simulations) * 100
+        team2_cover_pct = (team2_covers / self.num_simulations) * 100
+        push_pct = (pushes / self.num_simulations) * 100
+        
+        # Determine which team covers more reliably
+        if team1_cover_pct > team2_cover_pct:
+            best_bet = self.team1_config['name']
+            cover_rate = team1_cover_pct
+        elif team2_cover_pct > team1_cover_pct:
+            best_bet = self.team2_config['name']
+            cover_rate = team2_cover_pct
+        else:
+            best_bet = "Even"
+            cover_rate = team1_cover_pct
+        
+        return {
+            'spread': spread,
+            'team1_covers': team1_covers,
+            'team1_cover_pct': team1_cover_pct,
+            'team2_covers': team2_covers,
+            'team2_cover_pct': team2_cover_pct,
+            'pushes': pushes,
+            'push_pct': push_pct,
+            'best_bet': best_bet,
+            'cover_rate': cover_rate,
+            'confidence': 'HIGH' if cover_rate >= 70 else 'MEDIUM' if cover_rate >= 60 else 'LOW'
+        }
+    
+    def find_optimal_spread(self) -> float:
+        """Find the spread where the line is most even (closest to 50/50)."""
+        if not self.results:
+            raise ValueError("No simulation results available. Run run_simulations() first.")
+        
+        # Calculate average point differential
+        total_diff = sum(r['point_diff'] for r in self.results)
+        avg_diff = total_diff / self.num_simulations
+        
+        return avg_diff
+    
+    def get_statistics(self) -> Dict:
+        """Get comprehensive statistics from all simulations."""
+        if not self.results:
+            raise ValueError("No simulation results available. Run run_simulations() first.")
+        
+        team1_scores = [r['team1_score'] for r in self.results]
+        team2_scores = [r['team2_score'] for r in self.results]
+        point_diffs = [r['point_diff'] for r in self.results]
+        
+        team1_wins = sum(1 for r in self.results if r['winner'] == self.team1_config['name'])
+        team2_wins = self.num_simulations - team1_wins
+        
+        return {
+            'team1_avg_score': sum(team1_scores) / len(team1_scores),
+            'team2_avg_score': sum(team2_scores) / len(team2_scores),
+            'team1_min_score': min(team1_scores),
+            'team1_max_score': max(team1_scores),
+            'team2_min_score': min(team2_scores),
+            'team2_max_score': max(team2_scores),
+            'avg_point_diff': sum(point_diffs) / len(point_diffs),
+            'team1_wins': team1_wins,
+            'team2_wins': team2_wins,
+            'team1_win_pct': (team1_wins / self.num_simulations) * 100,
+            'team2_win_pct': (team2_wins / self.num_simulations) * 100
+        }
+    
+    def print_report(self, spread: float = None):
+        """Print a comprehensive report of the spread analysis."""
+        if not self.results:
+            print("No simulation results available. Run run_simulations() first.")
+            return
+        
+        stats = self.get_statistics()
+        optimal_spread = self.find_optimal_spread()
+        
+        print("="*70)
+        print(" "*20 + "SPREAD ANALYSIS REPORT")
+        print("="*70)
+        
+        print(f"\nMatchup: {self.team1_config['name']} vs {self.team2_config['name']}")
+        print(f"Simulations: {self.num_simulations}")
+        
+        print("\n" + "-"*70)
+        print("OVERALL STATISTICS")
+        print("-"*70)
+        
+        print(f"\n{self.team1_config['name']}:")
+        print(f"  Wins: {stats['team1_wins']} ({stats['team1_win_pct']:.1f}%)")
+        print(f"  Avg Score: {stats['team1_avg_score']:.1f}")
+        print(f"  Score Range: {stats['team1_min_score']} - {stats['team1_max_score']}")
+        
+        print(f"\n{self.team2_config['name']}:")
+        print(f"  Wins: {stats['team2_wins']} ({stats['team2_win_pct']:.1f}%)")
+        print(f"  Avg Score: {stats['team2_avg_score']:.1f}")
+        print(f"  Score Range: {stats['team2_min_score']} - {stats['team2_max_score']}")
+        
+        print(f"\nAverage Point Differential: {stats['avg_point_diff']:.1f}")
+        print(f"Optimal Spread (50/50 line): {optimal_spread:.1f}")
+        
+        if spread is not None:
+            print("\n" + "-"*70)
+            print(f"SPREAD ANALYSIS: {abs(spread):.1f} points")
+            if spread > 0:
+                print(f"({self.team1_config['name']} favored by {spread:.1f})")
+            else:
+                print(f"({self.team2_config['name']} favored by {abs(spread):.1f})")
+            print("-"*70)
+            
+            analysis = self.analyze_spread(spread)
+            
+            print(f"\n{self.team1_config['name']} covers: {analysis['team1_covers']} times ({analysis['team1_cover_pct']:.1f}%)")
+            print(f"{self.team2_config['name']} covers: {analysis['team2_covers']} times ({analysis['team2_cover_pct']:.1f}%)")
+            print(f"Pushes (exact tie): {analysis['pushes']} times ({analysis['push_pct']:.1f}%)")
+            
+            print(f"\n{'='*70}")
+            print(f"RECOMMENDATION: Bet on {analysis['best_bet']}")
+            print(f"Cover Rate: {analysis['cover_rate']:.1f}%")
+            print(f"Confidence Level: {analysis['confidence']}")
+            print(f"{'='*70}")
+            
+            if analysis['cover_rate'] >= 70:
+                print(f"\n✓ HIGH CONFIDENCE BET - {analysis['best_bet']} covers {analysis['cover_rate']:.1f}% of the time")
+            elif analysis['cover_rate'] >= 60:
+                print(f"\n⚠ MEDIUM CONFIDENCE - {analysis['best_bet']} has slight edge at {analysis['cover_rate']:.1f}%")
+            else:
+                print(f"\n✗ LOW CONFIDENCE - Too close to call ({analysis['cover_rate']:.1f}%)")
+
+
+def main():
+    """Main function for command-line spread analysis."""
+    print("\n" + "="*70)
+    print(" "*15 + "COLLEGE BASKETBALL SPREAD ANALYZER")
+    print("="*70)
+    
+    # Example: Duke vs UNC
+    team1_config = {
+        'name': 'Duke Blue Devils',
+        'fg_percentage': 0.48,
+        'three_pt_percentage': 0.38,
+        'ft_percentage': 0.75,
+        'turnover_rate': 0.12,
+        'offensive_rebound_rate': 0.32,
+        'defensive_rebound_rate': 0.72
+    }
+    
+    team2_config = {
+        'name': 'UNC Tar Heels',
+        'fg_percentage': 0.45,
+        'three_pt_percentage': 0.35,
+        'ft_percentage': 0.70,
+        'turnover_rate': 0.14,
+        'offensive_rebound_rate': 0.28,
+        'defensive_rebound_rate': 0.68
+    }
+    
+    # Create analyzer and run simulations
+    analyzer = SpreadAnalyzer(team1_config, team2_config, num_simulations=1000)
+    analyzer.run_simulations()
+    
+    # Test different spreads
+    spreads_to_test = [3.0, 5.0, 7.0]
+    
+    for spread in spreads_to_test:
+        print("\n" + "="*70)
+        analyzer.print_report(spread=spread)
+    
+    # Find the optimal spread
+    print("\n" + "="*70)
+    print("FINDING OPTIMAL SPREAD (Most Even Line)")
+    print("="*70)
+    optimal = analyzer.find_optimal_spread()
+    print(f"\nOptimal spread for 50/50 split: {optimal:.1f} points")
+    analyzer.print_report(spread=optimal)
+
+
+if __name__ == "__main__":
+    main()

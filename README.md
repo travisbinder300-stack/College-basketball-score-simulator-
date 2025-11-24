@@ -11,6 +11,10 @@ A comprehensive and accurate college basketball game simulator that uses realist
   - Quick simulation with preset teams
   - Custom simulation with user-defined teams
   - Multiple simulations for aggregate statistics
+- **Spread Analysis** (NEW): Find teams that can cover point spreads with high confidence
+  - Run 1000+ simulations to analyze spread coverage
+  - Identify high-confidence betting opportunities (70%+ success rate)
+  - Calculate optimal spreads for even matchups
 - **Overtime Support**: Automatically simulates overtime periods when games are tied
 - **Play-by-Play**: Optional detailed play-by-play commentary for each possession
 - **Box Score**: Comprehensive box score with detailed team statistics
@@ -46,6 +50,51 @@ The interactive mode offers three options:
 1. **Quick Simulation**: Run a single game with preset teams
 2. **Custom Simulation**: Define your own teams with custom statistics
 3. **Multiple Simulations**: Run multiple games and see aggregate results
+
+### Spread Analysis (Find Teams That Cover Spreads)
+
+Find teams that can cover point spreads with high accuracy:
+
+```bash
+python3 spread_finder.py
+```
+
+This tool runs 1000+ simulations and identifies:
+- Which team can cover specific spreads with 70%+ confidence
+- The optimal spread for a 50/50 matchup
+- High-confidence betting opportunities
+
+**Example: Finding a team that covers the spread**
+
+```bash
+python3 spread_analyzer.py
+```
+
+This runs automated analysis on preset matchups and shows:
+- Team win percentages
+- Average scores and point differentials
+- Spread coverage rates at different lines
+- Confidence levels for each spread
+
+**Programmatic Usage:**
+
+```python
+from spread_analyzer import SpreadAnalyzer
+
+# Define teams
+team1 = {'name': 'Duke', 'fg_percentage': 0.48, 'three_pt_percentage': 0.38}
+team2 = {'name': 'UNC', 'fg_percentage': 0.45, 'three_pt_percentage': 0.35}
+
+# Run analysis
+analyzer = SpreadAnalyzer(team1, team2, num_simulations=1000)
+analyzer.run_simulations()
+
+# Check if team can cover a 5-point spread
+analysis = analyzer.analyze_spread(5.0)
+print(f"Coverage rate: {analysis['cover_rate']:.1f}%")
+print(f"Best bet: {analysis['best_bet']}")
+print(f"Confidence: {analysis['confidence']}")
+```
 
 ## Team Statistics
 
