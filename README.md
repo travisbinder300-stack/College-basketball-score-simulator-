@@ -82,7 +82,7 @@ COLLEGE FOOTBALL SPREAD ANALYSIS REPORT
 Finding spreads with 80% to 100% coverage rate
 ================================================================================
 
-Total games analyzed: 34
+Total games analyzed: 40
 
 --- ANALYSIS BY SPECIFIC SPREAD VALUE ---
 
@@ -96,6 +96,9 @@ Total games analyzed: 34
    Coverage Rate: 100.0% (9/9 games)
 
 --- OVER/UNDER ANALYSIS ---
+
+O/U 42.5 (UNDER)
+Hit Rate: 100.0% (6/6 games)
 
 O/U 58.5 (OVER)
 Hit Rate: 100.0% (11/11 games)
@@ -132,7 +135,8 @@ Based on the sample data analysis:
 - **-7 point spreads**: 100% coverage rate (9/9 games)
 - **-14 point spreads**: 100% coverage rate (6/6 games)
 - **-21 point spreads**: 100% coverage rate (6/6 games)
-- **Over/Under 58.5 (OVER)**: 100% hit rate (11/11 games)
+- **Over/Under 42.5 (UNDER)**: 100% hit rate (6/6 games) - defensive, low-scoring games
+- **Over/Under 58.5 (OVER)**: 100% hit rate (11/11 games) - high-scoring games
 - **Vanderbilt as favorite**: Loses 100% of the time (3/3 games) - bet against them!
 
 ## Files Generated

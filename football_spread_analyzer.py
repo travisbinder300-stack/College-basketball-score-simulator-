@@ -265,7 +265,7 @@ class FootballSpreadAnalyzer:
                     results.append(analysis)
                 
                 # Check if UNDER hits at target rate
-                elif min_rate <= under_rate <= max_rate:
+                if min_rate <= under_rate <= max_rate:
                     analysis = SpreadAnalysis(
                         spread_range=f"O/U {ou_value:.1f} (UNDER)",
                         total_games=len(games_list),
@@ -464,7 +464,7 @@ def create_sample_data():
         # Additional -7 spreads for 80%+ rate
         {"home_team": "Notre Dame", "away_team": "Navy", "home_score": 35, "away_score": 21, "spread": -7.0, "over_under": 52.5, "season": "2023", "week": 10},
         {"home_team": "Texas A&M", "away_team": "Mississippi State", "home_score": 31, "away_score": 20, "spread": -7.0, "over_under": 48.5, "season": "2023", "week": 11},
-        {"home_team": "Utah", "away_team": "UCLA", "home_score": 28, "away_score": 17, "spread": -7.0, "over_under": 42.5, "season": "2023", "week": 12},
+        {"home_team": "Utah", "away_team": "UCLA", "home_score": 28, "away_score": 17, "spread": -7.0, "over_under": 48.5, "season": "2023", "week": 12},
         {"home_team": "Kentucky", "away_team": "South Carolina", "home_score": 31, "away_score": 17, "spread": -7.0, "over_under": 45.5, "season": "2023", "week": 13},
         
         # Wrong favorites - team that always loses as favorite (Vanderbilt example)
@@ -478,6 +478,14 @@ def create_sample_data():
         {"home_team": "West Virginia", "away_team": "Texas Tech", "home_score": 42, "away_score": 31, "spread": -5.0, "over_under": 58.5, "season": "2023", "week": 10},
         {"home_team": "Arizona State", "away_team": "Arizona", "home_score": 35, "away_score": 28, "spread": -3.0, "over_under": 58.5, "season": "2023", "week": 11},
         {"home_team": "Washington State", "away_team": "Oregon State", "home_score": 38, "away_score": 35, "spread": -4.0, "over_under": 58.5, "season": "2023", "week": 12},
+        
+        # Defensive games that consistently go UNDER at 42.5
+        {"home_team": "Iowa", "away_team": "Northwestern", "home_score": 10, "away_score": 7, "spread": -6.0, "over_under": 42.5, "season": "2023", "week": 3},
+        {"home_team": "Michigan", "away_team": "Iowa", "home_score": 14, "away_score": 10, "spread": -9.0, "over_under": 42.5, "season": "2023", "week": 5},
+        {"home_team": "Penn State", "away_team": "Northwestern", "home_score": 17, "away_score": 7, "spread": -10.0, "over_under": 42.5, "season": "2023", "week": 6},
+        {"home_team": "Wisconsin", "away_team": "Iowa", "home_score": 13, "away_score": 10, "spread": -3.5, "over_under": 42.5, "season": "2023", "week": 8},
+        {"home_team": "Northwestern", "away_team": "Purdue", "home_score": 14, "away_score": 13, "spread": -4.0, "over_under": 42.5, "season": "2023", "week": 9},
+        {"home_team": "Iowa", "away_team": "Rutgers", "home_score": 16, "away_score": 14, "spread": -7.0, "over_under": 42.5, "season": "2023", "week": 11},
     ]
     
     with open('sample_games.json', 'w') as f:
