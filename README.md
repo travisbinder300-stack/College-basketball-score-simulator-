@@ -68,6 +68,19 @@ This tool runs 1000+ simulations and identifies:
 - **Overvalued spreads** where the underdog is getting too many points (value bets)
 - **Undervalued spreads** where the favorite is giving too many points (trap bets to avoid)
 
+**See a Complete Example:**
+
+```bash
+python3 good_example.py
+```
+
+This comprehensive example demonstrates:
+- Duke vs UNC rivalry game analysis with 1000 simulations
+- Testing multiple betting scenarios (3, 5, 7, 10, 12 point spreads)
+- Identifying value bets and trap bets
+- Detailed recommendations with coverage percentages
+- Quick comparison of 3 different matchup types
+
 **Example: Finding a team that covers the spread**
 
 ```bash
