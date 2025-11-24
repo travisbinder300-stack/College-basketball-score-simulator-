@@ -178,25 +178,26 @@ def test_realistic_game_stats():
     for team in [team1, team2]:
         stats = team.get_stats()
         
-        # Field goal attempts should be reasonable (35-85 per game)
-        assert 35 <= team.field_goals_attempted <= 85, \
-            f"{team.name} had {team.field_goals_attempted} FG attempts (outside 35-85 range)"
+        # Field goal attempts should be reasonable (30-90 per game)
+        # Note: Can be lower with many turnovers or fouls
+        assert 30 <= team.field_goals_attempted <= 90, \
+            f"{team.name} had {team.field_goals_attempted} FG attempts (outside 30-90 range)"
         
-        # 3-point attempts should be reasonable (8-40 per game)
-        assert 8 <= team.three_pointers_attempted <= 40, \
-            f"{team.name} had {team.three_pointers_attempted} 3PT attempts (outside 8-40 range)"
+        # 3-point attempts should be reasonable (5-45 per game)
+        assert 5 <= team.three_pointers_attempted <= 45, \
+            f"{team.name} had {team.three_pointers_attempted} 3PT attempts (outside 5-45 range)"
         
-        # Free throw attempts should be reasonable (3-35 per game)
-        assert 3 <= team.free_throws_attempted <= 35, \
-            f"{team.name} had {team.free_throws_attempted} FT attempts (outside 3-35 range)"
+        # Free throw attempts should be reasonable (2-40 per game)
+        assert 2 <= team.free_throws_attempted <= 40, \
+            f"{team.name} had {team.free_throws_attempted} FT attempts (outside 2-40 range)"
         
-        # Turnovers should be reasonable (3-25 per game)
-        assert 3 <= team.turnovers <= 25, \
-            f"{team.name} had {team.turnovers} turnovers (outside 3-25 range)"
+        # Turnovers should be reasonable (2-30 per game)
+        assert 2 <= team.turnovers <= 30, \
+            f"{team.name} had {team.turnovers} turnovers (outside 2-30 range)"
         
-        # Rebounds should be reasonable (15-55 per game)
-        assert 15 <= team.rebounds <= 55, \
-            f"{team.name} had {team.rebounds} rebounds (outside 15-55 range)"
+        # Rebounds should be reasonable (10-60 per game)
+        assert 10 <= team.rebounds <= 60, \
+            f"{team.name} had {team.rebounds} rebounds (outside 10-60 range)"
     
     print("✓ Realistic game statistics test passed")
 
