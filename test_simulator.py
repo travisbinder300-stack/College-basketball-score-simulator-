@@ -79,7 +79,7 @@ class TestBasketballSimulator(unittest.TestCase):
     def test_simulate_possession_returns_valid_points(self):
         """Test that possession simulation returns valid point values."""
         for _ in range(100):
-            points = self.simulator.simulate_possession(self.team1, self.team2)
+            points = self.simulator.simulate_possession(self.team1, self.team2, is_home=True)
             self.assertIn(points, [0, 1, 2, 3], 
                          "Possession should return 0, 1, 2, or 3 points")
     
@@ -172,6 +172,54 @@ class TestGameRealism(unittest.TestCase):
         # Average team score in college basketball is typically 65-75
         self.assertGreater(avg_score, 40, "Average score too low")
         self.assertLess(avg_score, 100, "Average score too high")
+
+
+class TestPerformance(unittest.TestCase):
+    """Test performance optimizations."""
+    
+    def test_cached_matchup_stats(self):
+        """Test that matchup statistics are cached on simulator creation."""
+        team1 = Team("Team 1", offense_rating=80, defense_rating=75)
+        team2 = Team("Team 2", offense_rating=70, defense_rating=80)
+        
+        sim = BasketballSimulator(team1, team2)
+        
+        # Verify cached attributes exist
+        self.assertTrue(hasattr(sim, 'home_turnover_rate'))
+        self.assertTrue(hasattr(sim, 'away_turnover_rate'))
+        self.assertTrue(hasattr(sim, 'home_two_pt_rate'))
+        self.assertTrue(hasattr(sim, 'away_two_pt_rate'))
+        
+        # Verify cached values are in valid ranges
+        self.assertGreaterEqual(sim.home_turnover_rate, 0.10)
+        self.assertLessEqual(sim.home_turnover_rate, 0.25)
+        self.assertGreaterEqual(sim.home_two_pt_rate, 0.35)
+        self.assertLessEqual(sim.home_two_pt_rate, 0.65)
+    
+    def test_simulator_reuse(self):
+        """Test that simulator can be reused for multiple games."""
+        team1 = Team("Team 1", offense_rating=75, defense_rating=75)
+        team2 = Team("Team 2", offense_rating=75, defense_rating=75)
+        
+        sim = BasketballSimulator(team1, team2)
+        
+        # Simulate multiple games with same simulator
+        results = []
+        for _ in range(10):
+            score1, score2 = sim.simulate_game()
+            results.append((score1, score2))
+        
+        # Verify all games produced valid results
+        for score1, score2 in results:
+            self.assertGreaterEqual(score1, 0)
+            self.assertGreaterEqual(score2, 0)
+            self.assertLess(score1, 200)
+            self.assertLess(score2, 200)
+        
+        # Verify different results (not all same)
+        unique_results = set(results)
+        self.assertGreater(len(unique_results), 1, 
+                          "Multiple games should produce varying results")
 
 
 if __name__ == '__main__':

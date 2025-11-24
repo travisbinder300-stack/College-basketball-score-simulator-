@@ -55,20 +55,41 @@ class BasketballSimulator:
         self.home_score = 0
         self.away_score = 0
         
-    def simulate_possession(self, offensive_team: Team, defensive_team: Team) -> int:
+        # Pre-calculate matchup-specific statistics for performance
+        self._cache_matchup_stats()
+        # Pre-calculate matchup-specific statistics for performance
+        self._cache_matchup_stats()
+        
+    def _cache_matchup_stats(self):
+        """Pre-calculate matchup-specific statistics to avoid redundant calculations."""
+        # Cache turnover rates
+        self.home_turnover_rate = 0.15 + (self.away_team.defense_rating - self.home_team.offense_rating) / 300
+        self.home_turnover_rate = max(0.10, min(0.25, self.home_turnover_rate))
+        
+        self.away_turnover_rate = 0.15 + (self.home_team.defense_rating - self.away_team.offense_rating) / 300
+        self.away_turnover_rate = max(0.10, min(0.25, self.away_turnover_rate))
+        
+        # Cache two-point success rates
+        self.home_two_pt_rate = 0.48 + (self.home_team.offense_rating - self.away_team.defense_rating) / 200
+        self.home_two_pt_rate = max(0.35, min(0.65, self.home_two_pt_rate))
+        
+        self.away_two_pt_rate = 0.48 + (self.away_team.offense_rating - self.home_team.defense_rating) / 200
+        self.away_two_pt_rate = max(0.35, min(0.65, self.away_two_pt_rate))
+        
+    def simulate_possession(self, offensive_team: Team, defensive_team: Team, is_home: bool) -> int:
         """
         Simulate a single possession.
         
         Args:
             offensive_team: Team on offense
             defensive_team: Team on defense
+            is_home: True if offensive team is home team
             
         Returns:
             Points scored on this possession (0, 1, 2, or 3)
         """
-        # Check for turnover (relatively rare in college basketball)
-        turnover_rate = 0.15 + (defensive_team.defense_rating - offensive_team.offense_rating) / 300
-        turnover_rate = max(0.10, min(0.25, turnover_rate))
+        # Use cached turnover rate
+        turnover_rate = self.home_turnover_rate if is_home else self.away_turnover_rate
         
         if random.random() < turnover_rate:
             # Turnover - no points
@@ -88,9 +109,8 @@ class BasketballSimulator:
                 return 0
                 
         elif shot_type < 0.80:  # 50% chance of 2-point attempt
-            # 2-point shots have higher success rate
-            two_point_success = 0.48 + (offensive_team.offense_rating - defensive_team.defense_rating) / 200
-            two_point_success = max(0.35, min(0.65, two_point_success))
+            # Use cached two-point success rate
+            two_point_success = self.home_two_pt_rate if is_home else self.away_two_pt_rate
             if random.random() < two_point_success:
                 if self.verbose:
                     print(f"  {offensive_team.name} scores a 2-pointer!")
@@ -122,6 +142,7 @@ class BasketballSimulator:
         Returns:
             Tuple of (home_score, away_score)
         """
+        # Reset scores for new game
         self.home_score = 0
         self.away_score = 0
         
@@ -134,11 +155,11 @@ class BasketballSimulator:
         for possession_num in range(total_possessions):
             if possession_num % 2 == 0:
                 # Home team possession
-                points = self.simulate_possession(self.home_team, self.away_team)
+                points = self.simulate_possession(self.home_team, self.away_team, is_home=True)
                 self.home_score += points
             else:
                 # Away team possession
-                points = self.simulate_possession(self.away_team, self.home_team)
+                points = self.simulate_possession(self.away_team, self.home_team, is_home=False)
                 self.away_score += points
                 
             # Show periodic score updates
@@ -306,8 +327,10 @@ Examples:
         total_home_score = 0
         total_away_score = 0
         
+        # Reuse the same simulator object for better performance
+        simulator = BasketballSimulator(home_team, away_team, verbose=False)
+        
         for game_num in range(args.games):
-            simulator = BasketballSimulator(home_team, away_team, verbose=False)
             home_score, away_score = simulator.simulate_game()
             
             total_home_score += home_score
