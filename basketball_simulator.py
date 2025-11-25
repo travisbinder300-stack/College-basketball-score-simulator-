@@ -63,58 +63,79 @@ class Team:
         """
         Set random game-day variance to simulate hot/cold shooting nights.
         This is called at the start of each game to vary team performance.
+        
+        Calibrated based on real game results to allow for more volatility,
+        especially in close matchups where upsets and blowouts occur.
         """
         if self.variance_enabled:
-            # Variance between -0.05 and +0.05 (can shoot 5% better or worse)
-            self.game_variance = random.gauss(0, 0.025)
-            # Clamp to reasonable range
-            self.game_variance = max(-0.06, min(0.06, self.game_variance))
+            # Increased variance: -0.08 to +0.08 (8% better or worse)
+            # This allows for hot/cold nights that create more realistic score variability
+            self.game_variance = random.gauss(0, 0.035)
+            # Wider range allows for occasional extreme performances (like Pacific +28)
+            self.game_variance = max(-0.08, min(0.08, self.game_variance))
         else:
             self.game_variance = 0.0
     
     def get_effective_fg_percentage(self) -> float:
-        """Get field goal percentage adjusted for game variance, home court, and momentum."""
+        """Get field goal percentage adjusted for game variance, home court, and momentum.
+        
+        Calibrated to allow more extreme performances that match real game outcomes.
+        """
         base = self.fg_percentage + self.game_variance
         
-        # Home court advantage: +1.5% to FG%
+        # Home court advantage: +2% to FG% (increased from 1.5%)
         if self.home_court:
-            base += 0.015
+            base += 0.020
         
-        # Momentum bonus: up to +2% when on a run
-        base += self.current_momentum * 0.02
+        # Momentum bonus: up to +3% when on a run (increased from 2%)
+        # This creates more impactful scoring runs
+        base += self.current_momentum * 0.03
         
-        # Clamp to realistic range, but never below the original team percentage
-        # This ensures test teams with 100% shooting still work
-        min_val = max(0.25, self.fg_percentage - 0.08)  # Allow up to 8% below base
-        max_val = min(1.0, max(0.65, self.fg_percentage + 0.08))  # Allow up to 8% above base
+        # Wider range to allow blowouts and upsets
+        min_val = max(0.25, self.fg_percentage - 0.10)  # Allow up to 10% below base
+        max_val = min(1.0, max(0.65, self.fg_percentage + 0.10))  # Allow up to 10% above base
         return max(min_val, min(max_val, base))
     
     def get_effective_three_pt_percentage(self) -> float:
-        """Get 3-point percentage adjusted for game variance, home court, and momentum."""
+        """Get 3-point percentage adjusted for game variance, home court, and momentum.
+        
+        Calibrated to create more realistic hot/cold 3-point shooting performances.
+        """
         base = self.three_pt_percentage + self.game_variance
         
-        # Home court advantage: +1.5% to 3PT%
+        # Home court advantage: +2% to 3PT% (increased from 1.5%)
         if self.home_court:
-            base += 0.015
+            base += 0.020
         
-        # Momentum has bigger effect on 3PT shooting
-        base += self.current_momentum * 0.025
+        # Momentum has bigger effect on 3PT shooting (increased from 2.5%)
+        # Hot teams can really light it up from beyond the arc
+        base += self.current_momentum * 0.035
         
-        # Clamp to realistic range, but preserve original team percentage
-        min_val = max(0.20, self.three_pt_percentage - 0.08)
-        max_val = min(1.0, max(0.50, self.three_pt_percentage + 0.08))
+        # Wider range for 3-point variance (more volatile stat)
+        min_val = max(0.20, self.three_pt_percentage - 0.10)
+        max_val = min(1.0, max(0.50, self.three_pt_percentage + 0.10))
         return max(min_val, min(max_val, base))
     
     def update_momentum(self, scored: bool):
-        """Update momentum based on scoring outcome."""
+        """Update momentum based on scoring outcome.
+        
+        Calibrated to create more dramatic scoring runs and slumps
+        that match real game flow where teams get hot or cold.
+        """
         if scored:
             self.consecutive_scores += 1
             # Build momentum faster with consecutive scores
-            self.current_momentum = min(1.0, self.current_momentum + 0.15)
+            # Increased from 0.15 to 0.18 for more dramatic runs
+            momentum_gain = 0.18
+            # Bonus momentum for extended runs (3+ consecutive scores)
+            if self.consecutive_scores >= 3:
+                momentum_gain = 0.22
+            self.current_momentum = min(1.0, self.current_momentum + momentum_gain)
         else:
             self.consecutive_scores = 0
             # Lose momentum on missed possessions
-            self.current_momentum = max(-1.0, self.current_momentum - 0.10)
+            # Increased from 0.10 to 0.12 for faster momentum swings
+            self.current_momentum = max(-1.0, self.current_momentum - 0.12)
     
     def attempt_shot(self, is_three_pointer: bool = False) -> Tuple[bool, int]:
         """

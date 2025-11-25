@@ -5,11 +5,12 @@ A comprehensive and accurate college basketball game simulator that uses realist
 ## Features
 
 - **Realistic Game Simulation**: Simulates college basketball games with accurate scoring, possessions, and game flow
-- **Enhanced Realism** (NEW): 
-  - **Game-to-game variance**: Teams don't perform at exact averages every game - simulates hot/cold shooting nights
-  - **Home court advantage**: Home teams get ~3-4 point boost through improved shooting
-  - **Momentum and scoring runs**: Teams on scoring runs shoot better; cold teams struggle more
+- **Enhanced Realism with Calibrated Parameters** (UPDATED): 
+  - **Game-to-game variance**: Teams perform 5-8% better or worse than averages (calibrated from real game data)
+  - **Home court advantage**: Home teams get ~4 point boost through improved shooting (2% FG/3PT boost)
+  - **Momentum and scoring runs**: Enhanced momentum system creates dramatic runs and slumps (up to 3% FG boost)
   - **Pace of play**: Adjustable game tempo affects total possessions and scoring
+  - **Calibrated for real-world accuracy**: Parameters tuned based on actual college basketball game outcomes
 - **Detailed Statistics**: Tracks field goals, 3-pointers, free throws, rebounds, assists, steals, blocks, turnovers, and fouls
 - **Customizable Teams**: Configure teams with custom statistics (shooting percentages, turnover rates, etc.)
 - **Multiple Simulation Modes**: 
