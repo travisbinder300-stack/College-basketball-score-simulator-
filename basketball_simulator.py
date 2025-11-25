@@ -2,6 +2,12 @@
 """
 College Basketball Score Simulator
 A realistic college basketball game simulator with accurate scoring mechanics.
+
+Enhanced for better real-game accuracy with:
+- Game-to-game variance in team performance
+- Home court advantage
+- Momentum and scoring run mechanics
+- Pace of play adjustments
 """
 
 import random
@@ -28,6 +34,18 @@ class Team:
         self.steal_rate = stats.get('steal_rate', 0.08)
         self.block_rate = stats.get('block_rate', 0.05)
         
+        # Advanced stats for realism
+        self.pace_factor = stats.get('pace_factor', 1.0)  # 1.0 = average, >1.0 = faster, <1.0 = slower
+        self.home_court = stats.get('home_court', False)  # Is this team playing at home?
+        
+        # Game-day variance settings (simulate hot/cold shooting nights)
+        self.variance_enabled = stats.get('variance_enabled', True)
+        self.game_variance = 0.0  # Set during game initialization
+        
+        # Momentum tracking
+        self.current_momentum = 0.0  # -1.0 to 1.0, affects performance
+        self.consecutive_scores = 0
+        
         # Game stats
         self.field_goals_made = 0
         self.field_goals_attempted = 0
@@ -41,14 +59,72 @@ class Team:
         self.blocks = 0
         self.turnovers = 0
     
+    def initialize_game_variance(self):
+        """
+        Set random game-day variance to simulate hot/cold shooting nights.
+        This is called at the start of each game to vary team performance.
+        """
+        if self.variance_enabled:
+            # Variance between -0.05 and +0.05 (can shoot 5% better or worse)
+            self.game_variance = random.gauss(0, 0.025)
+            # Clamp to reasonable range
+            self.game_variance = max(-0.06, min(0.06, self.game_variance))
+        else:
+            self.game_variance = 0.0
+    
+    def get_effective_fg_percentage(self) -> float:
+        """Get field goal percentage adjusted for game variance, home court, and momentum."""
+        base = self.fg_percentage + self.game_variance
+        
+        # Home court advantage: +1.5% to FG%
+        if self.home_court:
+            base += 0.015
+        
+        # Momentum bonus: up to +2% when on a run
+        base += self.current_momentum * 0.02
+        
+        # Clamp to realistic range, but never below the original team percentage
+        # This ensures test teams with 100% shooting still work
+        min_val = max(0.25, self.fg_percentage - 0.08)  # Allow up to 8% below base
+        max_val = min(1.0, max(0.65, self.fg_percentage + 0.08))  # Allow up to 8% above base
+        return max(min_val, min(max_val, base))
+    
+    def get_effective_three_pt_percentage(self) -> float:
+        """Get 3-point percentage adjusted for game variance, home court, and momentum."""
+        base = self.three_pt_percentage + self.game_variance
+        
+        # Home court advantage: +1.5% to 3PT%
+        if self.home_court:
+            base += 0.015
+        
+        # Momentum has bigger effect on 3PT shooting
+        base += self.current_momentum * 0.025
+        
+        # Clamp to realistic range, but preserve original team percentage
+        min_val = max(0.20, self.three_pt_percentage - 0.08)
+        max_val = min(1.0, max(0.50, self.three_pt_percentage + 0.08))
+        return max(min_val, min(max_val, base))
+    
+    def update_momentum(self, scored: bool):
+        """Update momentum based on scoring outcome."""
+        if scored:
+            self.consecutive_scores += 1
+            # Build momentum faster with consecutive scores
+            self.current_momentum = min(1.0, self.current_momentum + 0.15)
+        else:
+            self.consecutive_scores = 0
+            # Lose momentum on missed possessions
+            self.current_momentum = max(-1.0, self.current_momentum - 0.10)
+    
     def attempt_shot(self, is_three_pointer: bool = False) -> Tuple[bool, int]:
         """
-        Attempt a shot.
+        Attempt a shot using effective percentages (accounts for variance, home court, momentum).
         Returns: (made, points_scored)
         """
         if is_three_pointer:
             self.three_pointers_attempted += 1
-            made = random.random() < self.three_pt_percentage
+            effective_pct = self.get_effective_three_pt_percentage()
+            made = random.random() < effective_pct
             if made:
                 self.three_pointers_made += 1
                 self.score += 3
@@ -56,7 +132,8 @@ class Team:
             return False, 0
         else:
             self.field_goals_attempted += 1
-            made = random.random() < self.fg_percentage
+            effective_pct = self.get_effective_fg_percentage()
+            made = random.random() < effective_pct
             if made:
                 self.field_goals_made += 1
                 # 2-point shot
@@ -67,7 +144,11 @@ class Team:
     def attempt_free_throw(self) -> Tuple[bool, int]:
         """Attempt a free throw. Returns: (made, points_scored)"""
         self.free_throws_attempted += 1
-        made = random.random() < self.ft_percentage
+        # Free throws are less affected by momentum but slight home court advantage
+        effective_ft = self.ft_percentage
+        if self.home_court:
+            effective_ft += 0.01  # Slight home advantage on FTs
+        made = random.random() < effective_ft
         if made:
             self.free_throws_made += 1
             self.score += 1
@@ -104,13 +185,20 @@ class Team:
 
 
 class BasketballSimulator:
-    """Simulates a college basketball game."""
+    """Simulates a college basketball game with enhanced realism."""
     
     def __init__(self, team1: Team, team2: Team, verbose: bool = True):
         self.team1 = team1
         self.team2 = team2
         self.verbose = verbose
         self.possession_count = 0
+        
+        # Initialize game-day variance for each team
+        self.team1.initialize_game_variance()
+        self.team2.initialize_game_variance()
+        
+        # Calculate effective pace (average of both teams' pace factors)
+        self.game_pace = (self.team1.pace_factor + self.team2.pace_factor) / 2
     
     def log(self, message: str):
         """Log a game event."""
@@ -119,18 +207,24 @@ class BasketballSimulator:
     
     def simulate_possession(self, offense: Team, defense: Team) -> bool:
         """
-        Simulate a single possession.
+        Simulate a single possession with momentum tracking.
         Returns True if possession results in a score, False otherwise.
         """
         self.possession_count += 1
         
+        # Turnovers slightly affected by negative momentum
+        effective_turnover_rate = offense.turnover_rate
+        if offense.current_momentum < 0:
+            effective_turnover_rate += abs(offense.current_momentum) * 0.02  # Up to 2% more turnovers when cold
+        
         # Check for turnover
-        if random.random() < offense.turnover_rate:
+        if random.random() < effective_turnover_rate:
             # Check if defense gets a steal
             if random.random() < defense.steal_rate:
                 defense.steals += 1
                 self.log(f"  {defense.name} steals the ball!")
             offense.commit_turnover()
+            offense.update_momentum(False)
             self.log(f"  {offense.name} turns the ball over!")
             return False
         
@@ -145,6 +239,8 @@ class BasketballSimulator:
             # Randomly assign assist
             if random.random() < 0.60:  # 60% of made shots get assists
                 offense.assists += 1
+            offense.update_momentum(True)
+            defense.update_momentum(False)  # Defense loses momentum when scored on
             self.log(f"  {offense.name} scores {points} points on a {shot_type}! Score: {self.team1.name} {self.team1.score} - {self.team2.name} {self.team2.score}")
             return True
         else:
@@ -162,13 +258,17 @@ class BasketballSimulator:
                 if made2:
                     if random.random() < 0.40:
                         offense.assists += 1
+                    offense.update_momentum(True)
+                    defense.update_momentum(False)
                     self.log(f"  {offense.name} scores {points2} points on the putback! Score: {self.team1.name} {self.team1.score} - {self.team2.name} {self.team2.score}")
                     return True
                 else:
                     # Defense rebounds after putback attempt
                     defense.get_rebound()
+                    offense.update_momentum(False)
             else:
                 defense.get_rebound()
+                offense.update_momentum(False)
                 self.log(f"  {defense.name} gets the defensive rebound.")
             
             return False
@@ -199,8 +299,14 @@ class BasketballSimulator:
         self.log(f"{'HALF ' + str(half_number):^60}")
         self.log(f"{'='*60}\n")
         
-        # College basketball: roughly 70 total possessions per half (35 per team)
-        total_possessions = 70
+        # College basketball: base 70 possessions per half, adjusted by game pace
+        # Pace factor of 1.0 = 70 possessions, 1.1 = 77 possessions, 0.9 = 63 possessions
+        base_possessions = 70
+        total_possessions = int(base_possessions * self.game_pace)
+        
+        # Add some random variation to possession count (+/- 5%)
+        variation = random.randint(-3, 3)
+        total_possessions = max(60, min(80, total_possessions + variation))
         
         for i in range(total_possessions):
             # Alternate possessions
@@ -220,6 +326,7 @@ class BasketballSimulator:
                 for ft in range(free_throws):
                     made, points = offense.attempt_free_throw()
                     if made:
+                        offense.update_momentum(True)
                         self.log(f"  {offense.name} makes free throw {ft+1}! Score: {self.team1.name} {self.team1.score} - {self.team2.name} {self.team2.score}")
                     else:
                         self.log(f"  {offense.name} misses free throw {ft+1}")

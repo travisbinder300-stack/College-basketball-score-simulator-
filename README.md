@@ -5,13 +5,18 @@ A comprehensive and accurate college basketball game simulator that uses realist
 ## Features
 
 - **Realistic Game Simulation**: Simulates college basketball games with accurate scoring, possessions, and game flow
+- **Enhanced Realism** (NEW): 
+  - **Game-to-game variance**: Teams don't perform at exact averages every game - simulates hot/cold shooting nights
+  - **Home court advantage**: Home teams get ~3-4 point boost through improved shooting
+  - **Momentum and scoring runs**: Teams on scoring runs shoot better; cold teams struggle more
+  - **Pace of play**: Adjustable game tempo affects total possessions and scoring
 - **Detailed Statistics**: Tracks field goals, 3-pointers, free throws, rebounds, assists, steals, blocks, turnovers, and fouls
 - **Customizable Teams**: Configure teams with custom statistics (shooting percentages, turnover rates, etc.)
 - **Multiple Simulation Modes**: 
   - Quick simulation with preset teams
   - Custom simulation with user-defined teams
   - Multiple simulations for aggregate statistics
-- **Spread Analysis** (NEW): Find teams that can cover point spreads with high confidence
+- **Spread Analysis**: Find teams that can cover point spreads with high confidence
   - Run 1000+ simulations to analyze spread coverage
   - Identify high-confidence betting opportunities (70%+ success rate)
   - Calculate optimal spreads for even matchups
@@ -144,6 +149,7 @@ for bet in undervalued:
 
 Teams can be customized with the following statistics:
 
+### Core Stats
 - **Field Goal Percentage** (0.20-0.70): Overall shooting accuracy
 - **Three-Point Percentage** (0.15-0.50): 3-point shooting accuracy
 - **Free Throw Percentage** (0.50-0.95): Free throw accuracy
@@ -154,17 +160,55 @@ Teams can be customized with the following statistics:
 - **Steal Rate** (0.03-0.15): Probability of stealing the ball on defense
 - **Block Rate** (0.02-0.12): Probability of blocking a shot
 
+### Advanced Stats (NEW)
+- **Home Court** (True/False): Whether the team is playing at home (adds ~3-4 point advantage)
+- **Pace Factor** (0.85-1.15): Game tempo - 1.0 is average, higher = faster pace/more possessions
+- **Variance Enabled** (True/False): Whether game-to-game performance variance is enabled (default: True)
+
+### Example with Home Court Advantage:
+```python
+# Home team with advantage
+home_team = {
+    'name': 'Tennessee',
+    'fg_percentage': 0.50,
+    'three_pt_percentage': 0.38,
+    'home_court': True,  # Home court advantage enabled
+    'pace_factor': 1.0
+}
+
+# Away team
+away_team = {
+    'name': 'Rutgers',
+    'fg_percentage': 0.44,
+    'three_pt_percentage': 0.33,
+    'home_court': False,
+    'pace_factor': 0.95  # Slower-paced team
+}
+```
+
 ## Game Mechanics
 
 The simulator accurately models:
 
-- **Possessions**: Each team gets approximately 70 possessions per game (35 per half)
+- **Possessions**: Each team gets approximately 70 possessions per game (35 per half), adjusted by pace factor
 - **Shot Selection**: Teams choose between 2-point and 3-point attempts based on their strategy
-- **Turnovers**: Random turnovers based on team's turnover rate
+- **Turnovers**: Random turnovers based on team's turnover rate (affected by momentum)
 - **Fouls**: Realistic foul calling with appropriate free throw situations
 - **Rebounds**: Offensive and defensive rebounding with second-chance opportunities
 - **Defensive Plays**: Steals and blocks affect game outcomes
 - **Overtime**: 5-possession overtime periods when games are tied
+
+### Enhanced Realism Features
+
+- **Game-to-Game Variance**: Each simulation randomly adjusts team shooting (+/- 5%) to simulate hot/cold nights
+- **Home Court Advantage**: Home teams shoot ~1.5% better on FG and 3PT, slight FT boost
+- **Momentum System**: Teams on scoring runs get shooting bonuses; cold teams get penalties
+- **Pace of Play**: Adjustable tempo affects total possessions (faster pace = more scoring variance)
+
+These features create more realistic score distributions where:
+- Favorites don't always cover large spreads
+- Underdogs sometimes win outright
+- Games can have unexpected blowouts (like real basketball)
 
 ## Example Output
 
