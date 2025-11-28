@@ -1,8 +1,8 @@
-# College Basketball Score Simulator
+# College Basketball & Football Score Simulator
 
-A comprehensive and accurate college basketball game simulator that uses realistic statistics and game mechanics to simulate basketball games with high fidelity.
+A comprehensive and accurate college sports game simulator that uses realistic statistics and game mechanics to simulate basketball and football games with high fidelity.
 
-## Features
+## 🏀 Basketball Features
 
 - **Realistic Game Simulation**: Simulates college basketball games with accurate scoring, possessions, and game flow
 - **Enhanced Realism with Calibrated Parameters** (UPDATED): 
@@ -27,6 +27,26 @@ A comprehensive and accurate college basketball game simulator that uses realist
 - **Play-by-Play**: Optional detailed play-by-play commentary for each possession
 - **Box Score**: Comprehensive box score with detailed team statistics
 
+## 🏈 Football Features (NEW!)
+
+- **Realistic Game Simulation**: Simulates college football games with accurate drive mechanics, play calling, and scoring
+- **Enhanced Realism**:
+  - **Game-to-game variance**: Teams perform better or worse than averages to simulate hot/cold days
+  - **Home field advantage**: Home teams get pass completion and rushing bonuses
+  - **Momentum system**: Teams on scoring streaks get performance boosts
+  - **Pace of play**: Adjustable tempo affects total plays and possessions
+- **Detailed Play Types**:
+  - Pass plays with completions, incompletions, interceptions, and sacks
+  - Rush plays with varying yard gains and fumbles
+  - Field goals with distance-adjusted success rates
+  - Punts with realistic distance and returns
+- **Complete Statistics**: Pass/rush yards, touchdowns, field goals, turnovers, first downs, third-down conversions, time of possession
+- **Spread & Total Analysis**: Same powerful spread analysis as basketball
+  - Analyze point spreads with 1000+ simulations
+  - Over/under total analysis
+  - Find value picks and avoid trap bets
+- **Overtime Support**: College football overtime rules with alternating possessions from the 25-yard line
+
 ## Installation
 
 No external dependencies required! This simulator uses only Python 3.6+ standard library.
@@ -38,15 +58,74 @@ cd College-basketball-score-simulator-
 
 ## Usage
 
-### Basic Simulation
+### 🏀 Basketball Simulation
 
-Run a basic simulation with preset teams:
+Run a basic basketball simulation with preset teams:
 
 ```bash
 python3 basketball_simulator.py
 ```
 
-### Interactive Mode
+### 🏈 Football Simulation
+
+Run a basic football simulation with preset teams:
+
+```bash
+python3 football_simulator.py
+```
+
+**Football Spread Analysis:**
+
+```bash
+python3 football_spread_analyzer.py  # Full spread analysis
+python3 football_find_picks.py       # Quick picks finder
+python3 football_example.py          # Comprehensive examples
+```
+
+**Football Programmatic Usage:**
+
+```python
+from football_simulator import FootballTeam, FootballSimulator
+from football_spread_analyzer import FootballSpreadAnalyzer
+
+# Define teams
+team1_config = {
+    'name': 'Alabama',
+    'pass_completion_pct': 0.65,
+    'yards_per_completion': 13.5,
+    'rush_yards_per_carry': 5.2,
+    'turnover_rate': 0.02,
+    'red_zone_td_pct': 0.70,
+    'field_goal_pct': 0.82,
+    'home_field': True
+}
+
+team2_config = {
+    'name': 'Auburn',
+    'pass_completion_pct': 0.58,
+    'yards_per_completion': 11.5,
+    'rush_yards_per_carry': 4.5,
+    'turnover_rate': 0.03,
+    'red_zone_td_pct': 0.58,
+    'field_goal_pct': 0.75
+}
+
+# Run spread analysis
+analyzer = FootballSpreadAnalyzer(team1_config, team2_config, num_simulations=1000)
+analyzer.run_simulations()
+
+# Check spread coverage
+analysis = analyzer.analyze_spread(14.0)  # Alabama -14
+print(f"Alabama -14 covers: {analysis['team1_cover_pct']:.1f}%")
+print(f"Auburn +14 covers: {analysis['team2_cover_pct']:.1f}%")
+
+# Check over/under
+total_analysis = analyzer.analyze_total(52.5)
+print(f"Over 52.5: {total_analysis['over_pct']:.1f}%")
+print(f"Under 52.5: {total_analysis['under_pct']:.1f}%")
+```
+
+### Basketball Interactive Mode
 
 For more control and customization options:
 
@@ -59,7 +138,7 @@ The interactive mode offers three options:
 2. **Custom Simulation**: Define your own teams with custom statistics
 3. **Multiple Simulations**: Run multiple games and see aggregate results
 
-### Spread Analysis (Find Teams That Cover Spreads)
+### Basketball Spread Analysis (Find Teams That Cover Spreads)
 
 Find teams that can cover point spreads with high accuracy:
 
@@ -148,9 +227,11 @@ for bet in undervalued:
 
 ## Team Statistics
 
+### 🏀 Basketball Team Stats
+
 Teams can be customized with the following statistics:
 
-### Core Stats
+#### Core Stats
 - **Field Goal Percentage** (0.20-0.70): Overall shooting accuracy
 - **Three-Point Percentage** (0.15-0.50): 3-point shooting accuracy
 - **Free Throw Percentage** (0.50-0.95): Free throw accuracy
@@ -161,12 +242,33 @@ Teams can be customized with the following statistics:
 - **Steal Rate** (0.03-0.15): Probability of stealing the ball on defense
 - **Block Rate** (0.02-0.12): Probability of blocking a shot
 
-### Advanced Stats (NEW)
+#### Advanced Stats
 - **Home Court** (True/False): Whether the team is playing at home (adds ~3-4 point advantage)
 - **Pace Factor** (0.85-1.15): Game tempo - 1.0 is average, higher = faster pace/more possessions
 - **Variance Enabled** (True/False): Whether game-to-game performance variance is enabled (default: True)
 
-### Example with Home Court Advantage:
+### 🏈 Football Team Stats
+
+Football teams can be customized with:
+
+#### Offensive Stats
+- **Pass Completion Pct** (0.50-0.75): Pass completion percentage
+- **Yards Per Completion** (8.0-16.0): Average yards per completed pass
+- **Rush Yards Per Carry** (3.0-6.0): Average rushing yards per attempt
+- **Turnover Rate** (0.01-0.05): Probability of turnover per play
+- **Red Zone TD Pct** (0.45-0.80): Touchdown percentage in the red zone
+- **Field Goal Pct** (0.60-0.90): Field goal success rate
+- **Pass Play Rate** (0.40-0.70): Percentage of plays that are passes
+
+#### Defensive Stats
+- **Sack Rate** (0.03-0.10): Probability of sacking the QB
+- **Interception Rate** (0.01-0.04): Interception rate on pass plays
+
+#### Advanced Stats
+- **Home Field** (True/False): Home field advantage (pass/rush boosts)
+- **Pace Factor** (0.85-1.15): Game tempo affecting total plays
+
+### Example with Home Field Advantage:
 ```python
 # Home team with advantage
 home_team = {
