@@ -4,9 +4,14 @@ College Football Simulator Examples
 Demonstrates how to use the football simulator and spread analyzer.
 """
 
-from football_simulator import FootballTeam, FootballSimulator
-from football_spread_analyzer import FootballSpreadAnalyzer
-from football_find_picks import analyze_matchup, print_quick_analysis
+try:
+    from football_simulator import FootballTeam, FootballSimulator
+    from football_spread_analyzer import FootballSpreadAnalyzer
+    from football_find_picks import analyze_matchup, print_quick_analysis
+except ImportError:
+    from .football_simulator import FootballTeam, FootballSimulator
+    from .football_spread_analyzer import FootballSpreadAnalyzer
+    from .football_find_picks import analyze_matchup, print_quick_analysis
 
 
 def example_basic_game():

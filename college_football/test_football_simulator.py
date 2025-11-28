@@ -5,7 +5,10 @@ Tests core functionality and validates realistic outputs.
 """
 
 import sys
-from football_simulator import FootballTeam, FootballSimulator
+try:
+    from football_simulator import FootballTeam, FootballSimulator
+except ImportError:
+    from .football_simulator import FootballTeam, FootballSimulator
 
 
 def test_team_creation():

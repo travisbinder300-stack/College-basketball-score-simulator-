@@ -71,12 +71,14 @@ python3 basketball_simulator.py
 Run a basic football simulation with preset teams:
 
 ```bash
+cd college_football
 python3 football_simulator.py
 ```
 
 **Football Spread Analysis:**
 
 ```bash
+cd college_football
 python3 football_spread_analyzer.py  # Full spread analysis
 python3 football_find_picks.py       # Quick picks finder
 python3 football_example.py          # Comprehensive examples
@@ -85,8 +87,12 @@ python3 football_example.py          # Comprehensive examples
 **Football Programmatic Usage:**
 
 ```python
+# Option 1: Run from the college_football directory
 from football_simulator import FootballTeam, FootballSimulator
 from football_spread_analyzer import FootballSpreadAnalyzer
+
+# Option 2: Import as a package from the root directory
+from college_football import FootballTeam, FootballSimulator, FootballSpreadAnalyzer
 
 # Define teams
 team1_config = {

@@ -5,8 +5,12 @@ Quickly finds high-confidence betting picks for college football games.
 """
 
 from typing import Dict, List
-from football_simulator import FootballTeam, FootballSimulator
-from football_spread_analyzer import FootballSpreadAnalyzer
+try:
+    from football_simulator import FootballTeam, FootballSimulator
+    from football_spread_analyzer import FootballSpreadAnalyzer
+except ImportError:
+    from .football_simulator import FootballTeam, FootballSimulator
+    from .football_spread_analyzer import FootballSpreadAnalyzer
 
 
 def analyze_matchup(team1_config: Dict, team2_config: Dict, spread: float, 

@@ -6,7 +6,10 @@ Analyzes which team can cover a point spread based on simulation results.
 
 import sys
 from typing import Dict, List, Tuple
-from football_simulator import FootballTeam, FootballSimulator
+try:
+    from football_simulator import FootballTeam, FootballSimulator
+except ImportError:
+    from .football_simulator import FootballTeam, FootballSimulator
 
 
 class FootballSpreadAnalyzer:
