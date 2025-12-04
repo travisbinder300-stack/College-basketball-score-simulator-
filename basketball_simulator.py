@@ -5,7 +5,6 @@ Simulates a college basketball game between two teams with realistic scoring mec
 """
 
 import random
-import time
 
 
 class Team:
