@@ -74,12 +74,25 @@ class SoccerSimulator:
         Returns:
             Actual goals scored
         """
-        # Use exponential distribution for realistic soccer scoring
+        # Use a simplified Poisson distribution for realistic soccer scoring
+        # This approximates the Poisson probability mass function
         goals = 0
-        while random.random() < (expected_goals / (goals + 1)):
-            goals += 1
-            if goals >= 10:  # Reasonable upper bound
+        cumulative_prob = 0.0
+        random_value = random.random()
+        
+        # Calculate probabilities for each goal count using Poisson formula
+        import math
+        e_lambda = math.exp(-expected_goals)
+        
+        for k in range(11):  # Reasonable upper bound (0-10 goals)
+            # P(X = k) = (λ^k * e^(-λ)) / k!
+            prob = (expected_goals ** k) * e_lambda / math.factorial(k)
+            cumulative_prob += prob
+            
+            if random_value <= cumulative_prob:
+                goals = k
                 break
+        
         return goals
     
     def simulate_match(self, home_team: Team, away_team: Team, 

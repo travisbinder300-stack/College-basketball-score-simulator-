@@ -17,8 +17,8 @@ This simulator requires Python 3.6 or higher. No additional dependencies are nee
 
 ```bash
 # Clone the repository
-git clone https://github.com/travisbinder300-stack/College-basketball-score-simulator-.git
-cd College-basketball-score-simulator-
+git clone <your-repository-url>
+cd <repository-directory>
 
 # Make the script executable (optional)
 chmod +x soccer_simulator.py
