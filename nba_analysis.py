@@ -4,7 +4,6 @@ NBA Spread and Total Analysis System
 Provides predictions with confidence levels of 70% or higher
 """
 
-import random
 from dataclasses import dataclass
 from typing import List, Dict, Tuple
 from datetime import datetime
@@ -63,10 +62,6 @@ class NBAAnalyzer:
         """
         home = game.home_team
         away = game.away_team
-        
-        # Calculate offensive and defensive advantages
-        home_offensive_advantage = home.offensive_rating - away.defensive_rating
-        away_offensive_advantage = away.offensive_rating - home.defensive_rating
         
         # Net rating difference
         net_rating_diff = (home.offensive_rating - home.defensive_rating) - \
