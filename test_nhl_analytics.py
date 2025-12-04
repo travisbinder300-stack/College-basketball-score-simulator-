@@ -6,7 +6,6 @@ Test suite for NHL Analytics System
 import unittest
 from unittest.mock import patch, MagicMock
 from nhl_analytics import NHLAnalytics, NHLDataFetcher
-import numpy as np
 
 
 class TestNHLDataFetcher(unittest.TestCase):

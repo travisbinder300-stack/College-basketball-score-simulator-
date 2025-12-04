@@ -4,11 +4,9 @@ NHL Spread and Total Analytics System
 Provides predictions with 70%+ confidence using real NHL data
 """
 
-import json
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Tuple, Optional
-import numpy as np
 from scipy import stats
 
 
