@@ -52,6 +52,32 @@ def main():
     print("- 70% threshold provides a good balance of confidence and coverage")
     print("- Strong mismatches produce higher confidence predictions")
     print("- Similar teams or close matchups may not meet high thresholds")
+    
+    # Demonstrate overvalue detection with different thresholds
+    print("\n" + "=" * 80)
+    print("OVERVALUE DETECTION - VALUE THRESHOLD COMPARISON")
+    print("=" * 80)
+    print()
+    
+    analyzer = NBAAnalyzer(min_confidence=70.0)
+    value_thresholds = [2.0, 2.5, 3.0, 4.0]
+    
+    for value_threshold in value_thresholds:
+        overvalue_predictions = analyzer.find_overvalue_spreads(games, min_value_threshold=value_threshold)
+        
+        print(f"\nValue Threshold: {value_threshold:.1f} points")
+        print(f"Overvalue opportunities found: {len(overvalue_predictions)}")
+        
+        if overvalue_predictions:
+            for pred in overvalue_predictions:
+                print(f"  - {pred.game.away_team.name} @ {pred.game.home_team.name}: "
+                      f"{abs(pred.spread_value):.1f} pts value on {pred.value_side.upper()} side")
+    
+    print("\n" + "=" * 80)
+    print("Overvalue Insights:")
+    print("- Lower value thresholds find more opportunities but with less edge")
+    print("- 2.5-3.0 point threshold is recommended for significant value")
+    print("- All overvalue opportunities already meet 70%+ confidence")
 
 
 if __name__ == "__main__":

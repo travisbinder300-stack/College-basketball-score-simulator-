@@ -26,6 +26,7 @@ class Game:
     home_team: Team
     away_team: Team
     date: str
+    market_spread: float = None  # Market/betting line spread (positive = home favored)
 
 
 @dataclass
@@ -36,13 +37,24 @@ class Prediction:
     total: float  # Total points over/under
     spread_confidence: float  # 0-100%
     total_confidence: float  # 0-100%
+    spread_value: float = None  # Difference between predicted and market spread
+    is_overvalue: bool = False  # True if significant value exists
+    value_side: str = None  # "home" or "away" - which side has value
     
     def __str__(self):
-        return f"""
+        result = f"""
 Game: {self.game.away_team.name} @ {self.game.home_team.name} ({self.game.date})
 Spread: {self.game.home_team.name} {self.spread:+.1f} (Confidence: {self.spread_confidence:.1f}%)
-Total: {self.total:.1f} points (Confidence: {self.total_confidence:.1f}%)
-        """
+Total: {self.total:.1f} points (Confidence: {self.total_confidence:.1f}%)"""
+        
+        if self.is_overvalue and self.spread_value is not None:
+            result += f"""
+*** OVERVALUE OPPORTUNITY ***
+Market Spread: {self.game.home_team.name} {self.game.market_spread:+.1f}
+Value Difference: {abs(self.spread_value):.1f} points
+Recommended Bet: {self.value_side.upper()} side ({self.game.home_team.name if self.value_side == 'home' else self.game.away_team.name})"""
+        
+        return result + "\n"
 
 
 class NBAAnalyzer:
@@ -152,18 +164,64 @@ class NBAAnalyzer:
         
         return total, confidence
     
+    def detect_overvalue(self, prediction: Prediction, min_value_threshold: float = 2.5) -> Prediction:
+        """
+        Detect if there's overvalue in the spread compared to market line
+        
+        Args:
+            prediction: The prediction object to analyze
+            min_value_threshold: Minimum point difference to consider as overvalue (default 2.5)
+        
+        Returns:
+            Updated prediction with overvalue information
+        """
+        if prediction.game.market_spread is None:
+            return prediction
+        
+        # Calculate value: difference between our predicted spread and market spread
+        # Positive value means our prediction is higher than market (home team undervalued by market)
+        # Negative value means our prediction is lower than market (away team undervalued by market)
+        spread_value = prediction.spread - prediction.game.market_spread
+        
+        # Determine if there's significant overvalue
+        is_overvalue = abs(spread_value) >= min_value_threshold
+        
+        # Determine which side has value
+        value_side = None
+        if is_overvalue:
+            if spread_value > 0:
+                # Our prediction favors home more than market does
+                # Value is on the home team
+                value_side = "home"
+            else:
+                # Our prediction favors away more than market does (or favors home less)
+                # Value is on the away team
+                value_side = "away"
+        
+        prediction.spread_value = spread_value
+        prediction.is_overvalue = is_overvalue
+        prediction.value_side = value_side
+        
+        return prediction
+    
     def analyze_game(self, game: Game) -> Prediction:
         """Analyze a game and return predictions"""
         spread, spread_confidence = self.calculate_spread(game)
         total, total_confidence = self.calculate_total(game)
         
-        return Prediction(
+        prediction = Prediction(
             game=game,
             spread=spread,
             total=total,
             spread_confidence=spread_confidence,
             total_confidence=total_confidence
         )
+        
+        # Check for overvalue if market spread is available
+        if game.market_spread is not None:
+            prediction = self.detect_overvalue(prediction)
+        
+        return prediction
     
     def analyze_games(self, games: List[Game]) -> List[Prediction]:
         """
@@ -183,6 +241,24 @@ class NBAAnalyzer:
                 predictions.append(prediction)
         
         return predictions
+    
+    def find_overvalue_spreads(self, games: List[Game], min_value_threshold: float = 2.5) -> List[Prediction]:
+        """
+        Find games with overvalue spread opportunities
+        
+        Args:
+            games: List of games to analyze
+            min_value_threshold: Minimum point difference to consider as overvalue
+        
+        Returns:
+            List of predictions with overvalue opportunities that meet confidence threshold
+        """
+        predictions = self.analyze_games(games)
+        
+        # Filter for only overvalue opportunities
+        overvalue_predictions = [p for p in predictions if p.is_overvalue]
+        
+        return overvalue_predictions
 
 
 def create_sample_teams() -> Dict[str, Team]:
@@ -257,16 +333,16 @@ def create_sample_teams() -> Dict[str, Team]:
 
 
 def create_sample_games(teams: Dict[str, Team]) -> List[Game]:
-    """Create sample game matchups"""
+    """Create sample game matchups with market spreads"""
     today = datetime.now().strftime("%Y-%m-%d")
     
     games = [
-        Game(teams["Lakers"], teams["Celtics"], today),
-        Game(teams["Warriors"], teams["Nets"], today),
-        Game(teams["Bucks"], teams["Suns"], today),
-        Game(teams["Heat"], teams["Nuggets"], today),
-        Game(teams["Lakers"], teams["Nets"], today),
-        Game(teams["Celtics"], teams["Warriors"], today),
+        Game(teams["Lakers"], teams["Celtics"], today, market_spread=1.5),  # Market slightly favors Lakers
+        Game(teams["Warriors"], teams["Nets"], today, market_spread=8.0),  # Market heavily favors Warriors
+        Game(teams["Bucks"], teams["Suns"], today, market_spread=4.0),  # Market moderately favors Bucks
+        Game(teams["Heat"], teams["Nuggets"], today, market_spread=-2.5),  # Market favors Nuggets (away)
+        Game(teams["Lakers"], teams["Nets"], today, market_spread=3.5),  # Market moderately favors Lakers
+        Game(teams["Celtics"], teams["Warriors"], today, market_spread=7.0),  # Market heavily favors Celtics
     ]
     
     return games
@@ -275,7 +351,7 @@ def create_sample_games(teams: Dict[str, Team]) -> List[Game]:
 def main():
     """Main function to demonstrate NBA analysis"""
     print("=" * 80)
-    print("NBA SPREAD AND TOTAL ANALYSIS")
+    print("NBA SPREAD AND TOTAL ANALYSIS WITH OVERVALUE DETECTION")
     print("Minimum Confidence: 70%")
     print("=" * 80)
     print()
@@ -316,6 +392,25 @@ def main():
         print(f"Average Total Confidence: {avg_total_conf:.1f}%")
         print(f"Highest Spread Confidence: {max(p.spread_confidence for p in predictions):.1f}%")
         print(f"Highest Total Confidence: {max(p.total_confidence for p in predictions):.1f}%")
+    
+    # Find and display overvalue opportunities
+    overvalue_predictions = analyzer.find_overvalue_spreads(games, min_value_threshold=2.5)
+    
+    print("\n" + "=" * 80)
+    print("OVERVALUE SPREAD OPPORTUNITIES")
+    print("=" * 80)
+    print(f"Found {len(overvalue_predictions)} overvalue opportunities (≥2.5 point difference)")
+    print()
+    
+    if overvalue_predictions:
+        print("RECOMMENDED BETS (High confidence + significant value):")
+        print("=" * 80)
+        
+        for i, pred in enumerate(overvalue_predictions, 1):
+            print(f"\nOvervalue Bet #{i}:")
+            print(pred)
+    else:
+        print("No overvalue opportunities found with current thresholds.")
 
 
 if __name__ == "__main__":

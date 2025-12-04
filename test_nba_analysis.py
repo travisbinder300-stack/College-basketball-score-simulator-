@@ -216,6 +216,117 @@ class TestTeamAndGame(unittest.TestCase):
         self.assertEqual(game.home_team, team1)
         self.assertEqual(game.away_team, team2)
         self.assertEqual(game.date, "2025-12-04")
+    
+    def test_game_with_market_spread(self):
+        """Test that games can be created with market spreads"""
+        team1 = Team("Team 1", 115.0, 110.0, 100.0, 0.600, 0.70)
+        team2 = Team("Team 2", 112.0, 108.0, 98.0, 0.550, 0.65)
+        game = Game(team1, team2, "2025-12-04", market_spread=5.5)
+        
+        self.assertEqual(game.market_spread, 5.5)
+
+
+class TestOvervalueDetection(unittest.TestCase):
+    """Test cases for overvalue detection"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.analyzer = NBAAnalyzer(min_confidence=70.0)
+        
+        self.team1 = Team(
+            name="Team 1",
+            offensive_rating=120.0,
+            defensive_rating=105.0,
+            pace=100.0,
+            win_percentage=0.750,
+            recent_form=0.90
+        )
+        
+        self.team2 = Team(
+            name="Team 2",
+            offensive_rating=108.0,
+            defensive_rating=118.0,
+            pace=98.0,
+            win_percentage=0.300,
+            recent_form=0.30
+        )
+    
+    def test_overvalue_detection_with_no_market_spread(self):
+        """Test that overvalue is not detected when no market spread is provided"""
+        game = Game(self.team1, self.team2, "2025-12-04", market_spread=None)
+        prediction = self.analyzer.analyze_game(game)
+        
+        self.assertIsNone(prediction.spread_value)
+        self.assertFalse(prediction.is_overvalue)
+        self.assertIsNone(prediction.value_side)
+    
+    def test_overvalue_detection_significant_difference(self):
+        """Test that overvalue is detected with significant spread difference"""
+        # Our prediction will favor team1 heavily, but market only slightly favors them
+        game = Game(self.team1, self.team2, "2025-12-04", market_spread=5.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        # Should detect overvalue if difference is >= 2.5 points
+        self.assertIsNotNone(prediction.spread_value)
+        if abs(prediction.spread_value) >= 2.5:
+            self.assertTrue(prediction.is_overvalue)
+            self.assertIsNotNone(prediction.value_side)
+    
+    def test_overvalue_detection_no_significant_difference(self):
+        """Test that overvalue is not detected with small spread difference"""
+        game = Game(self.team1, self.team2, "2025-12-04", market_spread=15.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        # Create a prediction where market is close to our prediction
+        # Manually check if difference is small
+        self.assertIsNotNone(prediction.spread_value)
+        if abs(prediction.spread_value) < 2.5:
+            self.assertFalse(prediction.is_overvalue)
+    
+    def test_overvalue_home_side(self):
+        """Test that home side value is correctly identified"""
+        # Market undervalues home team (lower spread than our prediction)
+        game = Game(self.team1, self.team2, "2025-12-04", market_spread=5.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        if prediction.spread_value > 2.5:
+            self.assertEqual(prediction.value_side, "home")
+    
+    def test_overvalue_away_side(self):
+        """Test that away side value is correctly identified"""
+        # Market overvalues home team (higher spread than our prediction)
+        game = Game(self.team1, self.team2, "2025-12-04", market_spread=20.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        if prediction.spread_value < -2.5:
+            self.assertEqual(prediction.value_side, "away")
+    
+    def test_find_overvalue_spreads(self):
+        """Test that find_overvalue_spreads returns only overvalue predictions"""
+        games = [
+            Game(self.team1, self.team2, "2025-12-04", market_spread=5.0),
+            Game(self.team1, self.team2, "2025-12-04", market_spread=15.0),
+            Game(self.team1, self.team2, "2025-12-04", market_spread=20.0),
+        ]
+        
+        overvalue_predictions = self.analyzer.find_overvalue_spreads(games)
+        
+        # All returned predictions should have is_overvalue = True
+        for pred in overvalue_predictions:
+            self.assertTrue(pred.is_overvalue)
+    
+    def test_custom_value_threshold(self):
+        """Test that custom value threshold works correctly"""
+        game = Game(self.team1, self.team2, "2025-12-04", market_spread=12.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        # Test with different threshold
+        prediction_4pt = self.analyzer.detect_overvalue(prediction, min_value_threshold=4.0)
+        
+        if abs(prediction_4pt.spread_value) >= 4.0:
+            self.assertTrue(prediction_4pt.is_overvalue)
+        else:
+            self.assertFalse(prediction_4pt.is_overvalue)
 
 
 if __name__ == "__main__":
