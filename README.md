@@ -16,12 +16,12 @@ A realistic soccer match simulator that generates match scores based on team sta
 This simulator requires Python 3.6 or higher. No additional dependencies are needed as it uses only Python standard library.
 
 ```bash
-# Clone the repository
-git clone <your-repository-url>
-cd <repository-directory>
+# Download the soccer_simulator.py file and run it directly
+python3 soccer_simulator.py
 
-# Make the script executable (optional)
+# Or make it executable
 chmod +x soccer_simulator.py
+./soccer_simulator.py
 ```
 
 ## Usage

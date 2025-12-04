@@ -6,6 +6,7 @@ This simulator generates realistic soccer match scores between two teams.
 It uses team ratings and random variations to simulate match outcomes.
 """
 
+import math
 import random
 import argparse
 from typing import Tuple, Dict
@@ -81,7 +82,6 @@ class SoccerSimulator:
         random_value = random.random()
         
         # Calculate probabilities for each goal count using Poisson formula
-        import math
         e_lambda = math.exp(-expected_goals)
         
         for k in range(11):  # Reasonable upper bound (0-10 goals)
