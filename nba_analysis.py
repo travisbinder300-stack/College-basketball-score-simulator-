@@ -5,7 +5,7 @@ Provides predictions with confidence levels of 70% or higher
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from datetime import datetime
 
 
@@ -26,7 +26,7 @@ class Game:
     home_team: Team
     away_team: Team
     date: str
-    market_spread: float = None  # Market/betting line spread (positive = home favored)
+    market_spread: Optional[float] = None  # Market/betting line spread (positive = home favored)
 
 
 @dataclass
@@ -37,9 +37,9 @@ class Prediction:
     total: float  # Total points over/under
     spread_confidence: float  # 0-100%
     total_confidence: float  # 0-100%
-    spread_value: float = None  # Difference between predicted and market spread
+    spread_value: Optional[float] = None  # Difference between predicted and market spread
     is_overvalue: bool = False  # True if significant value exists
-    value_side: str = None  # "home" or "away" - which side has value
+    value_side: Optional[str] = None  # "home" or "away" - which side has value
     
     def __str__(self):
         result = f"""
