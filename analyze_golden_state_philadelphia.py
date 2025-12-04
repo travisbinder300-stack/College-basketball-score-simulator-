@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Analyze specific NBA game: Golden State Warriors vs Philadelphia 76ers
-Market Line: Philadelphia -4.0 (home), Total: 223.5
+Market Line: Philadelphia -4.0 (home), Total: 123.5
 """
 
 from nba_analysis import Team, Game, NBAAnalyzer
@@ -13,7 +13,7 @@ def main():
     
     print("=" * 80)
     print("SPECIFIC GAME ANALYSIS: GOLDEN STATE WARRIORS VS PHILADELPHIA 76ERS")
-    print("Market Data: Philadelphia -4.0 (home), Total: 223.5")
+    print("Market Data: Philadelphia -4.0 (home), Total: 123.5")
     print("=" * 80)
     print()
     
@@ -81,9 +81,15 @@ def main():
     print(f"Predicted Spread:  Philadelphia -{prediction.spread:.1f}")
     print(f"Spread Difference: {abs(prediction.spread - game.market_spread):.1f} points")
     print()
-    print(f"Market Total:      {223.5:.1f} points")
+    print(f"Market Total:      {123.5:.1f} points")
     print(f"Predicted Total:   {prediction.total:.1f} points")
-    print(f"Total Difference:  {abs(prediction.total - 223.5):.1f} points")
+    print(f"Total Difference:  {abs(prediction.total - 123.5):.1f} points")
+    
+    # Note about unusual total
+    print()
+    print("⚠️  NOTE: Market total of 123.5 is extremely unusual for NBA")
+    print("   Typical NBA totals range from 200-240 points")
+    print("   This may be a data entry error or special circumstances game")
     
     # Overvalue analysis
     if prediction.is_overvalue:
@@ -116,16 +122,17 @@ def main():
     # Total points analysis
     print("\nTOTAL POINTS ANALYSIS:")
     print("=" * 80)
-    total_diff = prediction.total - 223.5
+    total_diff = prediction.total - 123.5
     if abs(total_diff) >= 3.0:
         if total_diff > 0:
-            print(f"📈 OVER {223.5} is recommended ({prediction.total:.1f} predicted)")
+            print(f"📈 OVER {123.5} is STRONGLY recommended ({prediction.total:.1f} predicted)")
             print(f"   Difference: +{total_diff:.1f} points above market")
+            print(f"   This represents a MASSIVE discrepancy - market total appears incorrect")
         else:
-            print(f"📉 UNDER {223.5} is recommended ({prediction.total:.1f} predicted)")
+            print(f"📉 UNDER {123.5} is recommended ({prediction.total:.1f} predicted)")
             print(f"   Difference: {total_diff:.1f} points below market")
     else:
-        print(f"⚖️  Total prediction ({prediction.total:.1f}) is close to market (223.5)")
+        print(f"⚖️  Total prediction ({prediction.total:.1f}) is close to market (123.5)")
         print(f"   Difference: {total_diff:+.1f} points - no strong recommendation")
     
     # Summary and recommendation
@@ -150,13 +157,15 @@ def main():
     if meets_threshold:
         if abs(total_diff) >= 3.0:
             if total_diff > 0:
-                recommendations.append(f"✓ STRONG: Bet OVER {223.5}")
+                recommendations.append(f"✓ STRONG: Bet OVER {123.5} - MASSIVE VALUE")
+                recommendations.append(f"  Predicted: {prediction.total:.1f} vs Market: {123.5:.1f} ({total_diff:+.1f} pts)")
             else:
-                recommendations.append(f"✓ STRONG: Bet UNDER {223.5}")
+                recommendations.append(f"✓ STRONG: Bet UNDER {123.5}")
         else:
             recommendations.append(f"✓ Total: Our prediction ({prediction.total:.1f}) is close to market")
     else:
-        recommendations.append("⚠️  Confidence too low - no strong recommendations")
+        recommendations.append("⚠️  Spread confidence too low for strong recommendations")
+        recommendations.append(f"   However, total shows extreme discrepancy ({total_diff:+.1f} pts)")
     
     for rec in recommendations:
         print(rec)
