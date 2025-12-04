@@ -1,11 +1,12 @@
 # NHL Spread and Total Analytics System
 
-A Python-based analytics system that provides NHL game predictions with 70% confidence intervals using real NHL data from the official NHL API and optional MoneyPuck power rankings.
+A Python-based analytics system that provides NHL game predictions with 70% confidence intervals using real NHL data from the official NHL API, optional MoneyPuck power rankings, and recent form analysis.
 
 ## Features
 
 - **Real-Time NHL Data**: Fetches current standings, team statistics, and schedules from the official NHL API
 - **MoneyPuck Integration**: Optional advanced analytics from MoneyPuck power rankings
+- **Recent Form Analysis**: Optional weighting of last 10 games performance (captures momentum)
 - **Spread Predictions**: Calculates expected point spreads with 70% confidence intervals
 - **Total Predictions**: Predicts over/under totals with 70% confidence intervals
 - **Underdog Identification**: Clearly identifies underdogs in every matchup
@@ -72,6 +73,31 @@ analytics = NHLAnalytics(use_moneypuck=True)
 # Team strength calculation: 70% base metrics + 30% MoneyPuck rankings
 spread = analytics.predict_spread("TOR", "MTL")
 print(f"Enhanced Spread (with MoneyPuck): {spread['predicted_spread']}")
+```
+
+**Recent Form Mode (Last 10 games weighting):**
+```python
+from nhl_analytics import NHLAnalytics
+
+# Initialize with recent form integration
+analytics = NHLAnalytics(use_recent_form=True)
+
+# Predictions now incorporate last 10 games performance
+# Team strength calculation: 60% season stats + 40% last 10 games
+spread = analytics.predict_spread("CHI", "LAK")
+print(f"Enhanced Spread (with recent form): {spread['predicted_spread']}")
+```
+
+**Combined Mode (MoneyPuck + Recent Form):**
+```python
+from nhl_analytics import NHLAnalytics
+
+# Initialize with both enhancements
+analytics = NHLAnalytics(use_moneypuck=True, use_recent_form=True)
+
+# Most accurate predictions combining all data sources
+spread = analytics.predict_spread("CHI", "LAK")
+print(f"Maximum Accuracy Spread: {spread['predicted_spread']}")
 ```
 
 ## NHL Team Abbreviations
@@ -175,6 +201,25 @@ This helps bettors identify:
 - Better prediction of team performance trends
 - Improved edge detection for value betting
 
+### Recent Form Integration (Optional)
+- **Last 10 Games Performance**: Fetches and analyzes team performance in last 10 games
+- **Momentum Capture**: Identifies hot/cold streaks and recent trends
+- **Blended Approach**: When enabled, combines 60% season stats + 40% last 10 games
+- **Data Source**: NHL API game log endpoint
+- **Usage**: Enable with `NHLAnalytics(use_recent_form=True)`
+
+**Benefits of Recent Form Integration:**
+- Captures current momentum and team performance trends
+- Identifies teams trending up or down (e.g., Chicago covering well recently)
+- More responsive to recent wins, losses, and goal-scoring trends
+- Better accuracy for teams whose recent performance differs from season averages
+- Improves in-season betting analysis by weighting recent games more heavily
+
+**Combined Mode:**
+- Use both: `NHLAnalytics(use_moneypuck=True, use_recent_form=True)`
+- Maximum accuracy by combining all data sources
+- Season stats + Recent form + Advanced metrics = Best predictions
+
 ## Statistical Methodology
 
 The system uses statistical modeling to ensure 70% confidence:
@@ -221,11 +266,16 @@ Analyzing: MTL @ TOR
 
 **Limitations:**
 - Predictions based on season-to-date statistics (updated when API accessible)
-- Does not account for injuries, lineup changes, or recent momentum
+- Does not account for injuries or lineup changes
 - Does not include special teams, goaltending matchups, or situational factors
 - Confidence intervals represent statistical ranges, not certainties
 - Requires internet connection for live data; uses fallback averages offline
 - Accuracy improves significantly with access to real-time NHL data
+
+**Note on Recent Momentum:**
+- Standard mode uses full season statistics
+- Recent form mode (`use_recent_form=True`) captures momentum by weighting last 10 games
+- Combined with MoneyPuck, provides most accurate predictions for teams with recent trends
 
 ## Testing
 

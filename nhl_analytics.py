@@ -12,13 +12,15 @@ from bs4 import BeautifulSoup
 
 
 class NHLDataFetcher:
-    """Fetches real NHL data from the NHL API and MoneyPuck"""
+    """Fetches real NHL data from the NHL API, MoneyPuck, and StatMuse"""
     
     def __init__(self):
         self.base_url = "https://api-web.nhle.com/v1"
         self.standings_url = f"{self.base_url}/standings/now"
         self.moneypuck_url = "https://moneypuck.com/power.htm"
+        self.statmuse_url = "https://www.statmuse.com/nhl/ask/nhl-team-stats-last-10-games"
         self._moneypuck_cache = None
+        self._statmuse_cache = None
         
     def get_standings(self) -> Dict:
         """Fetch current NHL standings"""
@@ -113,21 +115,91 @@ class NHLDataFetcher:
             'Utah Hockey Club': 'UTA'
         }
         return team_mapping.get(team_name)
+    
+    def get_recent_form(self, team_abbr: str) -> Dict[str, float]:
+        """
+        Fetch recent form data (last 10 games) from StatMuse or NHL API
+        Returns dict with recent performance metrics
+        """
+        if self._statmuse_cache and team_abbr in self._statmuse_cache:
+            return self._statmuse_cache.get(team_abbr, {})
+        
+        try:
+            # Try to fetch from NHL API game log (last 10 games)
+            # Note: This uses team game log endpoint which may have different structure
+            url = f"{self.base_url}/club-schedule-season/{team_abbr}/now"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Extract last 10 games
+            games = data.get('games', [])
+            recent_games = [g for g in games if g.get('gameState') in ['OFF', 'FINAL']][-10:]
+            
+            if not recent_games:
+                return {}
+            
+            # Calculate recent form metrics
+            wins = 0
+            goals_for = 0
+            goals_against = 0
+            
+            for game in recent_games:
+                team_score = 0
+                opp_score = 0
+                
+                # Determine if home or away
+                if game.get('homeTeam', {}).get('abbrev') == team_abbr:
+                    team_score = game.get('homeTeam', {}).get('score', 0)
+                    opp_score = game.get('awayTeam', {}).get('score', 0)
+                else:
+                    team_score = game.get('awayTeam', {}).get('score', 0)
+                    opp_score = game.get('homeTeam', {}).get('score', 0)
+                
+                goals_for += team_score
+                goals_against += opp_score
+                
+                if team_score > opp_score:
+                    wins += 1
+            
+            recent_form = {
+                'games_played': len(recent_games),
+                'wins': wins,
+                'win_pct': wins / len(recent_games) if recent_games else 0,
+                'goals_for': goals_for,
+                'goals_against': goals_against,
+                'goal_diff': goals_for - goals_against,
+                'goals_per_game': goals_for / len(recent_games) if recent_games else 0,
+                'goals_allowed_per_game': goals_against / len(recent_games) if recent_games else 0
+            }
+            
+            # Cache the result
+            if self._statmuse_cache is None:
+                self._statmuse_cache = {}
+            self._statmuse_cache[team_abbr] = recent_form
+            
+            return recent_form
+            
+        except Exception as e:
+            print(f"Error fetching recent form for {team_abbr}: {e}")
+            return {}
 
 
 class NHLAnalytics:
     """Analyzes NHL data and provides spread and total predictions"""
     
-    def __init__(self, use_moneypuck: bool = False):
+    def __init__(self, use_moneypuck: bool = False, use_recent_form: bool = False):
         """
         Initialize NHL Analytics
         
         Args:
             use_moneypuck: If True, incorporates MoneyPuck power rankings into team strength
+            use_recent_form: If True, incorporates last 10 games performance into team strength
         """
         self.data_fetcher = NHLDataFetcher()
         self.confidence_level = 0.70  # 70% confidence target
         self.use_moneypuck = use_moneypuck
+        self.use_recent_form = use_recent_form
         self._moneypuck_rankings = None
         
     def calculate_team_strength(self, team_data: Dict, team_abbr: str = None) -> float:
@@ -137,7 +209,7 @@ class NHLAnalytics:
         
         Args:
             team_data: Team statistics from NHL API
-            team_abbr: Team abbreviation (required if use_moneypuck is True)
+            team_abbr: Team abbreviation (required if use_moneypuck or use_recent_form is True)
         """
         if not team_data:
             return 50.0  # neutral rating
@@ -165,6 +237,28 @@ class NHLAnalytics:
         
         # Base strength: 60% win percentage, 40% goal differential
         base_strength = (win_pct * 60) + (goal_diff_normalized * 0.4)
+        
+        # Calculate recent form strength if enabled
+        recent_form_strength = None
+        if self.use_recent_form and team_abbr:
+            recent_form = self.data_fetcher.get_recent_form(team_abbr)
+            if recent_form and recent_form.get('games_played', 0) >= 5:
+                # Calculate recent form strength
+                recent_win_pct = recent_form.get('win_pct', 0.5)
+                recent_goal_diff = recent_form.get('goal_diff', 0)
+                recent_gpg = recent_form.get('goals_per_game', 0)
+                
+                # Normalize recent goal differential (typical range -10 to +10 over 10 games)
+                recent_goal_diff_normalized = 50 + (recent_goal_diff * 2.5)
+                recent_goal_diff_normalized = max(0, min(100, recent_goal_diff_normalized))
+                
+                # Recent form strength: 70% recent win%, 30% recent goal differential
+                recent_form_strength = (recent_win_pct * 70) + (recent_goal_diff_normalized * 0.3)
+        
+        # Blend season stats with recent form if available
+        if recent_form_strength is not None:
+            # 60% season data, 40% last 10 games (captures momentum)
+            base_strength = (base_strength * 0.6) + (recent_form_strength * 0.4)
         
         # Optionally incorporate MoneyPuck rankings
         if self.use_moneypuck and team_abbr:

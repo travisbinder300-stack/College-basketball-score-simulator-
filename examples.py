@@ -221,6 +221,53 @@ def example_moneypuck_integration():
     print()
 
 
+def example_recent_form_integration():
+    """Example: Using recent form (last 10 games) for enhanced predictions"""
+    print("\n" + "="*60)
+    print("Example 9: Recent Form Integration")
+    print("="*60)
+    
+    print("\nComparing predictions with and without recent form (last 10 games):\n")
+    
+    # Standard mode (season data only)
+    analytics_standard = NHLAnalytics(use_recent_form=False)
+    spread_standard = analytics_standard.predict_spread("CHI", "LAK")
+    
+    print("Standard Mode (Full season stats):")
+    print(f"  LAK @ CHI Spread: {spread_standard['predicted_spread']:+.2f}")
+    print(f"  CHI Strength: {spread_standard['home_team_strength']:.2f}")
+    print(f"  LAK Strength: {spread_standard['away_team_strength']:.2f}")
+    print()
+    
+    # Recent form mode
+    analytics_rf = NHLAnalytics(use_recent_form=True)
+    spread_rf = analytics_rf.predict_spread("CHI", "LAK")
+    
+    print("Recent Form Mode (60% season / 40% last 10 games):")
+    print(f"  LAK @ CHI Spread: {spread_rf['predicted_spread']:+.2f}")
+    print(f"  CHI Strength: {spread_rf['home_team_strength']:.2f}")
+    print(f"  LAK Strength: {spread_rf['away_team_strength']:.2f}")
+    print()
+    
+    # Combined mode (both MoneyPuck and Recent Form)
+    analytics_combined = NHLAnalytics(use_moneypuck=True, use_recent_form=True)
+    spread_combined = analytics_combined.predict_spread("CHI", "LAK")
+    
+    print("Combined Mode (MoneyPuck + Recent Form):")
+    print(f"  LAK @ CHI Spread: {spread_combined['predicted_spread']:+.2f}")
+    print(f"  CHI Strength: {spread_combined['home_team_strength']:.2f}")
+    print(f"  LAK Strength: {spread_combined['away_team_strength']:.2f}")
+    print()
+    
+    print("Benefits of Recent Form Integration:")
+    print("  ✅ Captures momentum and current team performance")
+    print("  ✅ Identifies hot/cold streaks (e.g., Chicago covering well)")
+    print("  ✅ More responsive to recent wins, losses, and goal trends")
+    print("  ✅ Better for teams trending up or down")
+    print("  ✅ Improves accuracy for in-season betting analysis")
+    print()
+
+
 def main():
     """Run all examples"""
     print("\n" + "="*60)
@@ -237,13 +284,14 @@ def main():
     example_betting_recommendations()
     example_underdog_value()
     example_moneypuck_integration()
+    example_recent_form_integration()
     
     print("\n" + "="*60)
     print("Examples Complete!")
     print("="*60)
     print("\nNote: When connected to the internet, this system fetches")
     print("real-time NHL data from the official NHL API and optionally")
-    print("MoneyPuck power rankings for enhanced predictions.")
+    print("MoneyPuck power rankings and recent form data for enhanced predictions.")
     print("="*60 + "\n")
 
 
