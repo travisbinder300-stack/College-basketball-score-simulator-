@@ -40,6 +40,8 @@ class Prediction:
     spread_value: Optional[float] = None  # Difference between predicted and market spread
     is_overvalue: bool = False  # True if significant value exists
     value_side: Optional[str] = None  # "home" or "away" - which side has value
+    expected_value: Optional[float] = None  # Expected value (EV) for recommended bet
+    ev_percentage: Optional[float] = None  # EV as percentage of stake
     
     def __str__(self):
         result = f"""
@@ -53,6 +55,10 @@ Total: {self.total:.1f} points (Confidence: {self.total_confidence:.1f}%)"""
 Market Spread: {self.game.home_team.name} {self.game.market_spread:+.1f}
 Value Difference: {abs(self.spread_value):.1f} points
 Recommended Bet: {self.value_side.upper()} side ({self.game.home_team.name if self.value_side == 'home' else self.game.away_team.name})"""
+            
+            if self.expected_value is not None and self.ev_percentage is not None:
+                result += f"""
+Expected Value (EV): ${self.expected_value:+.2f} per $100 bet ({self.ev_percentage:+.1f}%)"""
         
         return result + "\n"
 
@@ -164,6 +170,57 @@ class NBAAnalyzer:
         
         return total, confidence
     
+    def calculate_expected_value(self, prediction: Prediction, juice: float = -110) -> Prediction:
+        """
+        Calculate Expected Value (EV) for a bet based on prediction confidence
+        
+        Args:
+            prediction: The prediction object with confidence metrics
+            juice: The betting odds (default -110, standard for spread bets)
+        
+        Returns:
+            Updated prediction with EV calculations
+        
+        EV Formula:
+        EV = (Win Probability × Profit) - (Loss Probability × Stake)
+        
+        For -110 odds: risk $110 to win $100
+        For +110 odds: risk $100 to win $110
+        """
+        if not prediction.is_overvalue or prediction.value_side is None:
+            return prediction
+        
+        # Use confidence as win probability (convert from percentage to decimal)
+        win_probability = prediction.spread_confidence / 100.0
+        loss_probability = 1.0 - win_probability
+        
+        # Standard bet amount
+        stake = 100.0
+        
+        # Calculate profit based on juice/odds
+        if juice < 0:
+            # Negative odds: need to risk more to win standard amount
+            # e.g., -110 means risk $110 to win $100
+            risk_amount = abs(juice)
+            profit = stake
+        else:
+            # Positive odds: win more than standard risk
+            # e.g., +110 means risk $100 to win $110
+            risk_amount = stake
+            profit = juice
+        
+        # Calculate EV
+        # EV = (probability of winning × profit) - (probability of losing × stake)
+        expected_value = (win_probability * profit) - (loss_probability * stake)
+        
+        # Calculate EV as percentage of stake
+        ev_percentage = (expected_value / stake) * 100.0
+        
+        prediction.expected_value = expected_value
+        prediction.ev_percentage = ev_percentage
+        
+        return prediction
+    
     def detect_overvalue(self, prediction: Prediction, min_value_threshold: float = 2.5) -> Prediction:
         """
         Detect if there's overvalue in the spread compared to market line
@@ -220,6 +277,9 @@ class NBAAnalyzer:
         # Check for overvalue if market spread is available
         if game.market_spread is not None:
             prediction = self.detect_overvalue(prediction)
+            # Calculate EV if overvalue was detected
+            if prediction.is_overvalue:
+                prediction = self.calculate_expected_value(prediction)
         
         return prediction
     

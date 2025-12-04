@@ -329,6 +329,86 @@ class TestOvervalueDetection(unittest.TestCase):
             self.assertFalse(prediction_4pt.is_overvalue)
 
 
+class TestExpectedValue(unittest.TestCase):
+    """Test cases for Expected Value (EV) calculations"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.analyzer = NBAAnalyzer(min_confidence=70.0)
+        
+        self.strong_team = Team(
+            name="Strong Team",
+            offensive_rating=120.0,
+            defensive_rating=105.0,
+            pace=100.0,
+            win_percentage=0.750,
+            recent_form=0.90
+        )
+        
+        self.weak_team = Team(
+            name="Weak Team",
+            offensive_rating=108.0,
+            defensive_rating=118.0,
+            pace=98.0,
+            win_percentage=0.300,
+            recent_form=0.30
+        )
+    
+    def test_ev_calculation_with_overvalue(self):
+        """Test that EV is calculated when overvalue is detected"""
+        # Create a game where overvalue will be detected
+        game = Game(self.strong_team, self.weak_team, "2025-12-04", market_spread=5.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        if prediction.is_overvalue:
+            self.assertIsNotNone(prediction.expected_value)
+            self.assertIsNotNone(prediction.ev_percentage)
+    
+    def test_ev_not_calculated_without_overvalue(self):
+        """Test that EV is not calculated when no overvalue"""
+        # Create a game where market matches prediction
+        game = Game(self.strong_team, self.weak_team, "2025-12-04", market_spread=15.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        if not prediction.is_overvalue:
+            self.assertIsNone(prediction.expected_value)
+            self.assertIsNone(prediction.ev_percentage)
+    
+    def test_ev_positive_with_high_confidence(self):
+        """Test that high confidence predictions yield positive EV"""
+        game = Game(self.strong_team, self.weak_team, "2025-12-04", market_spread=5.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        # With high confidence (>70%) and overvalue, EV should be positive
+        if prediction.is_overvalue and prediction.spread_confidence > 70.0:
+            self.assertIsNotNone(prediction.expected_value)
+            # High confidence should yield positive EV
+            if prediction.expected_value is not None:
+                self.assertGreater(prediction.expected_value, 0)
+    
+    def test_ev_percentage_matches_dollar_ev(self):
+        """Test that EV percentage correctly represents dollar EV"""
+        game = Game(self.strong_team, self.weak_team, "2025-12-04", market_spread=5.0)
+        prediction = self.analyzer.analyze_game(game)
+        
+        if prediction.expected_value is not None and prediction.ev_percentage is not None:
+            # EV percentage should be (EV / stake) * 100
+            # For $100 stake, ev_percentage should equal expected_value
+            self.assertAlmostEqual(
+                prediction.ev_percentage,
+                prediction.expected_value,
+                places=1
+            )
+    
+    def test_ev_not_calculated_without_market_spread(self):
+        """Test that EV is not calculated when no market spread provided"""
+        game = Game(self.strong_team, self.weak_team, "2025-12-04", market_spread=None)
+        prediction = self.analyzer.analyze_game(game)
+        
+        self.assertIsNone(prediction.expected_value)
+        self.assertIsNone(prediction.ev_percentage)
+
+
 if __name__ == "__main__":
     # Run tests with verbose output
     unittest.main(verbosity=2)

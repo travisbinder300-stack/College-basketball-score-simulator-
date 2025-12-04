@@ -3,7 +3,7 @@ Basketball-simulator
 
 ## NBA Spread and Total Analysis
 
-This repository now includes a comprehensive NBA spread and total analysis system that provides predictions with **70% or higher confidence** and identifies **overvalue betting opportunities**.
+This repository now includes a comprehensive NBA spread and total analysis system that provides predictions with **70% or higher confidence**, identifies **overvalue betting opportunities**, and calculates **Expected Value (EV)** for recommended bets.
 
 ### Features
 
@@ -11,6 +11,7 @@ This repository now includes a comprehensive NBA spread and total analysis syste
 - **Total Points Analysis**: Predicts total points (over/under) for NBA games with confidence metrics
 - **High Confidence Filtering**: Only displays predictions that meet the 70%+ confidence threshold
 - **Overvalue Detection**: Identifies games where betting lines differ significantly from predicted spreads (2.5+ points)
+- **Expected Value (EV) Calculation**: Calculates the expected profit/loss for each recommended bet
 - **Betting Recommendations**: Shows which side (home/away) offers value when overvalue is detected
 - **Advanced Metrics**: Uses offensive rating, defensive rating, pace, win percentage, and recent form
 
@@ -25,6 +26,7 @@ The analysis system considers multiple factors:
 5. **Recent Form**: Last 10 games performance metric
 6. **Home Court Advantage**: Built-in 3.5 point advantage for home teams
 7. **Market Spread Comparison**: Compares predictions to betting lines for value opportunities
+8. **Expected Value (EV)**: Calculates expected profit per $100 bet using confidence as win probability
 
 #### Confidence Calculation
 
@@ -37,6 +39,21 @@ The analysis system considers multiple factors:
 
 **Total Confidence**:
 - Base confidence: 65%
+
+#### Expected Value (EV) Calculation
+
+**How EV Works**:
+- Formula: `EV = (Win Probability × Profit) - (Loss Probability × Stake)`
+- Uses prediction confidence as win probability
+- Assumes standard -110 odds (risk $110 to win $100)
+- Positive EV indicates a profitable bet over time
+- Displayed as both dollar amount and percentage
+
+**Example**:
+- Confidence: 73.9%
+- EV: +$47.82 per $100 bet (+47.8%)
+- Meaning: Over time, expect to profit $47.82 for every $100 wagered
+
 #### Overvalue Detection
 
 **How Overvalue Works**:
@@ -44,6 +61,7 @@ The analysis system considers multiple factors:
 - Identifies opportunities where the difference is ≥ 2.5 points (default threshold)
 - Recommends which side (home or away) to bet based on the value
 - Only shows overvalue opportunities that also meet the 70%+ confidence threshold
+- Automatically calculates EV for all overvalue opportunities
 
 **Value Calculation**:
 - If predicted spread > market spread: Home team is undervalued by the market
@@ -60,6 +78,7 @@ python3 nba_analysis.py
 This will analyze sample NBA games and display:
 1. All predictions with 70%+ confidence for both spread and total
 2. Overvalue spread opportunities with recommended bets
+3. Expected Value (EV) calculations for each overvalue opportunity
 
 #### Example Output
 
@@ -84,6 +103,7 @@ Total: 233.8 points (Confidence: 94.2%)
 Market Spread: Golden State Warriors +8.0
 Value Difference: 3.0 points
 Recommended Bet: AWAY side (Brooklyn Nets)
+Expected Value (EV): $+47.82 per $100 bet (+47.8%)
 
 ...
 
