@@ -185,6 +185,42 @@ def example_underdog_value():
         print()
 
 
+def example_moneypuck_integration():
+    """Example: Using MoneyPuck power rankings for enhanced predictions"""
+    print("\n" + "="*60)
+    print("Example 8: MoneyPuck Integration")
+    print("="*60)
+    
+    print("\nComparing predictions with and without MoneyPuck:\n")
+    
+    # Standard mode
+    analytics_standard = NHLAnalytics(use_moneypuck=False)
+    spread_standard = analytics_standard.predict_spread("TOR", "BOS")
+    
+    print("Standard Mode (NHL API only):")
+    print(f"  TOR vs BOS Spread: {spread_standard['predicted_spread']:+.2f}")
+    print(f"  TOR Strength: {spread_standard['home_team_strength']:.2f}")
+    print(f"  BOS Strength: {spread_standard['away_team_strength']:.2f}")
+    print()
+    
+    # MoneyPuck mode
+    analytics_mp = NHLAnalytics(use_moneypuck=True)
+    spread_mp = analytics_mp.predict_spread("TOR", "BOS")
+    
+    print("MoneyPuck Mode (Enhanced with advanced analytics):")
+    print(f"  TOR vs BOS Spread: {spread_mp['predicted_spread']:+.2f}")
+    print(f"  TOR Strength: {spread_mp['home_team_strength']:.2f}")
+    print(f"  BOS Strength: {spread_mp['away_team_strength']:.2f}")
+    print()
+    
+    print("Benefits of MoneyPuck Integration:")
+    print("  ✅ Incorporates Expected Goals (xG) metrics")
+    print("  ✅ Considers advanced possession statistics")
+    print("  ✅ Better reflects team performance trends")
+    print("  ✅ Improves prediction accuracy")
+    print()
+
+
 def main():
     """Run all examples"""
     print("\n" + "="*60)
@@ -200,12 +236,14 @@ def main():
     example_multiple_games()
     example_betting_recommendations()
     example_underdog_value()
+    example_moneypuck_integration()
     
     print("\n" + "="*60)
     print("Examples Complete!")
     print("="*60)
     print("\nNote: When connected to the internet, this system fetches")
-    print("real-time NHL data from the official NHL API.")
+    print("real-time NHL data from the official NHL API and optionally")
+    print("MoneyPuck power rankings for enhanced predictions.")
     print("="*60 + "\n")
 
 

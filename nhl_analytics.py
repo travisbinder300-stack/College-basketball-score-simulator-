@@ -8,14 +8,17 @@ import requests
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 from scipy import stats
+from bs4 import BeautifulSoup
 
 
 class NHLDataFetcher:
-    """Fetches real NHL data from the NHL API"""
+    """Fetches real NHL data from the NHL API and MoneyPuck"""
     
     def __init__(self):
         self.base_url = "https://api-web.nhle.com/v1"
         self.standings_url = f"{self.base_url}/standings/now"
+        self.moneypuck_url = "https://moneypuck.com/power.htm"
+        self._moneypuck_cache = None
         
     def get_standings(self) -> Dict:
         """Fetch current NHL standings"""
@@ -50,19 +53,91 @@ class NHLDataFetcher:
         except Exception as e:
             print(f"Error fetching schedule: {e}")
             return {}
+    
+    def get_moneypuck_rankings(self) -> Dict[str, float]:
+        """
+        Fetch MoneyPuck power rankings
+        Returns dict mapping team abbreviations to power ranking scores
+        """
+        if self._moneypuck_cache is not None:
+            return self._moneypuck_cache
+            
+        try:
+            response = requests.get(self.moneypuck_url, timeout=15)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'lxml')
+            
+            # Find the power rankings table
+            rankings = {}
+            table = soup.find('table')
+            
+            if table:
+                rows = table.find_all('tr')[1:]  # Skip header
+                for row in rows:
+                    cells = row.find_all('td')
+                    if len(cells) >= 2:
+                        # Extract team name and power ranking score
+                        team_cell = cells[1].text.strip() if len(cells) > 1 else ''
+                        score_cell = cells[2].text.strip() if len(cells) > 2 else '0'
+                        
+                        # Map full team names to abbreviations
+                        team_abbr = self._map_moneypuck_team_to_abbr(team_cell)
+                        if team_abbr:
+                            try:
+                                score = float(score_cell)
+                                rankings[team_abbr] = score
+                            except ValueError:
+                                continue
+            
+            self._moneypuck_cache = rankings
+            return rankings
+            
+        except Exception as e:
+            print(f"Error fetching MoneyPuck rankings: {e}")
+            return {}
+    
+    def _map_moneypuck_team_to_abbr(self, team_name: str) -> Optional[str]:
+        """Map MoneyPuck team names to NHL abbreviations"""
+        team_mapping = {
+            'Anaheim Ducks': 'ANA', 'Arizona Coyotes': 'ARI', 'Boston Bruins': 'BOS',
+            'Buffalo Sabres': 'BUF', 'Calgary Flames': 'CGY', 'Carolina Hurricanes': 'CAR',
+            'Chicago Blackhawks': 'CHI', 'Colorado Avalanche': 'COL', 'Columbus Blue Jackets': 'CBJ',
+            'Dallas Stars': 'DAL', 'Detroit Red Wings': 'DET', 'Edmonton Oilers': 'EDM',
+            'Florida Panthers': 'FLA', 'Los Angeles Kings': 'LAK', 'Minnesota Wild': 'MIN',
+            'Montréal Canadiens': 'MTL', 'Montreal Canadiens': 'MTL', 'Nashville Predators': 'NSH',
+            'New Jersey Devils': 'NJD', 'New York Islanders': 'NYI', 'New York Rangers': 'NYR',
+            'Ottawa Senators': 'OTT', 'Philadelphia Flyers': 'PHI', 'Pittsburgh Penguins': 'PIT',
+            'San Jose Sharks': 'SJS', 'Seattle Kraken': 'SEA', 'St. Louis Blues': 'STL',
+            'Tampa Bay Lightning': 'TBL', 'Toronto Maple Leafs': 'TOR', 'Vancouver Canucks': 'VAN',
+            'Vegas Golden Knights': 'VGK', 'Washington Capitals': 'WSH', 'Winnipeg Jets': 'WPG',
+            'Utah Hockey Club': 'UTA'
+        }
+        return team_mapping.get(team_name)
 
 
 class NHLAnalytics:
     """Analyzes NHL data and provides spread and total predictions"""
     
-    def __init__(self):
+    def __init__(self, use_moneypuck: bool = False):
+        """
+        Initialize NHL Analytics
+        
+        Args:
+            use_moneypuck: If True, incorporates MoneyPuck power rankings into team strength
+        """
         self.data_fetcher = NHLDataFetcher()
         self.confidence_level = 0.70  # 70% confidence target
+        self.use_moneypuck = use_moneypuck
+        self._moneypuck_rankings = None
         
-    def calculate_team_strength(self, team_data: Dict) -> float:
+    def calculate_team_strength(self, team_data: Dict, team_abbr: str = None) -> float:
         """
         Calculate team strength rating based on multiple factors
         Returns a normalized strength score (0-100)
+        
+        Args:
+            team_data: Team statistics from NHL API
+            team_abbr: Team abbreviation (required if use_moneypuck is True)
         """
         if not team_data:
             return 50.0  # neutral rating
@@ -88,10 +163,22 @@ class NHLAnalytics:
         goal_diff_normalized = 50 + (goal_diff_per_game * 10)
         goal_diff_normalized = max(0, min(100, goal_diff_normalized))
         
-        # Weight: 60% win percentage, 40% goal differential
-        strength = (win_pct * 60) + (goal_diff_normalized * 0.4)
+        # Base strength: 60% win percentage, 40% goal differential
+        base_strength = (win_pct * 60) + (goal_diff_normalized * 0.4)
         
-        return strength
+        # Optionally incorporate MoneyPuck rankings
+        if self.use_moneypuck and team_abbr:
+            if self._moneypuck_rankings is None:
+                self._moneypuck_rankings = self.data_fetcher.get_moneypuck_rankings()
+            
+            if team_abbr in self._moneypuck_rankings:
+                # MoneyPuck rankings are typically 0-1 scale, convert to 0-100
+                moneypuck_strength = self._moneypuck_rankings[team_abbr] * 100
+                # Blend: 70% our calculation, 30% MoneyPuck
+                strength = (base_strength * 0.7) + (moneypuck_strength * 0.3)
+                return strength
+        
+        return base_strength
     
     def predict_spread(self, home_team: str, away_team: str) -> Dict:
         """
@@ -102,9 +189,9 @@ class NHLAnalytics:
         home_data = self._get_team_record(home_team)
         away_data = self._get_team_record(away_team)
         
-        # Calculate team strengths
-        home_strength = self.calculate_team_strength(home_data)
-        away_strength = self.calculate_team_strength(away_data)
+        # Calculate team strengths (pass team abbreviations for MoneyPuck integration)
+        home_strength = self.calculate_team_strength(home_data, home_team)
+        away_strength = self.calculate_team_strength(away_data, away_team)
         
         # Home ice advantage (approximately 0.3 goals in NHL)
         home_advantage = 3.0

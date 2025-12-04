@@ -1,10 +1,11 @@
 # NHL Spread and Total Analytics System
 
-A Python-based analytics system that provides NHL game predictions with 70% confidence intervals using real NHL data from the official NHL API.
+A Python-based analytics system that provides NHL game predictions with 70% confidence intervals using real NHL data from the official NHL API and optional MoneyPuck power rankings.
 
 ## Features
 
 - **Real-Time NHL Data**: Fetches current standings, team statistics, and schedules from the official NHL API
+- **MoneyPuck Integration**: Optional advanced analytics from MoneyPuck power rankings
 - **Spread Predictions**: Calculates expected point spreads with 70% confidence intervals
 - **Total Predictions**: Predicts over/under totals with 70% confidence intervals
 - **Underdog Identification**: Clearly identifies underdogs in every matchup
@@ -31,6 +32,7 @@ python nhl_analytics.py
 
 ### Python API
 
+**Standard Mode (NHL API only):**
 ```python
 from nhl_analytics import NHLAnalytics
 
@@ -57,6 +59,19 @@ print(f"Recommendation: {value['recommended_bet']}")
 # Get complete analysis
 analysis = analytics.get_full_analysis("TOR", "MTL")
 print(analysis)
+```
+
+**MoneyPuck Mode (Enhanced with advanced analytics):**
+```python
+from nhl_analytics import NHLAnalytics
+
+# Initialize with MoneyPuck integration
+analytics = NHLAnalytics(use_moneypuck=True)
+
+# Predictions now incorporate MoneyPuck power rankings
+# Team strength calculation: 70% base metrics + 30% MoneyPuck rankings
+spread = analytics.predict_spread("TOR", "MTL")
+print(f"Enhanced Spread (with MoneyPuck): {spread['predicted_spread']}")
 ```
 
 ## NHL Team Abbreviations
@@ -142,9 +157,23 @@ This helps bettors identify:
 
 ## Data Sources
 
+### Primary Data
 - **NHL API**: Official NHL statistics API (api-web.nhle.com)
 - **Real-Time Data**: Current season standings, team stats, and schedules
 - **Historical Data**: Team performance metrics from completed games
+
+### MoneyPuck Integration (Optional)
+- **MoneyPuck Power Rankings**: Advanced analytics from moneypuck.com/power.htm
+- **Advanced Metrics**: Incorporates Expected Goals (xG), Corsi, Fenwick, and other advanced statistics
+- **Blended Approach**: When enabled, combines 70% traditional metrics + 30% MoneyPuck rankings
+- **Web Scraping**: Automatically fetches and parses MoneyPuck's power rankings table
+- **Usage**: Enable with `NHLAnalytics(use_moneypuck=True)`
+
+**Benefits of MoneyPuck Integration:**
+- More accurate team strength assessments
+- Considers advanced metrics beyond wins/losses
+- Better prediction of team performance trends
+- Improved edge detection for value betting
 
 ## Statistical Methodology
 
