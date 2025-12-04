@@ -6,7 +6,10 @@ Analyzes which team can cover a point spread based on simulation results.
 
 import sys
 from typing import Dict, List, Tuple
-from basketball_simulator import Team, BasketballSimulator
+try:
+    from .basketball_simulator import Team, BasketballSimulator
+except ImportError:
+    from basketball_simulator import Team, BasketballSimulator
 
 
 class SpreadAnalyzer:

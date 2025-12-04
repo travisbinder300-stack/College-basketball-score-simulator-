@@ -5,7 +5,10 @@ Find teams that can cover spreads with high accuracy.
 """
 
 import sys
-from spread_analyzer import SpreadAnalyzer
+try:
+    from .spread_analyzer import SpreadAnalyzer
+except ImportError:
+    from spread_analyzer import SpreadAnalyzer
 
 
 def get_team_config(team_number: int) -> dict:

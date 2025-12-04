@@ -4,7 +4,10 @@ Complete Example: College Basketball Spread Analysis
 Demonstrates all features of the spread analyzer with real-world scenarios.
 """
 
-from spread_analyzer import SpreadAnalyzer
+try:
+    from .spread_analyzer import SpreadAnalyzer
+except ImportError:
+    from spread_analyzer import SpreadAnalyzer
 
 
 def example_scenario():

@@ -63,7 +63,65 @@ cd College-basketball-score-simulator-
 Run a basic basketball simulation with preset teams:
 
 ```bash
+cd college_basketball
 python3 basketball_simulator.py
+```
+
+**Basketball Spread Analysis:**
+
+```bash
+cd college_basketball
+python3 spread_analyzer.py       # Full spread analysis
+python3 find_picks.py            # Quick picks finder
+python3 good_example.py          # Comprehensive examples
+```
+
+**Basketball Programmatic Usage:**
+
+```python
+# Option 1: Run from the college_basketball directory
+from basketball_simulator import Team, BasketballSimulator
+from spread_analyzer import SpreadAnalyzer
+
+# Option 2: Import as a package from the root directory
+from college_basketball import Team, BasketballSimulator
+
+# Define teams
+duke_config = {
+    'name': 'Duke',
+    'fg_pct': 0.475,
+    'three_pt_pct': 0.365,
+    'ft_pct': 0.75,
+    'offensive_reb_pct': 0.32,
+    'assists_per_game': 16.2,
+    'steals_per_game': 7.8,
+    'blocks_per_game': 4.5,
+    'turnovers_per_game': 11.5,
+    'fouls_per_game': 18.2,
+    'home_court': True
+}
+
+unc_config = {
+    'name': 'UNC',
+    'fg_pct': 0.465,
+    'three_pt_pct': 0.345,
+    'ft_pct': 0.73,
+    'offensive_reb_pct': 0.30,
+    'assists_per_game': 15.5,
+    'steals_per_game': 6.9,
+    'blocks_per_game': 3.8,
+    'turnovers_per_game': 12.0,
+    'fouls_per_game': 17.8
+}
+
+# Create teams and simulator
+duke = Team(duke_config)
+unc = Team(unc_config)
+sim = BasketballSimulator(duke, unc)
+
+# Run simulation
+result = sim.simulate_game()
+print(f"{result['team1_score']} - {result['team2_score']}")
 ```
 
 ### 🏈 Football Simulation
@@ -136,6 +194,7 @@ print(f"Under 52.5: {total_analysis['under_pct']:.1f}%")
 For more control and customization options:
 
 ```bash
+cd college_basketball
 python3 interactive_simulator.py
 ```
 
@@ -149,6 +208,7 @@ The interactive mode offers three options:
 Find teams that can cover point spreads with high accuracy:
 
 ```bash
+cd college_basketball
 python3 spread_finder.py
 ```
 
@@ -162,6 +222,7 @@ This tool runs 1000+ simulations and identifies:
 **Find Today's Best Picks:**
 
 ```bash
+cd college_basketball
 python3 find_picks.py
 ```
 
@@ -175,6 +236,7 @@ This tool analyzes multiple games and provides betting recommendations:
 **See a Complete Example:**
 
 ```bash
+cd college_basketball
 python3 good_example.py
 ```
 
@@ -188,6 +250,7 @@ This comprehensive example demonstrates:
 **Example: Finding a team that covers the spread**
 
 ```bash
+cd college_basketball
 python3 spread_analyzer.py
 ```
 
@@ -369,6 +432,34 @@ This simulator achieves high accuracy by:
 6. Realistic correlation between team stats and game outcomes
 
 The default statistics are based on NCAA Division I averages, ensuring realistic final scores typically in the 60-90 point range.
+
+## 📁 Repository Structure
+
+```
+College-basketball-score-simulator-/
+├── college_basketball/          # NCAA Men's Basketball Simulator
+│   ├── __init__.py
+│   ├── basketball_simulator.py  # Core basketball game simulation
+│   ├── spread_analyzer.py       # Spread analysis and betting tools
+│   ├── find_picks.py            # Quick picks finder
+│   ├── good_example.py          # Comprehensive usage examples
+│   ├── examples.py              # Basic examples
+│   ├── interactive_simulator.py # Interactive mode
+│   ├── spread_finder.py         # Spread finding tools
+│   └── test_simulator.py        # Test suite
+│
+├── college_football/            # NCAA Football Simulator
+│   ├── __init__.py
+│   ├── football_simulator.py    # Core football game simulation
+│   ├── football_spread_analyzer.py  # Football spread analysis
+│   ├── football_find_picks.py   # Football picks finder
+│   ├── football_example.py      # Football usage examples
+│   └── test_football_simulator.py   # Football test suite
+│
+├── README.md                    # This file
+├── LICENSE                      # License information
+└── requirements.txt             # Python dependencies (none required!)
+```
 
 ## License
 

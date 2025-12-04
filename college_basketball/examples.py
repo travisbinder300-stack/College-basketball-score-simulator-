@@ -4,7 +4,10 @@ Example usage of the College Basketball Score Simulator.
 Demonstrates various ways to use the simulator.
 """
 
-from basketball_simulator import Team, BasketballSimulator
+try:
+    from .basketball_simulator import Team, BasketballSimulator
+except ImportError:
+    from basketball_simulator import Team, BasketballSimulator
 
 
 def example_1_basic_simulation():

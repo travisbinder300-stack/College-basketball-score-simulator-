@@ -4,7 +4,10 @@ Find Picks - College Basketball Betting Recommendations
 Analyzes matchups and provides betting picks based on simulation data.
 """
 
-from spread_analyzer import SpreadAnalyzer
+try:
+    from .spread_analyzer import SpreadAnalyzer
+except ImportError:
+    from spread_analyzer import SpreadAnalyzer
 
 
 def analyze_matchup(team1_config, team2_config, spread, num_sims=500):

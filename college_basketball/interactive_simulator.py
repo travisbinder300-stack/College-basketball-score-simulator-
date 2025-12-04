@@ -5,7 +5,10 @@ Allows users to customize teams and run simulations.
 """
 
 import sys
-from basketball_simulator import Team, BasketballSimulator
+try:
+    from .basketball_simulator import Team, BasketballSimulator
+except ImportError:
+    from basketball_simulator import Team, BasketballSimulator
 
 
 def get_float_input(prompt: str, default: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
