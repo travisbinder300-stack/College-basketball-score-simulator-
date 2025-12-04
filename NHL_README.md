@@ -183,12 +183,20 @@ Analyzing: MTL @ TOR
    Expected MTL Goals: 2.7
 ```
 
-## Limitations
+## Current Data & Limitations
 
-- Predictions are based on current season statistics
-- Does not account for injuries, lineup changes, or recent form
+**Data Source:**
+- Connects to official NHL API (api-web.nhle.com) for real-time data
+- Falls back to default statistical values when API unavailable
+- Uses current season standings, team stats, and performance metrics
+
+**Limitations:**
+- Predictions based on season-to-date statistics (updated when API accessible)
+- Does not account for injuries, lineup changes, or recent momentum
+- Does not include special teams, goaltending matchups, or situational factors
 - Confidence intervals represent statistical ranges, not certainties
-- Requires internet connection to fetch real-time NHL data
+- Requires internet connection for live data; uses fallback averages offline
+- Accuracy improves significantly with access to real-time NHL data
 
 ## Testing
 
