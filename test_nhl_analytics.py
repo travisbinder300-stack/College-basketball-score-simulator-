@@ -206,17 +206,66 @@ class TestNHLAnalytics(unittest.TestCase):
         interpretation = self.analytics._interpret_spread(2.5, "TOR", "MTL")
         self.assertIn("TOR", interpretation)
         self.assertIn("favored", interpretation)
+        self.assertIn("underdog", interpretation)
+        self.assertIn("MTL", interpretation)
     
     def test_interpret_spread_away_favored(self):
         """Test spread interpretation when away team is favored"""
         interpretation = self.analytics._interpret_spread(-2.5, "TOR", "MTL")
         self.assertIn("MTL", interpretation)
         self.assertIn("favored", interpretation)
+        self.assertIn("underdog", interpretation)
+        self.assertIn("TOR", interpretation)
     
     def test_interpret_spread_even(self):
         """Test spread interpretation for even matchup"""
         interpretation = self.analytics._interpret_spread(0.5, "TOR", "MTL")
         self.assertIn("Evenly", interpretation)
+    
+    def test_find_spread_value_structure(self):
+        """Test that find_spread_value returns correct structure"""
+        result = self.analytics.find_spread_value("TOR", "MTL", 1.5)
+        
+        # Check required fields
+        self.assertIn("predicted_spread", result)
+        self.assertIn("market_spread", result)
+        self.assertIn("spread_difference", result)
+        self.assertIn("value_assessment", result)
+        self.assertIn("recommended_bet", result)
+        self.assertIn("underdog", result)
+        self.assertIn("favorite", result)
+        self.assertIn("underdog_points", result)
+        self.assertIn("confidence_interval", result)
+    
+    def test_find_spread_value_home_undervalued(self):
+        """Test value detection when home team is undervalued"""
+        # Market has home at 1.5, predicted at 3.0, home is undervalued
+        result = self.analytics.find_spread_value("TOR", "MTL", 1.5)
+        
+        self.assertGreater(result["spread_difference"], 0.5)
+        self.assertIn("TOR", result["value_assessment"])
+        self.assertIn("undervalued", result["value_assessment"])
+    
+    def test_find_spread_value_away_undervalued(self):
+        """Test value detection when away team is undervalued"""
+        # Market has home at 4.0, predicted at 3.0, away is undervalued
+        result = self.analytics.find_spread_value("TOR", "MTL", 4.0)
+        
+        self.assertLess(result["spread_difference"], -0.5)
+        self.assertIn("MTL", result["value_assessment"])
+        self.assertIn("undervalued", result["value_assessment"])
+    
+    def test_find_spread_value_underdog_identification(self):
+        """Test that underdog is correctly identified"""
+        # Positive spread: away team is underdog
+        result1 = self.analytics.find_spread_value("TOR", "MTL", 2.0)
+        self.assertEqual(result1["underdog"], "MTL")
+        self.assertEqual(result1["favorite"], "TOR")
+        
+        # Negative spread: home team is underdog
+        result2 = self.analytics.find_spread_value("TOR", "MTL", -1.5)
+        self.assertEqual(result2["underdog"], "TOR")
+        self.assertEqual(result2["favorite"], "MTL")
     
     def test_interpret_total_low(self):
         """Test total interpretation for low-scoring game"""

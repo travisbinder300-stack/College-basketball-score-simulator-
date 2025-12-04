@@ -181,6 +181,64 @@ class NHLAnalytics:
             "interpretation": self._interpret_total(predicted_total)
         }
     
+    def find_spread_value(self, home_team: str, away_team: str, market_spread: float) -> Dict:
+        """
+        Compare predicted spread vs market spread to find value opportunities
+        Positive difference means home team is undervalued, negative means away team is undervalued
+        
+        Args:
+            home_team: Home team abbreviation
+            away_team: Away team abbreviation
+            market_spread: Current betting line spread (positive = home favored, negative = away favored)
+        
+        Returns:
+            Dictionary with value analysis including underdog opportunities
+        """
+        prediction = self.predict_spread(home_team, away_team)
+        predicted_spread = prediction['predicted_spread']
+        
+        # Calculate spread difference (predicted - market)
+        spread_difference = predicted_spread - market_spread
+        
+        # Determine value opportunity
+        value_threshold = 0.5  # Half a goal difference indicates potential value
+        
+        if abs(spread_difference) < value_threshold:
+            value_assessment = "No significant value detected"
+            recommended_bet = "Pass or bet based on other factors"
+        elif spread_difference > value_threshold:
+            # Predicted spread is higher than market, home team undervalued
+            value_assessment = f"Home team ({home_team}) appears undervalued"
+            recommended_bet = f"Value on {home_team} to cover"
+        else:
+            # Predicted spread is lower than market, away team undervalued
+            value_assessment = f"Away team ({away_team}) appears undervalued"
+            recommended_bet = f"Value on {away_team} to cover"
+        
+        # Determine underdog
+        if market_spread < 0:
+            underdog = home_team
+            favorite = away_team
+            underdog_getting = abs(market_spread)
+        else:
+            underdog = away_team
+            favorite = home_team
+            underdog_getting = market_spread
+        
+        return {
+            "home_team": home_team,
+            "away_team": away_team,
+            "predicted_spread": round(predicted_spread, 2),
+            "market_spread": round(market_spread, 2),
+            "spread_difference": round(spread_difference, 2),
+            "value_assessment": value_assessment,
+            "recommended_bet": recommended_bet,
+            "underdog": underdog,
+            "favorite": favorite,
+            "underdog_points": round(underdog_getting, 2),
+            "confidence_interval": prediction['confidence_interval']
+        }
+    
     def get_full_analysis(self, home_team: str, away_team: str) -> Dict:
         """
         Get complete analysis including spread and total predictions
@@ -236,9 +294,9 @@ class NHLAnalytics:
     def _interpret_spread(self, spread: float, home_team: str, away_team: str) -> str:
         """Interpret the spread prediction"""
         if spread > 1.0:
-            return f"{home_team} favored by {abs(spread):.1f} goals"
+            return f"{home_team} favored by {abs(spread):.1f} goals (underdog: {away_team})"
         elif spread < -1.0:
-            return f"{away_team} favored by {abs(spread):.1f} goals"
+            return f"{away_team} favored by {abs(spread):.1f} goals (underdog: {home_team})"
         else:
             return "Evenly matched game (pick 'em)"
     
@@ -298,6 +356,29 @@ def main():
         
         print()
     
+    # Demonstrate value finding with example market spreads
+    print("\n" + "=" * 60)
+    print("VALUE ANALYSIS - Finding Underdog & Overvalued Spreads")
+    print("=" * 60)
+    print("\nComparing predicted spreads vs hypothetical market lines:")
+    
+    # Example market spreads (home team perspective: positive = home favored)
+    market_examples = [
+        ("TOR", "MTL", 1.5),   # Market has TOR -1.5
+        ("NYR", "NYI", 2.5),   # Market has NYR -2.5
+        ("BOS", "TBL", -0.5),  # Market has BOS as slight underdog
+    ]
+    
+    for home, away, market_spread in market_examples:
+        print(f"\n{away} @ {home} (Market spread: {market_spread:+.1f})")
+        value = analytics.find_spread_value(home, away, market_spread)
+        print(f"   Predicted: {value['predicted_spread']:+.1f}")
+        print(f"   Difference: {value['spread_difference']:+.2f} goals")
+        print(f"   Underdog: {value['underdog']} (+{value['underdog_points']:.1f})")
+        print(f"   Assessment: {value['value_assessment']}")
+        print(f"   💡 {value['recommended_bet']}")
+    
+    print()
     print("=" * 60)
     print("Analysis Complete!")
     print("=" * 60)

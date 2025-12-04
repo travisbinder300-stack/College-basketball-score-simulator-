@@ -155,6 +155,36 @@ def example_betting_recommendations():
         print()
 
 
+def example_underdog_value():
+    """Example: Find underdog and overvalued spread opportunities"""
+    print("\n" + "="*60)
+    print("Example 7: Finding Underdog Value & Overvalued Spreads")
+    print("="*60)
+    
+    analytics = NHLAnalytics()
+    
+    print("\nComparing predictions vs market spreads to find value:\n")
+    
+    # Simulated market spreads (real betting lines would come from sportsbooks)
+    market_scenarios = [
+        ("TOR", "MTL", 1.5, "Market: TOR -1.5"),
+        ("BOS", "NYR", 2.0, "Market: BOS -2.0"),
+        ("EDM", "CGY", -0.5, "Market: EDM +0.5 (underdog)"),
+    ]
+    
+    for home, away, market_spread, description in market_scenarios:
+        value = analytics.find_spread_value(home, away, market_spread)
+        
+        print(f"{away} @ {home}")
+        print(f"  {description}")
+        print(f"  Our Prediction: {value['predicted_spread']:+.2f}")
+        print(f"  Spread Difference: {value['spread_difference']:+.2f} goals")
+        print(f"  Underdog: {value['underdog']} (getting +{value['underdog_points']:.1f})")
+        print(f"  ⚠️  {value['value_assessment']}")
+        print(f"  💡 Recommendation: {value['recommended_bet']}")
+        print()
+
+
 def main():
     """Run all examples"""
     print("\n" + "="*60)
@@ -169,6 +199,7 @@ def main():
     example_json_export()
     example_multiple_games()
     example_betting_recommendations()
+    example_underdog_value()
     
     print("\n" + "="*60)
     print("Examples Complete!")

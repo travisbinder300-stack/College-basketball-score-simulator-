@@ -7,6 +7,8 @@ A Python-based analytics system that provides NHL game predictions with 70% conf
 - **Real-Time NHL Data**: Fetches current standings, team statistics, and schedules from the official NHL API
 - **Spread Predictions**: Calculates expected point spreads with 70% confidence intervals
 - **Total Predictions**: Predicts over/under totals with 70% confidence intervals
+- **Underdog Identification**: Clearly identifies underdogs in every matchup
+- **Value Analysis**: Compare predictions vs market spreads to find overvalued opportunities
 - **Statistical Modeling**: Uses team strength ratings, goals per game, and defensive metrics
 - **Confidence Intervals**: Provides statistical confidence ranges for all predictions
 
@@ -35,15 +37,22 @@ from nhl_analytics import NHLAnalytics
 # Initialize the analytics system
 analytics = NHLAnalytics()
 
-# Get spread prediction
+# Get spread prediction (with underdog identification)
 spread = analytics.predict_spread("TOR", "MTL")  # Toronto vs Montreal
 print(f"Predicted Spread: {spread['predicted_spread']}")
+print(f"Interpretation: {spread['interpretation']}")  # Shows favorite and underdog
 print(f"70% Confidence: [{spread['confidence_interval']['lower']}, {spread['confidence_interval']['upper']}]")
 
 # Get total prediction
 total = analytics.predict_total("TOR", "MTL")
 print(f"Predicted Total: {total['predicted_total']}")
 print(f"70% Confidence: [{total['confidence_interval']['lower']}, {total['confidence_interval']['upper']}]")
+
+# Find value opportunities (compare vs market spread)
+value = analytics.find_spread_value("TOR", "MTL", market_spread=1.5)
+print(f"Underdog: {value['underdog']} (getting +{value['underdog_points']})")
+print(f"Value Assessment: {value['value_assessment']}")
+print(f"Recommendation: {value['recommended_bet']}")
 
 # Get complete analysis
 analysis = analytics.get_full_analysis("TOR", "MTL")
@@ -99,6 +108,8 @@ The system calculates the expected goal differential between teams using:
 
 3. **Confidence Interval**: 70% confidence using normal distribution with standard deviation of 1.5 goals
 
+4. **Underdog Identification**: Automatically identifies which team is the underdog in each matchup
+
 ### Total Predictions
 
 The system predicts the combined score using:
@@ -107,6 +118,27 @@ The system predicts the combined score using:
 2. **Defensive Metrics**: Goals allowed per game for each team
 3. **Expected Goals**: Average of offensive capability vs defensive vulnerability
 4. **Confidence Interval**: 70% confidence using normal distribution with standard deviation of 1.8 goals
+
+### Value Analysis & Overvalued Spreads
+
+The `find_spread_value()` method compares predicted spreads against market betting lines to identify value opportunities:
+
+1. **Spread Difference**: Calculates how much the prediction differs from the market
+2. **Value Threshold**: Differences > 0.5 goals indicate potential value
+3. **Underdog Opportunities**: Identifies when underdogs are getting too many or too few points
+4. **Betting Recommendations**: Suggests which side offers value based on the analysis
+
+**Example:**
+- Market: TOR -1.5 (MTL is underdog getting +1.5)
+- Predicted: TOR -3.0
+- Analysis: TOR appears undervalued (market spread too low)
+- Recommendation: Value on TOR to cover
+
+This helps bettors identify:
+- Overvalued favorites (market spread too high)
+- Undervalued favorites (market spread too low)
+- Underdog opportunities (when underdogs are getting generous points)
+- Teams being mispriced by the market
 
 ## Data Sources
 
