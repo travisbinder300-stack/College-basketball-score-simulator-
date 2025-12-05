@@ -106,5 +106,17 @@
     "defensive_efficiency": 107.1,
     "tempo": 68.3,
     "coaching_style": "defensive"
+  },
+  "Bryant": {
+    "offensive_efficiency": 99.2,
+    "defensive_efficiency": 107.8,
+    "tempo": 67.2,
+    "coaching_style": "balanced"
+  },
+  "Brown": {
+    "offensive_efficiency": 96.8,
+    "defensive_efficiency": 110.2,
+    "tempo": 66.5,
+    "coaching_style": "slow-tempo"
   }
 }
