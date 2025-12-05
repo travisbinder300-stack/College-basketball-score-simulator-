@@ -115,7 +115,7 @@ class FootballPredictor:
         # Calculate expected scores based on offensive efficiency vs defensive efficiency
         # Team 1 score: Their offensive ability vs opponent's defensive ability
         team1_offensive_factor = t1_data["ofei"]
-        team2_defensive_factor = t2_data["dfei"]
+        team2_defensive_factor = max(t2_data["dfei"], 0.01)  # Prevent division by zero
         team1_base_score = t1_data["avg_points"]
         
         # Adjust score based on matchup
@@ -124,7 +124,7 @@ class FootballPredictor:
         
         # Team 2 score: Their offensive ability vs opponent's defensive ability
         team2_offensive_factor = t2_data["ofei"]
-        team1_defensive_factor = t1_data["dfei"]
+        team1_defensive_factor = max(t1_data["dfei"], 0.01)  # Prevent division by zero
         team2_base_score = t2_data["avg_points"]
         
         team2_score_raw = team2_base_score * (team2_offensive_factor / team1_defensive_factor)
