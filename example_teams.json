@@ -130,5 +130,17 @@
     "defensive_efficiency": 109.6,
     "tempo": 67.4,
     "coaching_style": "defensive"
+  },
+  "South Carolina State": {
+    "offensive_efficiency": 94.3,
+    "defensive_efficiency": 111.8,
+    "tempo": 68.7,
+    "coaching_style": "balanced"
+  },
+  "Bethune-Cookman": {
+    "offensive_efficiency": 93.5,
+    "defensive_efficiency": 112.4,
+    "tempo": 67.9,
+    "coaching_style": "defensive"
   }
 }
