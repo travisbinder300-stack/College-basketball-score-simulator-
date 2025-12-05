@@ -35,7 +35,7 @@ These metrics are combined with historical scoring averages to predict game outc
 No external dependencies required! Just Python 3.6+
 
 ```bash
-# Make the script executable (optional)
+# Make the script executable (optional, Linux/macOS only)
 chmod +x football_predictor.py
 ```
 
