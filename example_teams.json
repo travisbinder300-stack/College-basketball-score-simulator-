@@ -88,5 +88,15 @@
     "offensive_efficiency": 100.8,
     "defensive_efficiency": 107.1,
     "tempo": 68.3
+  },
+  "High Point": {
+    "offensive_efficiency": 100.5,
+    "defensive_efficiency": 107.9,
+    "tempo": 69.4
+  },
+  "NJIT": {
+    "offensive_efficiency": 95.8,
+    "defensive_efficiency": 110.5,
+    "tempo": 68.6
   }
 }
