@@ -4,7 +4,6 @@ Tests for Basketball Predictor
 """
 
 import unittest
-import json
 import os
 from basketball_predictor import (
     TeamStats, 

@@ -7,7 +7,6 @@ Based on statistical models similar to KenPom methodology
 
 import numpy as np
 from dataclasses import dataclass
-from typing import Tuple, Optional
 import json
 
 
