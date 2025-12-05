@@ -14,6 +14,13 @@ class FootballPredictor:
     Predicts college football game scores using efficiency metrics similar to FEI
     """
     
+    # Constants for prediction calculations
+    HOME_FIELD_ADVANTAGE = 3  # Points added for home team
+    MIN_EFFICIENCY = 0.01  # Minimum efficiency value to prevent division by zero
+    BASE_CONFIDENCE = 50  # Base confidence percentage
+    MAX_CONFIDENCE = 95  # Maximum confidence percentage
+    CONFIDENCE_MULTIPLIER = 100  # Multiplier for FEI difference in confidence calculation
+    
     def __init__(self):
         # Sample FEI-style data (2022 season metrics)
         # FEI represents team efficiency on a scale where higher is better
@@ -109,13 +116,13 @@ class FootballPredictor:
         t1_data = self.team_data[team1]
         t2_data = self.team_data[team2]
         
-        # Home field advantage (approximately 3 points in college football)
-        home_advantage = 0 if neutral_site else 3
+        # Home field advantage
+        home_advantage = 0 if neutral_site else self.HOME_FIELD_ADVANTAGE
         
         # Calculate expected scores based on offensive efficiency vs defensive efficiency
         # Team 1 score: Their offensive ability vs opponent's defensive ability
         team1_offensive_factor = t1_data["ofei"]
-        team2_defensive_factor = max(t2_data["dfei"], 0.01)  # Prevent division by zero
+        team2_defensive_factor = max(t2_data["dfei"], self.MIN_EFFICIENCY)
         team1_base_score = t1_data["avg_points"]
         
         # Adjust score based on matchup
@@ -124,7 +131,7 @@ class FootballPredictor:
         
         # Team 2 score: Their offensive ability vs opponent's defensive ability
         team2_offensive_factor = t2_data["ofei"]
-        team1_defensive_factor = max(t1_data["dfei"], 0.01)  # Prevent division by zero
+        team1_defensive_factor = max(t1_data["dfei"], self.MIN_EFFICIENCY)
         team2_base_score = t2_data["avg_points"]
         
         team2_score_raw = team2_base_score * (team2_offensive_factor / team1_defensive_factor)
@@ -153,7 +160,7 @@ class FootballPredictor:
         
         # Calculate confidence based on FEI difference
         fei_diff = abs(t1_data["fei"] - t2_data["fei"])
-        confidence = min(95, 50 + (fei_diff * 100))
+        confidence = min(self.MAX_CONFIDENCE, self.BASE_CONFIDENCE + (fei_diff * self.CONFIDENCE_MULTIPLIER))
         
         return {
             "matchup": f"{team1} vs {team2}",
