@@ -98,6 +98,21 @@ class FootballPredictor:
             }
         }
     
+    def _calculate_team_score(self, offensive_factor: float, defensive_factor: float, base_score: float) -> float:
+        """
+        Calculate predicted score for a team based on offensive/defensive matchup
+        
+        Args:
+            offensive_factor: Team's offensive efficiency
+            defensive_factor: Opponent's defensive efficiency
+            base_score: Team's average points per game
+            
+        Returns:
+            Predicted raw score before home field adjustment
+        """
+        safe_defensive_factor = max(defensive_factor, self.MIN_EFFICIENCY)
+        return base_score * (offensive_factor / safe_defensive_factor)
+    
     def predict_game(self, team1: str, team2: str, neutral_site: bool = False) -> Dict:
         """
         Predict the outcome of a game between two teams
@@ -120,22 +135,17 @@ class FootballPredictor:
         home_advantage = 0 if neutral_site else self.HOME_FIELD_ADVANTAGE
         
         # Calculate expected scores based on offensive efficiency vs defensive efficiency
-        # Team 1 score: Their offensive ability vs opponent's defensive ability
-        team1_offensive_factor = t1_data["ofei"]
-        team2_defensive_factor = max(t2_data["dfei"], self.MIN_EFFICIENCY)
-        team1_base_score = t1_data["avg_points"]
+        team1_score = self._calculate_team_score(
+            t1_data["ofei"], 
+            t2_data["dfei"], 
+            t1_data["avg_points"]
+        ) + home_advantage
         
-        # Adjust score based on matchup
-        team1_score_raw = team1_base_score * (team1_offensive_factor / team2_defensive_factor)
-        team1_score = team1_score_raw + home_advantage
-        
-        # Team 2 score: Their offensive ability vs opponent's defensive ability
-        team2_offensive_factor = t2_data["ofei"]
-        team1_defensive_factor = max(t1_data["dfei"], self.MIN_EFFICIENCY)
-        team2_base_score = t2_data["avg_points"]
-        
-        team2_score_raw = team2_base_score * (team2_offensive_factor / team1_defensive_factor)
-        team2_score = team2_score_raw
+        team2_score = self._calculate_team_score(
+            t2_data["ofei"],
+            t1_data["dfei"],
+            t2_data["avg_points"]
+        )
         
         # Round to nearest 0.5 for realistic scores
         team1_final = round(team1_score * 2) / 2
@@ -174,6 +184,10 @@ class FootballPredictor:
             "spread": round(spread, 1),
             "total_points": round(total, 1),
             "confidence": round(confidence, 1),
+            "team_names": {
+                "team1": team1,
+                "team2": team2
+            },
             "team_efficiency": {
                 team1: {
                     "fei": t1_data["fei"],
@@ -209,7 +223,7 @@ class FootballPredictor:
         for team, score in prediction['predicted_scores'].items():
             print(f"  {team}: {score}")
         print(f"\nBetting Lines:")
-        print(f"  Spread: {prediction['spread']} (negative means {list(prediction['predicted_scores'].keys())[0]} favored)")
+        print(f"  Spread: {prediction['spread']} (negative means {prediction['team_names']['team1']} favored)")
         print(f"  Total (Over/Under): {prediction['total_points']}")
         print(f"\nConfidence: {prediction['confidence']}%")
         print(f"\nTeam Efficiency Metrics (FEI):")
