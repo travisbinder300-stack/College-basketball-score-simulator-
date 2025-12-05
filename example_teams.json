@@ -98,5 +98,15 @@
     "offensive_efficiency": 95.8,
     "defensive_efficiency": 110.5,
     "tempo": 68.6
+  },
+  "VCU": {
+    "offensive_efficiency": 108.5,
+    "defensive_efficiency": 99.2,
+    "tempo": 70.8
+  },
+  "Samford": {
+    "offensive_efficiency": 105.3,
+    "defensive_efficiency": 103.6,
+    "tempo": 69.7
   }
 }
