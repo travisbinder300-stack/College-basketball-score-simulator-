@@ -17,6 +17,7 @@ class TeamStats:
     offensive_efficiency: float  # Points per 100 possessions
     defensive_efficiency: float  # Points allowed per 100 possessions
     tempo: float  # Possessions per game
+    coaching_style: str = "balanced"  # Options: "fast-paced", "slow-tempo", "defensive", "offensive", "balanced"
     
     def __post_init__(self):
         """Validate team statistics"""
@@ -26,6 +27,10 @@ class TeamStats:
             raise ValueError("Defensive efficiency must be positive")
         if self.tempo <= 0:
             raise ValueError("Tempo must be positive")
+        
+        valid_styles = ["fast-paced", "slow-tempo", "defensive", "offensive", "balanced"]
+        if self.coaching_style not in valid_styles:
+            raise ValueError(f"Coaching style must be one of {valid_styles}")
 
 
 @dataclass
@@ -87,19 +92,33 @@ class BasketballPredictor:
         # Calculate expected tempo (geometric mean of team tempos)
         expected_tempo = np.sqrt(home_team.tempo * away_team.tempo)
         
+        # Apply coaching style adjustments to tempo
+        tempo_adjustment = self._get_coaching_style_tempo_adjustment(
+            home_team.coaching_style, away_team.coaching_style
+        )
+        expected_tempo *= tempo_adjustment
+        
         # Calculate expected possessions (slightly fewer than tempo due to game dynamics)
         expected_possessions = expected_tempo * 0.98
         
-        # Predict scores using efficiency ratings
+        # Apply coaching style adjustments to efficiency
+        home_off_adj, home_def_adj = self._get_coaching_style_efficiency_adjustments(
+            home_team.coaching_style
+        )
+        away_off_adj, away_def_adj = self._get_coaching_style_efficiency_adjustments(
+            away_team.coaching_style
+        )
+        
+        # Predict scores using efficiency ratings with coaching style adjustments
         # Home team offense vs away team defense
-        home_offensive_rating = (home_team.offensive_efficiency * 
+        home_offensive_rating = (home_team.offensive_efficiency * home_off_adj * 
                                 self.national_avg_efficiency / 
-                                away_team.defensive_efficiency)
+                                (away_team.defensive_efficiency * away_def_adj))
         
         # Away team offense vs home team defense  
-        away_offensive_rating = (away_team.offensive_efficiency * 
+        away_offensive_rating = (away_team.offensive_efficiency * away_off_adj * 
                                 self.national_avg_efficiency / 
-                                home_team.defensive_efficiency)
+                                (home_team.defensive_efficiency * home_def_adj))
         
         # Convert to expected points
         predicted_home_score = (home_offensive_rating * expected_possessions / 100.0)
@@ -126,6 +145,58 @@ class BasketballPredictor:
             total_points=total_points,
             home_win_probability=win_prob
         )
+    
+    def _get_coaching_style_tempo_adjustment(
+        self, 
+        home_style: str, 
+        away_style: str
+    ) -> float:
+        """
+        Calculate tempo adjustment based on coaching styles
+        
+        Args:
+            home_style: Home team's coaching style
+            away_style: Away team's coaching style
+            
+        Returns:
+            Tempo multiplier (1.0 = no change)
+        """
+        tempo_modifiers = {
+            "fast-paced": 1.05,
+            "slow-tempo": 0.95,
+            "defensive": 0.97,
+            "offensive": 1.03,
+            "balanced": 1.0
+        }
+        
+        # Average the two teams' tempo preferences
+        home_modifier = tempo_modifiers.get(home_style, 1.0)
+        away_modifier = tempo_modifiers.get(away_style, 1.0)
+        
+        return (home_modifier + away_modifier) / 2
+    
+    def _get_coaching_style_efficiency_adjustments(
+        self, 
+        style: str
+    ) -> tuple:
+        """
+        Get offensive and defensive efficiency adjustments for coaching style
+        
+        Args:
+            style: Team's coaching style
+            
+        Returns:
+            Tuple of (offensive_multiplier, defensive_multiplier)
+        """
+        adjustments = {
+            "fast-paced": (1.02, 0.98),      # Better offense, slightly weaker defense
+            "slow-tempo": (0.98, 1.02),      # Slightly weaker offense, better defense
+            "defensive": (0.97, 1.05),       # Focus on defense
+            "offensive": (1.05, 0.97),       # Focus on offense
+            "balanced": (1.0, 1.0)           # No adjustments
+        }
+        
+        return adjustments.get(style, (1.0, 1.0))
     
     def predict_from_spread_and_total(
         self,
@@ -223,7 +294,8 @@ def load_team_data(filename: str) -> dict:
             name=team_name,
             offensive_efficiency=stats['offensive_efficiency'],
             defensive_efficiency=stats['defensive_efficiency'],
-            tempo=stats['tempo']
+            tempo=stats['tempo'],
+            coaching_style=stats.get('coaching_style', 'balanced')  # Default to balanced if not specified
         )
     return teams
 

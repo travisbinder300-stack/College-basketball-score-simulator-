@@ -82,7 +82,8 @@ Team statistics should be provided in JSON format with KenPom-style metrics:
   "Duke": {
     "offensive_efficiency": 115.2,
     "defensive_efficiency": 92.8,
-    "tempo": 71.5
+    "tempo": 71.5,
+    "coaching_style": "offensive"
   }
 }
 ```
@@ -92,6 +93,12 @@ Team statistics should be provided in JSON format with KenPom-style metrics:
 - **Offensive Efficiency**: Points scored per 100 possessions
 - **Defensive Efficiency**: Points allowed per 100 possessions  
 - **Tempo**: Average possessions per game
+- **Coaching Style** (optional): Playing philosophy that affects game dynamics
+  - `fast-paced`: Emphasizes transition offense, increases tempo (+5%) and offense (+2%)
+  - `slow-tempo`: Emphasizes half-court offense, decreases tempo (-5%) and improves defense (+2%)
+  - `defensive`: Focus on limiting opponent scoring, improves defense (+5%), reduces offense (-3%)
+  - `offensive`: Focus on scoring, improves offense (+5%), reduces defense (-3%)
+  - `balanced`: No adjustments (default if not specified)
 
 These metrics can be obtained from sites like KenPom.com or similar college basketball analytics sources.
 
@@ -102,18 +109,20 @@ These metrics can be obtained from sites like KenPom.com or similar college bask
 The predictor uses the following methodology:
 
 1. **Tempo Calculation**: Estimates game tempo using geometric mean of team tempos
-2. **Efficiency Adjustment**: Adjusts team offensive efficiency against opponent's defensive efficiency
-3. **Score Prediction**: Calculates expected points using efficiency per 100 possessions
-4. **Home Court Advantage**: Adds ~3.5 points for home teams (configurable)
-5. **Win Probability**: Uses logistic regression on point spread
+2. **Coaching Style Adjustments**: Applies tempo and efficiency modifiers based on coaching philosophies
+3. **Efficiency Adjustment**: Adjusts team offensive efficiency against opponent's defensive efficiency
+4. **Score Prediction**: Calculates expected points using efficiency per 100 possessions
+5. **Home Court Advantage**: Adds ~3.5 points for home teams (configurable)
+6. **Win Probability**: Uses logistic regression on point spread
 
 ### Example Calculation
 
-For Duke (115 OffEff, 92 DefEff, 71 tempo) vs UNC (112 OffEff, 94 DefEff, 73 tempo):
+For Duke (115 OffEff, 92 DefEff, 71 tempo, offensive style) vs UNC (112 OffEff, 94 DefEff, 73 tempo, fast-paced style):
 
 1. Expected tempo = √(71 × 73) ≈ 72 possessions
-2. Duke offense vs UNC defense: (115 × 100 / 94) = 122.3 rating
-3. Duke expected score: (122.3 × 72 / 100) + 3.5 (HCA) ≈ 91.5 points
+2. Apply coaching style adjustments (offensive + fast-paced = 4% tempo increase)
+3. Duke offense vs UNC defense with style modifiers
+4. Duke expected score: adjusted rating × adjusted possessions / 100 + 3.5 (HCA)
 
 ## Monte Carlo Simulation
 
@@ -158,11 +167,13 @@ from basketball_predictor import BasketballPredictor, TeamStats
 # Create predictor
 predictor = BasketballPredictor(home_court_advantage=3.5)
 
-# Define teams
+# Define teams with coaching styles
 duke = TeamStats(name="Duke", offensive_efficiency=115.2, 
-                 defensive_efficiency=92.8, tempo=71.5)
+                 defensive_efficiency=92.8, tempo=71.5, 
+                 coaching_style="offensive")
 unc = TeamStats(name="UNC", offensive_efficiency=112.4,
-                defensive_efficiency=94.2, tempo=73.8)
+                defensive_efficiency=94.2, tempo=73.8,
+                coaching_style="fast-paced")
 
 # Predict game
 prediction = predictor.predict_game(duke, unc)
