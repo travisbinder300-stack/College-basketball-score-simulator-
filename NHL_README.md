@@ -10,7 +10,7 @@ A Python-based analytics system that provides NHL game predictions with 70% conf
 - **Spread Predictions**: Calculates expected point spreads with 70% confidence intervals
 - **Total Predictions**: Predicts over/under totals with 70% confidence intervals
 - **Underdog Identification**: Clearly identifies underdogs in every matchup
-- **Value Analysis**: Compare predictions vs market spreads to find overvalued opportunities
+- **Prediction-Based Recommendations**: Recommends bets based on score predictions, not just value
 - **Statistical Modeling**: Uses team strength ratings, goals per game, and defensive metrics
 - **Confidence Intervals**: Provides statistical confidence ranges for all predictions
 
@@ -160,26 +160,32 @@ The system predicts the combined score using:
 3. **Expected Goals**: Average of offensive capability vs defensive vulnerability
 4. **Confidence Interval**: 70% confidence using normal distribution with standard deviation of 1.8 goals
 
-### Value Analysis & Overvalued Spreads
+### Prediction-Based Betting Recommendations
 
-The `find_spread_value()` method compares predicted spreads against market betting lines to identify value opportunities:
+The `find_spread_value()` method compares predicted spreads against market betting lines and recommends bets based on who the model predicts will cover:
 
-1. **Spread Difference**: Calculates how much the prediction differs from the market
-2. **Value Threshold**: Differences > 0.5 goals indicate potential value
-3. **Underdog Opportunities**: Identifies when underdogs are getting too many or too few points
-4. **Betting Recommendations**: Suggests which side offers value based on the analysis
+1. **Score Prediction**: Uses our statistical model to predict the actual game outcome
+2. **Cover Analysis**: Determines who will cover the market spread based on our prediction
+3. **Underdog Opportunities**: Recommends underdogs when model predicts closer games than market expects
+4. **Favorite Recommendations**: Recommends favorites only when model predicts blowouts
 
 **Example:**
 - Market: TOR -1.5 (MTL is underdog getting +1.5)
 - Predicted: TOR -3.0
-- Analysis: TOR appears undervalued (market spread too low)
-- Recommendation: Value on TOR to cover
+- Analysis: Model predicts TOR wins by 3.0 goals (exceeds market line of 1.5)
+- Recommendation: Bet TOR to cover -1.5
 
-This helps bettors identify:
-- Overvalued favorites (market spread too high)
-- Undervalued favorites (market spread too low)
-- Underdog opportunities (when underdogs are getting generous points)
-- Teams being mispriced by the market
+**Example (Underdog Recommendation):**
+- Market: TOR -4.0 (MTL is underdog getting +4.0)
+- Predicted: TOR -2.5
+- Analysis: Model predicts TOR wins by only 2.5 goals (below market line of 4.0)
+- Recommendation: Bet MTL to cover +4.0
+
+This approach:
+- Recommends based on predicted game outcomes, not market inefficiencies
+- Favors underdogs more often when model predicts competitive games
+- Provides better balance between favorites and underdogs
+- Uses real data and statistical modeling, not just value comparison
 
 ## Data Sources
 

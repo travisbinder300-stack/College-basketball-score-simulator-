@@ -364,8 +364,7 @@ class NHLAnalytics:
     
     def find_spread_value(self, home_team: str, away_team: str, market_spread: float) -> Dict:
         """
-        Compare predicted spread vs market spread to find value opportunities
-        Positive difference means home team is undervalued, negative means away team is undervalued
+        Analyze matchup and recommend bet based on score prediction (who we predict will cover)
         
         Args:
             home_team: Home team abbreviation
@@ -373,7 +372,7 @@ class NHLAnalytics:
             market_spread: Current betting line spread (positive = home favored, negative = away favored)
         
         Returns:
-            Dictionary with value analysis including underdog opportunities
+            Dictionary with prediction-based recommendation (not value-based)
         """
         prediction = self.predict_spread(home_team, away_team)
         predicted_spread = prediction['predicted_spread']
@@ -381,22 +380,7 @@ class NHLAnalytics:
         # Calculate spread difference (predicted - market)
         spread_difference = predicted_spread - market_spread
         
-        # Determine value opportunity
-        value_threshold = 0.5  # Half a goal difference indicates potential value
-        
-        if abs(spread_difference) < value_threshold:
-            value_assessment = "No significant value detected"
-            recommended_bet = "Pass or bet based on other factors"
-        elif spread_difference > value_threshold:
-            # Predicted spread is higher than market, home team undervalued
-            value_assessment = f"Home team ({home_team}) appears undervalued"
-            recommended_bet = f"Value on {home_team} to cover"
-        else:
-            # Predicted spread is lower than market, away team undervalued
-            value_assessment = f"Away team ({away_team}) appears undervalued"
-            recommended_bet = f"Value on {away_team} to cover"
-        
-        # Determine underdog
+        # Determine underdog based on market line
         if market_spread < 0:
             underdog = home_team
             favorite = away_team
@@ -406,14 +390,40 @@ class NHLAnalytics:
             favorite = home_team
             underdog_getting = market_spread
         
+        # NEW: Recommend based on our PREDICTION, not value
+        # If we predict home team covers the market spread, recommend home team
+        # If we predict away team covers the market spread, recommend away team
+        
+        # Our prediction says home team wins by predicted_spread
+        # Market line is market_spread
+        
+        if predicted_spread > market_spread:
+            # We predict home team wins by MORE than the market line
+            # Recommend home team to cover
+            prediction_assessment = f"Model predicts {home_team} wins by {abs(predicted_spread):.1f} goals (exceeds market line of {abs(market_spread):.1f})"
+            recommended_bet = f"Bet {home_team} to cover {market_spread:+.1f}"
+            predicted_winner = home_team
+        elif predicted_spread < market_spread:
+            # We predict home team wins by LESS than the market line (or loses)
+            # Recommend away team to cover
+            prediction_assessment = f"Model predicts {home_team} wins by only {abs(predicted_spread):.1f} goals (below market line of {abs(market_spread):.1f})"
+            recommended_bet = f"Bet {away_team} to cover {-market_spread:+.1f}"
+            predicted_winner = away_team
+        else:
+            # Exact match - pass or bet based on confidence
+            prediction_assessment = "Model prediction matches market line exactly"
+            recommended_bet = "Pass - prediction matches market"
+            predicted_winner = "Push"
+        
         return {
             "home_team": home_team,
             "away_team": away_team,
             "predicted_spread": round(predicted_spread, 2),
             "market_spread": round(market_spread, 2),
             "spread_difference": round(spread_difference, 2),
-            "value_assessment": value_assessment,
+            "prediction_assessment": prediction_assessment,
             "recommended_bet": recommended_bet,
+            "predicted_winner": predicted_winner,
             "underdog": underdog,
             "favorite": favorite,
             "underdog_points": round(underdog_getting, 2),

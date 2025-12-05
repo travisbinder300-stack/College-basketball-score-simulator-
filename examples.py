@@ -163,7 +163,7 @@ def example_underdog_value():
     
     analytics = NHLAnalytics()
     
-    print("\nComparing predictions vs market spreads to find value:\n")
+    print("\nComparing predictions vs market spreads for betting recommendations:\n")
     
     # Simulated market spreads (real betting lines would come from sportsbooks)
     market_scenarios = [
@@ -180,8 +180,9 @@ def example_underdog_value():
         print(f"  Our Prediction: {value['predicted_spread']:+.2f}")
         print(f"  Spread Difference: {value['spread_difference']:+.2f} goals")
         print(f"  Underdog: {value['underdog']} (getting +{value['underdog_points']:.1f})")
-        print(f"  ⚠️  {value['value_assessment']}")
+        print(f"  📊 {value['prediction_assessment']}")
         print(f"  💡 Recommendation: {value['recommended_bet']}")
+        print(f"  ✅ Predicted Winner: {value['predicted_winner']}")
         print()
 
 

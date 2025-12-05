@@ -230,30 +230,30 @@ class TestNHLAnalytics(unittest.TestCase):
         self.assertIn("predicted_spread", result)
         self.assertIn("market_spread", result)
         self.assertIn("spread_difference", result)
-        self.assertIn("value_assessment", result)
+        self.assertIn("prediction_assessment", result)
         self.assertIn("recommended_bet", result)
+        self.assertIn("predicted_winner", result)
         self.assertIn("underdog", result)
         self.assertIn("favorite", result)
         self.assertIn("underdog_points", result)
         self.assertIn("confidence_interval", result)
     
     def test_find_spread_value_home_undervalued(self):
-        """Test value detection when home team is undervalued"""
-        # Market has home at 1.5, predicted at 3.0, home is undervalued
+        """Test prediction-based recommendation when home team predicted to cover"""
+        # Market has home at 1.5, predicted at 3.0, recommend home team
         result = self.analytics.find_spread_value("TOR", "MTL", 1.5)
         
         self.assertGreater(result["spread_difference"], 0.5)
-        self.assertIn("TOR", result["value_assessment"])
-        self.assertIn("undervalued", result["value_assessment"])
+        self.assertIn("TOR", result["prediction_assessment"])
+        self.assertIn("TOR", result["recommended_bet"])
     
     def test_find_spread_value_away_undervalued(self):
-        """Test value detection when away team is undervalued"""
-        # Market has home at 4.0, predicted at 3.0, away is undervalued
+        """Test prediction-based recommendation when away team predicted to cover"""
+        # Market has home at 4.0, predicted at 3.0, recommend away team
         result = self.analytics.find_spread_value("TOR", "MTL", 4.0)
         
         self.assertLess(result["spread_difference"], -0.5)
-        self.assertIn("MTL", result["value_assessment"])
-        self.assertIn("undervalued", result["value_assessment"])
+        self.assertIn("MTL", result["recommended_bet"])
     
     def test_find_spread_value_underdog_identification(self):
         """Test that underdog is correctly identified"""
