@@ -1,0 +1,62 @@
+{
+  "Duke": {
+    "offensive_efficiency": 115.2,
+    "defensive_efficiency": 92.8,
+    "tempo": 71.5
+  },
+  "North Carolina": {
+    "offensive_efficiency": 112.4,
+    "defensive_efficiency": 94.2,
+    "tempo": 73.8
+  },
+  "Kansas": {
+    "offensive_efficiency": 116.8,
+    "defensive_efficiency": 91.5,
+    "tempo": 69.2
+  },
+  "Kentucky": {
+    "offensive_efficiency": 113.6,
+    "defensive_efficiency": 93.4,
+    "tempo": 70.8
+  },
+  "Gonzaga": {
+    "offensive_efficiency": 118.5,
+    "defensive_efficiency": 90.2,
+    "tempo": 72.1
+  },
+  "Villanova": {
+    "offensive_efficiency": 114.8,
+    "defensive_efficiency": 92.1,
+    "tempo": 68.5
+  },
+  "Michigan State": {
+    "offensive_efficiency": 111.2,
+    "defensive_efficiency": 95.6,
+    "tempo": 70.3
+  },
+  "UCLA": {
+    "offensive_efficiency": 113.9,
+    "defensive_efficiency": 93.8,
+    "tempo": 71.9
+  },
+  "Purdue": {
+    "offensive_efficiency": 117.3,
+    "defensive_efficiency": 94.5,
+    "tempo": 67.8
+  },
+  "Arizona": {
+    "offensive_efficiency": 114.5,
+    "defensive_efficiency": 92.7,
+    "tempo": 72.6
+  },
+  "Texas": {
+    "offensive_efficiency": 110.8,
+    "defensive_efficiency": 96.2,
+    "tempo": 69.7
+  },
+  "Virginia": {
+    "offensive_efficiency": 109.5,
+    "defensive_efficiency": 88.3,
+    "tempo": 63.2
+  }
+}
