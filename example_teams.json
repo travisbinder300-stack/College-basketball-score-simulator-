@@ -118,5 +118,17 @@
     "defensive_efficiency": 110.2,
     "tempo": 66.5,
     "coaching_style": "slow-tempo"
+  },
+  "Marist": {
+    "offensive_efficiency": 98.4,
+    "defensive_efficiency": 108.9,
+    "tempo": 68.1,
+    "coaching_style": "balanced"
+  },
+  "Mt. St. Mary's": {
+    "offensive_efficiency": 97.1,
+    "defensive_efficiency": 109.6,
+    "tempo": 67.4,
+    "coaching_style": "defensive"
   }
 }
