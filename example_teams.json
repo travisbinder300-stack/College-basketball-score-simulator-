@@ -78,5 +78,15 @@
     "offensive_efficiency": 103.7,
     "defensive_efficiency": 104.5,
     "tempo": 68.9
+  },
+  "CSU Bakersfield": {
+    "offensive_efficiency": 97.2,
+    "defensive_efficiency": 109.3,
+    "tempo": 67.5
+  },
+  "CSU Northridge": {
+    "offensive_efficiency": 100.8,
+    "defensive_efficiency": 107.1,
+    "tempo": 68.3
   }
 }
