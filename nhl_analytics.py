@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 from scipy import stats
 from bs4 import BeautifulSoup
+import numpy as np
 
 
 class NHLDataFetcher:
@@ -430,20 +431,122 @@ class NHLAnalytics:
             "confidence_interval": prediction['confidence_interval']
         }
     
-    def get_full_analysis(self, home_team: str, away_team: str) -> Dict:
+    def simulate_score(self, home_team: str, away_team: str, num_simulations: int = 10000) -> Dict:
+        """
+        Simulate final score using Poisson distribution based on expected goals
+        
+        Args:
+            home_team: Home team abbreviation
+            away_team: Away team abbreviation
+            num_simulations: Number of Monte Carlo simulations to run
+        
+        Returns:
+            Dictionary with most likely score, score probabilities, and win probabilities
+        """
+        # Get expected goals from total prediction
+        total_prediction = self.predict_total(home_team, away_team)
+        home_expected = total_prediction['home_expected_goals']
+        away_expected = total_prediction['away_expected_goals']
+        
+        # Run Monte Carlo simulations using Poisson distribution
+        # Poisson distribution is standard for modeling hockey goals
+        np.random.seed(42)  # For reproducibility
+        
+        home_scores = np.random.poisson(home_expected, num_simulations)
+        away_scores = np.random.poisson(away_expected, num_simulations)
+        
+        # Calculate win probabilities
+        home_wins = np.sum(home_scores > away_scores)
+        away_wins = np.sum(away_scores > home_scores)
+        ties = np.sum(home_scores == away_scores)
+        
+        home_win_prob = home_wins / num_simulations
+        away_win_prob = away_wins / num_simulations
+        tie_prob = ties / num_simulations
+        
+        # Find most likely score
+        score_combinations = {}
+        for h, a in zip(home_scores, away_scores):
+            key = (int(h), int(a))
+            score_combinations[key] = score_combinations.get(key, 0) + 1
+        
+        most_likely_score = max(score_combinations.items(), key=lambda x: x[1])
+        most_likely_home, most_likely_away = most_likely_score[0]
+        most_likely_prob = most_likely_score[1] / num_simulations
+        
+        # Get top 10 most likely scores
+        top_scores = sorted(score_combinations.items(), key=lambda x: x[1], reverse=True)[:10]
+        top_scores_formatted = [
+            {
+                "score": f"{home_team} {h} - {a} {away_team}",
+                "probability": f"{(count/num_simulations)*100:.2f}%"
+            }
+            for (h, a), count in top_scores
+        ]
+        
+        # Calculate score distribution statistics
+        avg_home_score = np.mean(home_scores)
+        avg_away_score = np.mean(away_scores)
+        median_home_score = np.median(home_scores)
+        median_away_score = np.median(away_scores)
+        
+        # Determine recommended final score prediction
+        predicted_final_score = f"{home_team} {most_likely_home} - {most_likely_away} {away_team}"
+        
+        return {
+            "matchup": f"{away_team} @ {home_team}",
+            "predicted_final_score": predicted_final_score,
+            "most_likely_score": {
+                "home_goals": most_likely_home,
+                "away_goals": most_likely_away,
+                "probability": f"{most_likely_prob*100:.2f}%"
+            },
+            "expected_goals": {
+                "home": round(home_expected, 2),
+                "away": round(away_expected, 2)
+            },
+            "simulation_stats": {
+                "average_home_score": round(avg_home_score, 2),
+                "average_away_score": round(avg_away_score, 2),
+                "median_home_score": int(median_home_score),
+                "median_away_score": int(median_away_score),
+                "simulations_run": num_simulations
+            },
+            "win_probabilities": {
+                f"{home_team}_win": f"{home_win_prob*100:.1f}%",
+                f"{away_team}_win": f"{away_win_prob*100:.1f}%",
+                "tie_regulation": f"{tie_prob*100:.1f}%"
+            },
+            "top_10_likely_scores": top_scores_formatted,
+            "interpretation": self._interpret_score_simulation(
+                home_team, away_team, most_likely_home, most_likely_away, home_win_prob
+            )
+        }
+    
+    def get_full_analysis(self, home_team: str, away_team: str, include_score_sim: bool = False) -> Dict:
         """
         Get complete analysis including spread and total predictions
+        
+        Args:
+            home_team: Home team abbreviation
+            away_team: Away team abbreviation
+            include_score_sim: Whether to include score simulation (adds processing time)
         """
         spread_prediction = self.predict_spread(home_team, away_team)
         total_prediction = self.predict_total(home_team, away_team)
         
-        return {
+        result = {
             "matchup": f"{away_team} @ {home_team}",
             "timestamp": datetime.now().isoformat(),
             "spread_analysis": spread_prediction,
             "total_analysis": total_prediction,
             "confidence_level": f"{int(self.confidence_level * 100)}%"
         }
+        
+        if include_score_sim:
+            result["score_simulation"] = self.simulate_score(home_team, away_team)
+        
+        return result
     
     def _get_team_record(self, team_abbr: str) -> Dict:
         """Helper to get team record from standings"""
@@ -499,6 +602,22 @@ class NHLAnalytics:
             return "High-scoring game expected"
         else:
             return "Average-scoring game expected"
+    
+    def _interpret_score_simulation(self, home_team: str, away_team: str, 
+                                     home_score: int, away_score: int, home_win_prob: float) -> str:
+        """Interpret the score simulation results"""
+        winner = home_team if home_score > away_score else away_team if away_score > home_score else "Tie"
+        
+        if winner == "Tie":
+            return f"Most likely to be tied {home_score}-{away_score} in regulation (OT/SO likely)"
+        else:
+            margin = abs(home_score - away_score)
+            confidence = "high" if home_win_prob > 0.65 or home_win_prob < 0.35 else "moderate"
+            
+            if margin == 1:
+                return f"{winner} predicted to win by 1 goal ({confidence} confidence)"
+            else:
+                return f"{winner} predicted to win by {margin} goals ({confidence} confidence)"
 
 
 def main():

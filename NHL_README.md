@@ -1,6 +1,6 @@
 # NHL Spread and Total Analytics System
 
-A Python-based analytics system that provides NHL game predictions with 70% confidence intervals using real NHL data from the official NHL API, optional MoneyPuck power rankings, and recent form analysis.
+A Python-based analytics system that provides NHL game predictions with 70% confidence intervals using real NHL data from the official NHL API, optional MoneyPuck power rankings, recent form analysis, and Monte Carlo score simulation.
 
 ## Features
 
@@ -9,6 +9,7 @@ A Python-based analytics system that provides NHL game predictions with 70% conf
 - **Recent Form Analysis**: Optional weighting of last 10 games performance (captures momentum)
 - **Spread Predictions**: Calculates expected point spreads with 70% confidence intervals
 - **Total Predictions**: Predicts over/under totals with 70% confidence intervals
+- **🆕 Score Simulation**: Monte Carlo simulation predicting most likely final scores and win probabilities
 - **Underdog Identification**: Clearly identifies underdogs in every matchup
 - **Prediction-Based Recommendations**: Recommends bets based on score predictions, not just value
 - **Statistical Modeling**: Uses team strength ratings, goals per game, and defensive metrics
@@ -98,6 +99,31 @@ analytics = NHLAnalytics(use_moneypuck=True, use_recent_form=True)
 # Most accurate predictions combining all data sources
 spread = analytics.predict_spread("CHI", "LAK")
 print(f"Maximum Accuracy Spread: {spread['predicted_spread']}")
+```
+
+**Score Simulation (Monte Carlo):**
+```python
+from nhl_analytics import NHLAnalytics
+
+analytics = NHLAnalytics()
+
+# Simulate final score using Poisson distribution
+result = analytics.simulate_score("LAK", "CHI", num_simulations=10000)
+print(f"Predicted Final Score: {result['predicted_final_score']}")
+print(f"Probability: {result['most_likely_score']['probability']}")
+print(f"LAK Win Probability: {result['win_probabilities']['LAK_win']}")
+print(f"CHI Win Probability: {result['win_probabilities']['CHI_win']}")
+
+# View top 10 most likely scores
+for score_data in result['top_10_likely_scores']:
+    print(f"{score_data['score']} - {score_data['probability']}")
+```
+
+**Full Analysis with Score Simulation:**
+```python
+# Get comprehensive analysis including score simulation
+analysis = analytics.get_full_analysis("LAK", "CHI", include_score_sim=True)
+print(analysis['score_simulation']['predicted_final_score'])
 ```
 
 ## NHL Team Abbreviations

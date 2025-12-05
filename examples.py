@@ -269,6 +269,42 @@ def example_recent_form_integration():
     print()
 
 
+def example_score_simulation():
+    """Example: Simulate final score using Monte Carlo simulation"""
+    print("\n" + "="*60)
+    print("Example 10: Score Simulation (Monte Carlo)")
+    print("="*60)
+    
+    analytics = NHLAnalytics()
+    
+    # Simulate score for Chicago vs LA Kings
+    print("\nSimulating final score for CHI @ LAK...")
+    result = analytics.simulate_score("LAK", "CHI", num_simulations=10000)
+    
+    print(f"\nMatchup: {result['matchup']}")
+    print(f"🎯 Predicted Final Score: {result['predicted_final_score']}")
+    print(f"   Probability: {result['most_likely_score']['probability']}")
+    print(f"\n{result['interpretation']}")
+    
+    print(f"\n📊 Expected Goals (Poisson Distribution):")
+    print(f"   LAK: {result['expected_goals']['home']}")
+    print(f"   CHI: {result['expected_goals']['away']}")
+    
+    print(f"\n🏆 Win Probabilities:")
+    for team, prob in result['win_probabilities'].items():
+        print(f"   {team}: {prob}")
+    
+    print(f"\n📈 Simulation Statistics ({result['simulation_stats']['simulations_run']:,} sims):")
+    print(f"   Average LAK score: {result['simulation_stats']['average_home_score']}")
+    print(f"   Average CHI score: {result['simulation_stats']['average_away_score']}")
+    print(f"   Median LAK score: {result['simulation_stats']['median_home_score']}")
+    print(f"   Median CHI score: {result['simulation_stats']['median_away_score']}")
+    
+    print(f"\n🔝 Top 10 Most Likely Scores:")
+    for i, score_data in enumerate(result['top_10_likely_scores'], 1):
+        print(f"   {i}. {score_data['score']:20} - {score_data['probability']}")
+
+
 def main():
     """Run all examples"""
     print("\n" + "="*60)
@@ -286,6 +322,7 @@ def main():
     example_underdog_value()
     example_moneypuck_integration()
     example_recent_form_integration()
+    example_score_simulation()
     
     print("\n" + "="*60)
     print("Examples Complete!")
@@ -293,6 +330,8 @@ def main():
     print("\nNote: When connected to the internet, this system fetches")
     print("real-time NHL data from the official NHL API and optionally")
     print("MoneyPuck power rankings and recent form data for enhanced predictions.")
+    print("\nThe score simulator uses Poisson distribution Monte Carlo")
+    print("simulations to predict most likely final scores and win probabilities.")
     print("="*60 + "\n")
 
 
