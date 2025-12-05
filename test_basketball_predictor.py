@@ -28,29 +28,6 @@ class TestTeamStats(unittest.TestCase):
         self.assertEqual(team.offensive_efficiency, 115.0)
         self.assertEqual(team.defensive_efficiency, 92.0)
         self.assertEqual(team.tempo, 71.0)
-        self.assertEqual(team.coaching_style, "balanced")  # Default value
-    
-    def test_valid_team_stats_with_coaching_style(self):
-        """Test creating team statistics with coaching style"""
-        team = TeamStats(
-            name="Virginia",
-            offensive_efficiency=109.5,
-            defensive_efficiency=88.3,
-            tempo=63.2,
-            coaching_style="slow-tempo"
-        )
-        self.assertEqual(team.coaching_style, "slow-tempo")
-    
-    def test_invalid_coaching_style(self):
-        """Test that invalid coaching style raises error"""
-        with self.assertRaises(ValueError):
-            TeamStats(
-                name="Test",
-                offensive_efficiency=115.0,
-                defensive_efficiency=92.0,
-                tempo=71.0,
-                coaching_style="invalid-style"
-            )
     
     def test_invalid_offensive_efficiency(self):
         """Test that negative offensive efficiency raises error"""
@@ -220,43 +197,6 @@ class TestBasketballPredictor(unittest.TestCase):
             results['avg_home_score'],
             prediction.predicted_home_score,
             delta=5.0
-        )
-    
-    def test_coaching_style_impact(self):
-        """Test that coaching style affects predictions"""
-        # Create two teams with same stats but different coaching styles
-        offensive_team = TeamStats(
-            name="Offensive Team",
-            offensive_efficiency=110.0,
-            defensive_efficiency=95.0,
-            tempo=70.0,
-            coaching_style="offensive"
-        )
-        defensive_team = TeamStats(
-            name="Defensive Team",
-            offensive_efficiency=110.0,
-            defensive_efficiency=95.0,
-            tempo=70.0,
-            coaching_style="defensive"
-        )
-        balanced_team = TeamStats(
-            name="Balanced Team",
-            offensive_efficiency=110.0,
-            defensive_efficiency=95.0,
-            tempo=70.0,
-            coaching_style="balanced"
-        )
-        
-        # Predict offensive vs balanced
-        pred_offensive = self.predictor.predict_game(offensive_team, balanced_team)
-        
-        # Predict defensive vs balanced
-        pred_defensive = self.predictor.predict_game(defensive_team, balanced_team)
-        
-        # Offensive style should lead to higher scoring
-        self.assertGreater(
-            pred_offensive.total_points,
-            pred_defensive.total_points
         )
 
 

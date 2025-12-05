@@ -2,145 +2,91 @@
   "Duke": {
     "offensive_efficiency": 115.2,
     "defensive_efficiency": 92.8,
-    "tempo": 71.5,
-    "coaching_style": "offensive"
+    "tempo": 71.5
   },
   "North Carolina": {
     "offensive_efficiency": 112.4,
     "defensive_efficiency": 94.2,
-    "tempo": 73.8,
-    "coaching_style": "fast-paced"
+    "tempo": 73.8
   },
   "Kansas": {
     "offensive_efficiency": 116.8,
     "defensive_efficiency": 91.5,
-    "tempo": 69.2,
-    "coaching_style": "balanced"
+    "tempo": 69.2
   },
   "Kentucky": {
     "offensive_efficiency": 113.6,
     "defensive_efficiency": 93.4,
-    "tempo": 70.8,
-    "coaching_style": "balanced"
+    "tempo": 70.8
   },
   "Gonzaga": {
     "offensive_efficiency": 118.5,
     "defensive_efficiency": 90.2,
-    "tempo": 72.1,
-    "coaching_style": "offensive"
+    "tempo": 72.1
   },
   "Villanova": {
     "offensive_efficiency": 114.8,
     "defensive_efficiency": 92.1,
-    "tempo": 68.5,
-    "coaching_style": "balanced"
+    "tempo": 68.5
   },
   "Michigan State": {
     "offensive_efficiency": 111.2,
     "defensive_efficiency": 95.6,
-    "tempo": 70.3,
-    "coaching_style": "defensive"
+    "tempo": 70.3
   },
   "UCLA": {
     "offensive_efficiency": 113.9,
     "defensive_efficiency": 93.8,
-    "tempo": 71.9,
-    "coaching_style": "fast-paced"
+    "tempo": 71.9
   },
   "Purdue": {
     "offensive_efficiency": 117.3,
     "defensive_efficiency": 94.5,
-    "tempo": 67.8,
-    "coaching_style": "slow-tempo"
+    "tempo": 67.8
   },
   "Arizona": {
     "offensive_efficiency": 114.5,
     "defensive_efficiency": 92.7,
-    "tempo": 72.6,
-    "coaching_style": "balanced"
+    "tempo": 72.6
   },
   "Texas": {
     "offensive_efficiency": 110.8,
     "defensive_efficiency": 96.2,
-    "tempo": 69.7,
-    "coaching_style": "defensive"
+    "tempo": 69.7
   },
   "Virginia": {
     "offensive_efficiency": 109.5,
     "defensive_efficiency": 88.3,
-    "tempo": 63.2,
-    "coaching_style": "slow-tempo"
+    "tempo": 63.2
   },
   "Rider": {
     "offensive_efficiency": 102.8,
     "defensive_efficiency": 105.2,
-    "tempo": 68.4,
-    "coaching_style": "balanced"
+    "tempo": 68.4
   },
   "Merrimack": {
     "offensive_efficiency": 98.5,
     "defensive_efficiency": 108.6,
-    "tempo": 67.8,
-    "coaching_style": "defensive"
+    "tempo": 67.8
   },
   "Cal Poly": {
     "offensive_efficiency": 101.3,
     "defensive_efficiency": 106.8,
-    "tempo": 69.2,
-    "coaching_style": "balanced"
+    "tempo": 69.2
   },
   "CSU Fullerton": {
     "offensive_efficiency": 103.7,
     "defensive_efficiency": 104.5,
-    "tempo": 68.9,
-    "coaching_style": "balanced"
+    "tempo": 68.9
   },
   "CSU Bakersfield": {
     "offensive_efficiency": 97.2,
     "defensive_efficiency": 109.3,
-    "tempo": 67.5,
-    "coaching_style": "slow-tempo"
+    "tempo": 67.5
   },
   "CSU Northridge": {
     "offensive_efficiency": 100.8,
     "defensive_efficiency": 107.1,
-    "tempo": 68.3,
-    "coaching_style": "defensive"
-  },
-  "Bryant": {
-    "offensive_efficiency": 99.2,
-    "defensive_efficiency": 107.8,
-    "tempo": 67.2,
-    "coaching_style": "balanced"
-  },
-  "Brown": {
-    "offensive_efficiency": 96.8,
-    "defensive_efficiency": 110.2,
-    "tempo": 66.5,
-    "coaching_style": "slow-tempo"
-  },
-  "Marist": {
-    "offensive_efficiency": 98.4,
-    "defensive_efficiency": 108.9,
-    "tempo": 68.1,
-    "coaching_style": "balanced"
-  },
-  "Mt. St. Mary's": {
-    "offensive_efficiency": 97.1,
-    "defensive_efficiency": 109.6,
-    "tempo": 67.4,
-    "coaching_style": "defensive"
-  },
-  "South Carolina State": {
-    "offensive_efficiency": 94.3,
-    "defensive_efficiency": 111.8,
-    "tempo": 68.7,
-    "coaching_style": "balanced"
-  },
-  "Bethune-Cookman": {
-    "offensive_efficiency": 93.5,
-    "defensive_efficiency": 112.4,
-    "tempo": 67.9,
-    "coaching_style": "defensive"
+    "tempo": 68.3
   }
 }
