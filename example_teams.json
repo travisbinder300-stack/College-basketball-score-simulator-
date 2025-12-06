@@ -126,14 +126,30 @@
     "tempo": 69.7
   },
   "Siena": {
-    "offensive_efficiency": 99.2,
-    "defensive_efficiency": 107.8,
-    "tempo": 68.1
+    "offensive_efficiency": 118.0,
+    "defensive_efficiency": 88.0,
+    "tempo": 72.0,
+    "recent_offensive_efficiency": 125.0,
+    "recent_defensive_efficiency": 82.0,
+    "recent_games_weight": 0.80,
+    "injury_impact": 0,
+    "rest_days": 3,
+    "strength_of_schedule": 108.0,
+    "ft_rate": 0.28,
+    "ft_pct": 0.78
   },
   "Niagara": {
-    "offensive_efficiency": 97.5,
-    "defensive_efficiency": 109.5,
-    "tempo": 67.6
+    "offensive_efficiency": 75.0,
+    "defensive_efficiency": 130.0,
+    "tempo": 70.0,
+    "recent_offensive_efficiency": 68.0,
+    "recent_defensive_efficiency": 138.0,
+    "recent_games_weight": 0.85,
+    "injury_impact": -8.0,
+    "rest_days": 0,
+    "strength_of_schedule": 98.0,
+    "ft_rate": 0.12,
+    "ft_pct": 0.55
   },
   "Bryant": {
     "offensive_efficiency": 100.1,
