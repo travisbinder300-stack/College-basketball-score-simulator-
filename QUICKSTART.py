@@ -109,6 +109,33 @@ The simulator uses Haralabos Voulgaris's analytical principles:
 4. Game-to-game variance captures "hot/cold" shooting nights
 5. Probabilistic modeling through Monte Carlo simulation
 
+KELLY CRITERION BETTING ANALYSIS
+---------------------------------
+The simulator includes Kelly Criterion for optimal bet sizing:
+
+from basketball_simulator import KellyCriterion
+
+# After running simulation
+KellyCriterion.analyze_betting_opportunity(results, team=1, american_odds=+120)
+
+This will output:
+- Expected value and edge calculation
+- Full Kelly, Half Kelly, and Quarter Kelly bet sizes
+- Betting recommendation (NO BET, SMALL BET, MODERATE BET, LARGE BET)
+- Example dollar amounts for different bankroll sizes
+
+Kelly Criterion Formula: f* = (bp - q) / b
+- f* = optimal fraction of bankroll to bet
+- b = decimal odds - 1
+- p = win probability from simulation
+- q = probability of losing (1 - p)
+
+**Important Notes**:
+- Only bet when Kelly shows positive edge
+- Many professionals use Half Kelly or Quarter Kelly for risk management
+- This is for educational purposes only
+- Always gamble responsibly
+
 TROUBLESHOOTING
 ---------------
 If you get unexpected results:

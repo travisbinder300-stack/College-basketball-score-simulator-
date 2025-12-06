@@ -298,6 +298,160 @@ class GameSimulator:
         return results
 
 
+class KellyCriterion:
+    """
+    Kelly Criterion betting strategy calculator
+    
+    The Kelly Criterion is a mathematical formula used to determine optimal bet sizing
+    based on the probability of winning and the odds offered. It maximizes long-term
+    growth of bankroll while managing risk.
+    
+    Formula: f* = (bp - q) / b
+    Where:
+    - f* = fraction of bankroll to bet
+    - b = decimal odds - 1 (net odds received on the bet)
+    - p = probability of winning (from simulation)
+    - q = probability of losing (1 - p)
+    """
+    
+    @staticmethod
+    def calculate_kelly_bet(win_probability: float, decimal_odds: float) -> Dict:
+        """
+        Calculate Kelly Criterion bet size
+        
+        Args:
+            win_probability: Probability of winning (0.0 to 1.0)
+            decimal_odds: Decimal odds offered (e.g., 2.5 for +150 American odds)
+        
+        Returns:
+            Dictionary with bet recommendations and analysis
+        """
+        if win_probability <= 0 or win_probability >= 1:
+            raise ValueError("Win probability must be between 0 and 1 (exclusive)")
+        
+        if decimal_odds <= 1:
+            raise ValueError("Decimal odds must be greater than 1")
+        
+        # Kelly Criterion calculation
+        b = decimal_odds - 1  # Net odds
+        p = win_probability
+        q = 1 - p
+        
+        # Full Kelly
+        kelly_fraction = (b * p - q) / b
+        
+        # Edge calculation
+        edge = (decimal_odds * p) - 1
+        expected_value = edge * 100  # As percentage
+        
+        # Determine recommendation
+        if kelly_fraction <= 0:
+            recommendation = "NO BET"
+            reasoning = "No edge - the odds don't favor betting"
+        elif kelly_fraction < 0.01:
+            recommendation = "MINIMAL BET"
+            reasoning = "Very small edge - bet cautiously"
+        elif kelly_fraction < 0.05:
+            recommendation = "SMALL BET"
+            reasoning = "Small edge detected"
+        elif kelly_fraction < 0.15:
+            recommendation = "MODERATE BET"
+            reasoning = "Good edge - standard Kelly bet"
+        else:
+            recommendation = "LARGE BET"
+            reasoning = "Strong edge detected"
+        
+        # Fractional Kelly (many bettors use 1/4 or 1/2 Kelly for risk management)
+        half_kelly = kelly_fraction / 2
+        quarter_kelly = kelly_fraction / 4
+        
+        return {
+            'full_kelly': max(0, kelly_fraction),
+            'half_kelly': max(0, half_kelly),
+            'quarter_kelly': max(0, quarter_kelly),
+            'edge': edge,
+            'expected_value_pct': expected_value,
+            'recommendation': recommendation,
+            'reasoning': reasoning,
+            'win_probability': win_probability,
+            'decimal_odds': decimal_odds
+        }
+    
+    @staticmethod
+    def american_to_decimal(american_odds: int) -> float:
+        """
+        Convert American odds to decimal odds
+        
+        Args:
+            american_odds: American odds (e.g., +150 or -110)
+        
+        Returns:
+            Decimal odds
+        """
+        if american_odds > 0:
+            return (american_odds / 100) + 1
+        else:
+            return (100 / abs(american_odds)) + 1
+    
+    @staticmethod
+    def analyze_betting_opportunity(simulation_results: Dict, team: int, american_odds: int) -> None:
+        """
+        Analyze a betting opportunity using Kelly Criterion
+        
+        Args:
+            simulation_results: Results from GameSimulator.run_simulation()
+            team: 1 for team1, 2 for team2
+            american_odds: American odds for the team (e.g., +150 or -110)
+        """
+        if team == 1:
+            win_prob = simulation_results['team1_win_pct'] / 100
+            team_name = simulation_results['team1_name']
+        elif team == 2:
+            win_prob = simulation_results['team2_win_pct'] / 100
+            team_name = simulation_results['team2_name']
+        else:
+            raise ValueError("Team must be 1 or 2")
+        
+        decimal_odds = KellyCriterion.american_to_decimal(american_odds)
+        kelly_result = KellyCriterion.calculate_kelly_bet(win_prob, decimal_odds)
+        
+        print(f"\n{'='*70}")
+        print("KELLY CRITERION BETTING ANALYSIS")
+        print(f"{'='*70}\n")
+        
+        print(f"Team: {team_name}")
+        print(f"Win Probability (from simulation): {win_prob*100:.1f}%")
+        print(f"Offered Odds: {american_odds:+d} (Decimal: {decimal_odds:.2f})")
+        print(f"\nExpected Value: {kelly_result['expected_value_pct']:+.2f}%")
+        print(f"Edge: {kelly_result['edge']*100:+.2f}%")
+        
+        print(f"\n{'='*70}")
+        print("KELLY CRITERION BET SIZING")
+        print(f"{'='*70}\n")
+        
+        print(f"Full Kelly: {kelly_result['full_kelly']*100:.2f}% of bankroll")
+        print(f"Half Kelly: {kelly_result['half_kelly']*100:.2f}% of bankroll (conservative)")
+        print(f"Quarter Kelly: {kelly_result['quarter_kelly']*100:.2f}% of bankroll (very conservative)")
+        
+        print(f"\nRecommendation: {kelly_result['recommendation']}")
+        print(f"Reasoning: {kelly_result['reasoning']}")
+        
+        if kelly_result['full_kelly'] > 0:
+            print(f"\nExample: With a $1,000 bankroll:")
+            print(f"  Full Kelly: ${kelly_result['full_kelly']*1000:.2f}")
+            print(f"  Half Kelly: ${kelly_result['half_kelly']*1000:.2f} (recommended)")
+            print(f"  Quarter Kelly: ${kelly_result['quarter_kelly']*1000:.2f} (most conservative)")
+        
+        print(f"\n{'='*70}")
+        print("IMPORTANT NOTES")
+        print(f"{'='*70}")
+        print("- Kelly Criterion maximizes long-term growth but can be aggressive")
+        print("- Many professionals use Half Kelly or Quarter Kelly for risk management")
+        print("- Never bet more than you can afford to lose")
+        print("- This is for educational purposes - gamble responsibly")
+        print(f"{'='*70}\n")
+
+
 def create_example_teams() -> Tuple[TeamStats, TeamStats]:
     """
     Create example teams with realistic college basketball statistics
@@ -356,4 +510,19 @@ if __name__ == "__main__":
     print("- Efficiency ratings are adjusted for opponent strength")
     print("- Game-to-game variance captures 'hot/cold' shooting nights")
     print("- Pace factor determines total number of possessions")
-    print("- All percentages and distributions are probabilistic\n")
+    print("- All percentages and distributions are probabilistic")
+    
+    # Kelly Criterion Analysis Example
+    print("\n" + "="*70)
+    print("KELLY CRITERION EXAMPLE")
+    print("="*70)
+    print("\nDemonstrating Kelly Criterion betting analysis...")
+    print("Scenario: Bookmaker offers +120 odds on Duke")
+    
+    # Analyze betting opportunity for Duke at +120
+    KellyCriterion.analyze_betting_opportunity(results, team=1, american_odds=+120)
+    
+    print("Scenario: Bookmaker offers +140 odds on Virginia")
+    # Analyze betting opportunity for Virginia at +140
+    KellyCriterion.analyze_betting_opportunity(results, team=2, american_odds=+140)
+

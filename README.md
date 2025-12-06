@@ -12,6 +12,7 @@ A sophisticated Monte Carlo basketball game simulator using advanced analytics i
 - **Defensive Adjustments** - Opponent strength affects offensive performance
 - **Game-to-Game Variance** - Captures hot/cold shooting nights
 - **Comprehensive Statistics** - Win probability, score distributions, percentiles
+- **Kelly Criterion Betting Analysis** - Optimal bet sizing based on simulation results
 
 ## Haralabos Voulgaris Style Analytics
 
@@ -208,6 +209,51 @@ Creates additional possessions, affecting total scoring:
 if random.random() < offensive_rebound_rate:
     return simulate_possession()  # New possession
 ```
+
+### Kelly Criterion Betting Analysis
+The simulator includes Kelly Criterion analysis for optimal bet sizing:
+
+```python
+from basketball_simulator import KellyCriterion
+
+# After running simulation
+KellyCriterion.analyze_betting_opportunity(results, team=1, american_odds=+120)
+```
+
+**Kelly Criterion Formula**: `f* = (bp - q) / b`
+- f* = optimal fraction of bankroll to bet
+- b = decimal odds - 1
+- p = probability of winning (from simulation)
+- q = probability of losing (1 - p)
+
+**Example Output**:
+```
+Team: Duke Blue Devils
+Win Probability: 59.0%
+Offered Odds: +120 (Decimal: 2.20)
+
+Expected Value: +29.71%
+Edge: +29.71%
+
+Full Kelly: 24.76% of bankroll
+Half Kelly: 12.38% of bankroll (recommended)
+Quarter Kelly: 6.19% of bankroll (very conservative)
+
+Recommendation: LARGE BET
+Reasoning: Strong edge detected
+```
+
+**Key Features**:
+- Calculates optimal bet sizing based on edge
+- Supports American and decimal odds
+- Provides Full, Half, and Quarter Kelly recommendations
+- Shows expected value and edge analysis
+- Includes responsible gambling warnings
+
+**Usage Tips**:
+- Use Half Kelly or Quarter Kelly for more conservative risk management
+- Only bet when Kelly shows positive edge
+- The simulator's win probability should be more accurate than the bookmaker's implied odds
 
 ## Customization
 

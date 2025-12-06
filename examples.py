@@ -3,9 +3,10 @@ Example: Custom Teams Simulation
 
 This file demonstrates how to create your own custom teams and run simulations.
 You can modify the statistics to match any real or hypothetical teams.
+It also includes Kelly Criterion betting analysis examples.
 """
 
-from basketball_simulator import GameSimulator, TeamStats
+from basketball_simulator import GameSimulator, TeamStats, KellyCriterion
 
 
 def create_kentucky_vs_kansas():
@@ -167,6 +168,23 @@ if __name__ == "__main__":
     print(f"   Win Probability: {results3['team1_win_pct']:.1f}% vs {results3['team2_win_pct']:.1f}%")
     print(f"   Expected Score: {results3['team1_avg_score']:.1f} - {results3['team2_avg_score']:.1f}")
     print(f"   Upset Probability: {results3['team2_win_pct']:.1f}%")
+    
+    # Kelly Criterion Analysis Examples
+    print("\n\n" + "="*70)
+    print("="*70)
+    print("KELLY CRITERION BETTING ANALYSIS EXAMPLES")
+    print("="*70)
+    print("="*70)
+    
+    print("\n\nEXAMPLE 4: Kelly Criterion for Kentucky vs Kansas")
+    print("-" * 70)
+    print("\nScenario: You find Kentucky at +110 odds")
+    KellyCriterion.analyze_betting_opportunity(results1, team=1, american_odds=+110)
+    
+    print("\n\nEXAMPLE 5: Kelly Criterion for Upset Scenario")
+    print("-" * 70)
+    print("\nScenario: The 15 seed underdog is offered at +200 odds")
+    KellyCriterion.analyze_betting_opportunity(results3, team=2, american_odds=+200)
     
     print("\n" + "="*70)
     print("\nAll simulations complete!")
