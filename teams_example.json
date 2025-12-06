@@ -1,0 +1,79 @@
+{
+  "league": "Premier League",
+  "season": "2023-24",
+  "description": "Team ratings based on historical performance and analytics",
+  "teams": [
+    {
+      "name": "Manchester City",
+      "offensive_rating": 1.45,
+      "defensive_rating": 0.75,
+      "description": "Elite attacking team with strong defense"
+    },
+    {
+      "name": "Liverpool",
+      "offensive_rating": 1.40,
+      "defensive_rating": 0.80,
+      "description": "High-pressing, high-scoring team"
+    },
+    {
+      "name": "Arsenal",
+      "offensive_rating": 1.35,
+      "defensive_rating": 0.85,
+      "description": "Strong balanced team"
+    },
+    {
+      "name": "Manchester United",
+      "offensive_rating": 1.20,
+      "defensive_rating": 0.95,
+      "description": "Solid mid-table attacking team"
+    },
+    {
+      "name": "Chelsea",
+      "offensive_rating": 1.15,
+      "defensive_rating": 1.00,
+      "description": "Average attacking and defensive capabilities"
+    },
+    {
+      "name": "Newcastle United",
+      "offensive_rating": 1.18,
+      "defensive_rating": 0.90,
+      "description": "Improving team with solid defense"
+    },
+    {
+      "name": "Tottenham",
+      "offensive_rating": 1.25,
+      "defensive_rating": 1.05,
+      "description": "Strong attack, weaker defense"
+    },
+    {
+      "name": "Brighton",
+      "offensive_rating": 1.10,
+      "defensive_rating": 1.00,
+      "description": "Well-organized mid-table team"
+    },
+    {
+      "name": "Aston Villa",
+      "offensive_rating": 1.15,
+      "defensive_rating": 0.95,
+      "description": "Solid all-around performance"
+    },
+    {
+      "name": "Everton",
+      "offensive_rating": 0.85,
+      "defensive_rating": 1.20,
+      "description": "Defensive-minded lower-table team"
+    },
+    {
+      "name": "Burnley",
+      "offensive_rating": 0.80,
+      "defensive_rating": 1.30,
+      "description": "Relegation-threatened team"
+    },
+    {
+      "name": "Sheffield United",
+      "offensive_rating": 0.75,
+      "defensive_rating": 1.35,
+      "description": "Weak attacking team"
+    }
+  ]
+}
