@@ -523,6 +523,237 @@ class NHLAnalytics:
             )
         }
     
+    def simulate_score_advanced(self, home_team: str, away_team: str, num_simulations: int = 100000, 
+                                 market_spread: float = None, market_total: float = None) -> Dict:
+        """
+        Advanced Monte Carlo score simulation with Haralabos Voulgaris-style analytics
+        
+        Args:
+            home_team: Home team abbreviation
+            away_team: Away team abbreviation
+            num_simulations: Number of Monte Carlo simulations (default 100,000 for high precision)
+            market_spread: Optional market spread line for edge analysis
+            market_total: Optional market total line for edge analysis
+        
+        Returns:
+            Comprehensive dictionary with advanced probabilistic analytics
+        """
+        # Get expected goals from total prediction
+        total_prediction = self.predict_total(home_team, away_team)
+        home_expected = total_prediction['home_expected_goals']
+        away_expected = total_prediction['away_expected_goals']
+        
+        # Run high-volume Monte Carlo simulations using Poisson distribution
+        np.random.seed(42)  # For reproducibility
+        
+        home_scores = np.random.poisson(home_expected, num_simulations)
+        away_scores = np.random.poisson(away_expected, num_simulations)
+        
+        # Calculate win probabilities
+        home_wins = np.sum(home_scores > away_scores)
+        away_wins = np.sum(away_scores > home_scores)
+        ties = np.sum(home_scores == away_scores)
+        
+        home_win_prob = home_wins / num_simulations
+        away_win_prob = away_wins / num_simulations
+        tie_prob = ties / num_simulations
+        
+        # OT/SO probabilities (NHL games tied in regulation go to OT/SO)
+        # Historical data: ~60% of OT games decided in OT, ~40% go to shootout
+        # Winner in OT/SO is roughly 50/50 when teams are evenly matched
+        ot_prob = tie_prob * 0.60
+        so_prob = tie_prob * 0.40
+        
+        # Adjust final win probabilities to include OT/SO
+        # Split tied games 50/50 plus adjust based on team strength differential
+        strength_diff = home_expected - away_expected
+        ot_so_home_advantage = 0.5 + (strength_diff * 0.05)  # Slight advantage to stronger team
+        ot_so_home_advantage = max(0.3, min(0.7, ot_so_home_advantage))  # Clamp between 30-70%
+        
+        home_win_total_prob = home_win_prob + (tie_prob * ot_so_home_advantage)
+        away_win_total_prob = away_win_prob + (tie_prob * (1 - ot_so_home_advantage))
+        
+        # Score margin distribution
+        score_margins = home_scores - away_scores
+        margin_distribution = {}
+        for margin in range(-10, 11):
+            margin_distribution[margin] = np.sum(score_margins == margin) / num_simulations
+        
+        # Find most likely score
+        score_combinations = {}
+        for h, a in zip(home_scores, away_scores):
+            key = (int(h), int(a))
+            score_combinations[key] = score_combinations.get(key, 0) + 1
+        
+        most_likely_score = max(score_combinations.items(), key=lambda x: x[1])
+        most_likely_home, most_likely_away = most_likely_score[0]
+        most_likely_prob = most_likely_score[1] / num_simulations
+        
+        # Get top 10 most likely scores
+        top_scores = sorted(score_combinations.items(), key=lambda x: x[1], reverse=True)[:10]
+        top_scores_formatted = [
+            {
+                "score": f"{home_team} {h} - {a} {away_team}",
+                "home_goals": h,
+                "away_goals": a,
+                "probability": f"{(count/num_simulations)*100:.2f}%",
+                "probability_decimal": round((count/num_simulations), 4)
+            }
+            for (h, a), count in top_scores
+        ]
+        
+        # Score distribution statistics
+        avg_home_score = np.mean(home_scores)
+        avg_away_score = np.mean(away_scores)
+        median_home_score = np.median(home_scores)
+        median_away_score = np.median(away_scores)
+        std_home_score = np.std(home_scores)
+        std_away_score = np.std(away_scores)
+        
+        # Total goals distribution
+        total_goals = home_scores + away_scores
+        avg_total = np.mean(total_goals)
+        median_total = np.median(total_goals)
+        std_total = np.std(total_goals)
+        
+        # Calculate betting edge analysis if market lines provided
+        betting_edge = {}
+        if market_spread is not None:
+            # Calculate probability home team covers the spread
+            covers = np.sum((home_scores - away_scores) > market_spread)
+            cover_prob = covers / num_simulations
+            # Edge is the difference between our probability and implied market probability (assume -110 odds = 52.38%)
+            implied_prob = 0.5238
+            edge_percent = (cover_prob - implied_prob) * 100
+            betting_edge["spread"] = {
+                "market_line": f"{home_team} {market_spread:+.1f}",
+                "cover_probability": f"{cover_prob*100:.2f}%",
+                "edge": f"{edge_percent:+.2f}%",
+                "recommendation": "BET" if abs(edge_percent) > 2 else "PASS",
+                "confidence": "HIGH" if abs(edge_percent) > 5 else "MEDIUM" if abs(edge_percent) > 2 else "LOW"
+            }
+        
+        if market_total is not None:
+            # Calculate probability game goes over the total
+            overs = np.sum(total_goals > market_total)
+            over_prob = overs / num_simulations
+            implied_prob = 0.5238
+            edge_percent = (over_prob - implied_prob) * 100
+            betting_edge["total"] = {
+                "market_line": f"O/U {market_total}",
+                "over_probability": f"{over_prob*100:.2f}%",
+                "under_probability": f"{(1-over_prob)*100:.2f}%",
+                "edge": f"{edge_percent:+.2f}%",
+                "recommendation": "OVER" if edge_percent > 2 else "UNDER" if edge_percent < -2 else "PASS",
+                "confidence": "HIGH" if abs(edge_percent) > 5 else "MEDIUM" if abs(edge_percent) > 2 else "LOW"
+            }
+        
+        # Predicted final score
+        predicted_final_score = f"{home_team} {most_likely_home} - {most_likely_away} {away_team}"
+        
+        result = {
+            "matchup": f"{away_team} @ {home_team}",
+            "predicted_final_score": predicted_final_score,
+            "most_likely_score": {
+                "home_goals": most_likely_home,
+                "away_goals": most_likely_away,
+                "probability": f"{most_likely_prob*100:.2f}%",
+                "probability_decimal": round(most_likely_prob, 4)
+            },
+            "expected_goals": {
+                "home": round(home_expected, 2),
+                "away": round(away_expected, 2),
+                "total": round(home_expected + away_expected, 2)
+            },
+            "simulation_stats": {
+                "simulations_run": num_simulations,
+                "average_home_score": round(avg_home_score, 2),
+                "average_away_score": round(avg_away_score, 2),
+                "average_total_score": round(avg_total, 2),
+                "median_home_score": int(median_home_score),
+                "median_away_score": int(median_away_score),
+                "median_total_score": int(median_total),
+                "std_dev_home": round(std_home_score, 2),
+                "std_dev_away": round(std_away_score, 2),
+                "std_dev_total": round(std_total, 2)
+            },
+            "win_probabilities": {
+                "regulation": {
+                    f"{home_team}_win": f"{home_win_prob*100:.2f}%",
+                    f"{away_team}_win": f"{away_win_prob*100:.2f}%",
+                    "tie": f"{tie_prob*100:.2f}%"
+                },
+                "including_ot_so": {
+                    f"{home_team}_win": f"{home_win_total_prob*100:.2f}%",
+                    f"{away_team}_win": f"{away_win_total_prob*100:.2f}%"
+                },
+                "overtime_shootout": {
+                    "ot_probability": f"{ot_prob*100:.2f}%",
+                    "shootout_probability": f"{so_prob*100:.2f}%"
+                }
+            },
+            "score_margin_distribution": {
+                f"{home_team} by {abs(margin)}+" if margin > 3 else f"{home_team} by {margin}" if margin > 0 
+                else "Tie" if margin == 0 
+                else f"{away_team} by {abs(margin)}" if margin > -4 
+                else f"{away_team} by {abs(margin)}+": f"{prob*100:.2f}%"
+                for margin, prob in sorted(margin_distribution.items(), key=lambda x: -x[1])[:10]
+            },
+            "top_10_likely_scores": top_scores_formatted,
+            "interpretation": self._interpret_score_simulation(
+                home_team, away_team, most_likely_home, most_likely_away, home_win_total_prob
+            )
+        }
+        
+        if betting_edge:
+            result["betting_edge_analysis"] = betting_edge
+        
+        return result
+    
+    def batch_analyze_games(self, games: List[Tuple[str, str]], num_simulations: int = 100000,
+                           include_score_sim: bool = True) -> List[Dict]:
+        """
+        Batch process multiple games for efficient analysis
+        
+        Args:
+            games: List of (home_team, away_team) tuples
+            num_simulations: Number of simulations per game
+            include_score_sim: Whether to include score simulation
+        
+        Returns:
+            List of analysis dictionaries for each game
+        """
+        results = []
+        
+        for i, (home_team, away_team) in enumerate(games, 1):
+            print(f"Analyzing game {i}/{len(games)}: {away_team} @ {home_team}")
+            
+            analysis = {
+                "game_number": i,
+                "matchup": f"{away_team} @ {home_team}",
+                "spread_analysis": self.predict_spread(home_team, away_team),
+                "total_analysis": self.predict_total(home_team, away_team)
+            }
+            
+            if include_score_sim:
+                analysis["score_simulation"] = self.simulate_score_advanced(
+                    home_team, away_team, num_simulations
+                )
+            
+            results.append(analysis)
+        
+        # Add summary statistics
+        summary = {
+            "total_games_analyzed": len(games),
+            "total_simulations_run": len(games) * num_simulations,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        return {
+            "games": results,
+            "summary": summary
+        }
+    
     def get_full_analysis(self, home_team: str, away_team: str, include_score_sim: bool = False) -> Dict:
         """
         Get complete analysis including spread and total predictions

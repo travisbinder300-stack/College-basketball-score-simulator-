@@ -252,6 +252,70 @@ This approach:
 - Maximum accuracy by combining all data sources
 - Season stats + Recent form + Advanced metrics = Best predictions
 
+### Advanced Monte Carlo Simulation (Haralabos Voulgaris Style)
+
+**New:** Enhanced simulation capabilities for professional-grade probabilistic modeling:
+
+#### High-Precision Simulations
+- **100,000+ Simulations**: Default increased from 10K to 100K for maximum precision
+- **Configurable Volume**: Adjust simulation count based on your needs
+- **Faster Processing**: Optimized numpy operations for efficient computation
+
+#### Overtime/Shootout Probabilities
+- **Regulation Tie Probability**: Calculates likelihood of tied game after 60 minutes
+- **OT Probability**: ~60% of tied games decided in overtime
+- **Shootout Probability**: ~40% of tied games go to shootout
+- **Adjusted Win Probabilities**: Includes OT/SO outcomes in final win percentages
+
+#### Score Margin Distribution
+- **Full Margin Analysis**: Probability distribution for all possible goal margins
+- **Visualization Ready**: Top 10 most likely margins with percentages
+- **Tie Games**: Separate analysis of regulation tie probability
+
+#### Betting Edge Analysis
+- **Spread Edge**: Compares model probability vs market implied odds
+- **Total Edge**: Over/under probability analysis with edge calculation
+- **Confidence Levels**: HIGH (>5% edge), MEDIUM (2-5%), LOW (<2%)
+- **Recommendations**: BET, PASS, OVER, or UNDER based on statistical edge
+
+#### Batch Processing
+- **Multi-Game Analysis**: Process multiple games in a single run
+- **Efficient**: Optimized for analyzing full slates of games
+- **Summary Statistics**: Aggregate metrics across all analyzed games
+
+**Usage:**
+```python
+from nhl_analytics import NHLAnalytics
+
+analytics = NHLAnalytics(use_moneypuck=True, use_recent_form=True)
+
+# Advanced simulation with 100,000 simulations and edge analysis
+result = analytics.simulate_score_advanced(
+    home_team="WPG",
+    away_team="BUF",
+    num_simulations=100000,
+    market_spread=-1.5,
+    market_total=6.0
+)
+
+# Access advanced metrics
+print(result['win_probabilities']['overtime_shootout'])
+print(result['score_margin_distribution'])
+print(result['betting_edge_analysis'])
+
+# Batch process multiple games
+games = [("LAK", "CHI"), ("COL", "NYI"), ("TOR", "MTL")]
+batch_results = analytics.batch_analyze_games(games, num_simulations=100000)
+```
+
+**Output Includes:**
+- Most likely final score with probability
+- Win probabilities (regulation, OT, SO, and total)
+- Top 10 most likely scores
+- Score margin distribution
+- Betting edge analysis for spread and total
+- Enhanced simulation statistics (avg, median, std dev)
+
 ## Statistical Methodology
 
 The system uses statistical modeling to ensure 70% confidence:
