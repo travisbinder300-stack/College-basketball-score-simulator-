@@ -1,0 +1,184 @@
+{
+  "Duke": {
+    "offensive_efficiency": 115.2,
+    "defensive_efficiency": 92.8,
+    "tempo": 71.5
+  },
+  "North Carolina": {
+    "offensive_efficiency": 112.4,
+    "defensive_efficiency": 94.2,
+    "tempo": 73.8
+  },
+  "Kansas": {
+    "offensive_efficiency": 116.8,
+    "defensive_efficiency": 91.5,
+    "tempo": 69.2
+  },
+  "Kentucky": {
+    "offensive_efficiency": 45.0,
+    "defensive_efficiency": 185.0,
+    "tempo": 88.0,
+    "recent_offensive_efficiency": 38.0,
+    "recent_defensive_efficiency": 195.0,
+    "recent_games_weight": 0.99,
+    "injury_impact": -10.0,
+    "rest_days": 0,
+    "strength_of_schedule": 112.0,
+    "ft_rate": 0.05,
+    "ft_pct": 0.35
+  },
+  "Gonzaga": {
+    "offensive_efficiency": 180.0,
+    "defensive_efficiency": 35.0,
+    "tempo": 92.0,
+    "recent_offensive_efficiency": 195.0,
+    "recent_defensive_efficiency": 28.0,
+    "recent_games_weight": 0.99,
+    "injury_impact": 0,
+    "rest_days": 4,
+    "strength_of_schedule": 125.0,
+    "ft_rate": 0.45,
+    "ft_pct": 0.94
+  },
+  "Villanova": {
+    "offensive_efficiency": 114.8,
+    "defensive_efficiency": 92.1,
+    "tempo": 68.5
+  },
+  "Michigan State": {
+    "offensive_efficiency": 111.2,
+    "defensive_efficiency": 95.6,
+    "tempo": 70.3
+  },
+  "UCLA": {
+    "offensive_efficiency": 113.9,
+    "defensive_efficiency": 93.8,
+    "tempo": 71.9
+  },
+  "Purdue": {
+    "offensive_efficiency": 117.3,
+    "defensive_efficiency": 94.5,
+    "tempo": 67.8
+  },
+  "Arizona": {
+    "offensive_efficiency": 114.5,
+    "defensive_efficiency": 92.7,
+    "tempo": 72.6
+  },
+  "Texas": {
+    "offensive_efficiency": 110.8,
+    "defensive_efficiency": 96.2,
+    "tempo": 69.7
+  },
+  "Virginia": {
+    "offensive_efficiency": 109.5,
+    "defensive_efficiency": 88.3,
+    "tempo": 63.2
+  },
+  "Rider": {
+    "offensive_efficiency": 102.8,
+    "defensive_efficiency": 105.2,
+    "tempo": 68.4
+  },
+  "Merrimack": {
+    "offensive_efficiency": 98.5,
+    "defensive_efficiency": 108.6,
+    "tempo": 67.8
+  },
+  "Cal Poly": {
+    "offensive_efficiency": 101.3,
+    "defensive_efficiency": 106.8,
+    "tempo": 69.2
+  },
+  "CSU Fullerton": {
+    "offensive_efficiency": 103.7,
+    "defensive_efficiency": 104.5,
+    "tempo": 68.9
+  },
+  "CSU Bakersfield": {
+    "offensive_efficiency": 97.2,
+    "defensive_efficiency": 109.3,
+    "tempo": 67.5
+  },
+  "CSU Northridge": {
+    "offensive_efficiency": 100.8,
+    "defensive_efficiency": 107.1,
+    "tempo": 68.3
+  },
+  "High Point": {
+    "offensive_efficiency": 100.5,
+    "defensive_efficiency": 107.9,
+    "tempo": 69.4
+  },
+  "NJIT": {
+    "offensive_efficiency": 95.8,
+    "defensive_efficiency": 110.5,
+    "tempo": 68.6
+  },
+  "VCU": {
+    "offensive_efficiency": 108.5,
+    "defensive_efficiency": 99.2,
+    "tempo": 70.8
+  },
+  "Samford": {
+    "offensive_efficiency": 105.3,
+    "defensive_efficiency": 103.6,
+    "tempo": 69.7
+  },
+  "Siena": {
+    "offensive_efficiency": 118.0,
+    "defensive_efficiency": 88.0,
+    "tempo": 72.0,
+    "recent_offensive_efficiency": 125.0,
+    "recent_defensive_efficiency": 82.0,
+    "recent_games_weight": 0.80,
+    "injury_impact": 0,
+    "rest_days": 3,
+    "strength_of_schedule": 108.0,
+    "ft_rate": 0.28,
+    "ft_pct": 0.78
+  },
+  "Niagara": {
+    "offensive_efficiency": 75.0,
+    "defensive_efficiency": 130.0,
+    "tempo": 70.0,
+    "recent_offensive_efficiency": 68.0,
+    "recent_defensive_efficiency": 138.0,
+    "recent_games_weight": 0.85,
+    "injury_impact": -8.0,
+    "rest_days": 0,
+    "strength_of_schedule": 98.0,
+    "ft_rate": 0.12,
+    "ft_pct": 0.55
+  },
+  "Bryant": {
+    "offensive_efficiency": 100.1,
+    "defensive_efficiency": 108.3,
+    "tempo": 68.5
+  },
+  "Brown": {
+    "offensive_efficiency": 96.8,
+    "defensive_efficiency": 110.2,
+    "tempo": 66.9
+  },
+  "Marist": {
+    "offensive_efficiency": 98.3,
+    "defensive_efficiency": 109.1,
+    "tempo": 67.4
+  },
+  "Mt. St. Mary's": {
+    "offensive_efficiency": 96.1,
+    "defensive_efficiency": 110.8,
+    "tempo": 67.2
+  },
+  "South Carolina State": {
+    "offensive_efficiency": 94.7,
+    "defensive_efficiency": 111.6,
+    "tempo": 66.8
+  },
+  "Bethune-Cookman": {
+    "offensive_efficiency": 93.2,
+    "defensive_efficiency": 112.8,
+    "tempo": 66.5
+  }
+}
