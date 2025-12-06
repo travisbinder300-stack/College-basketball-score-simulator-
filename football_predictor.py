@@ -8,7 +8,6 @@ import json
 import math
 import random
 from typing import Dict, Tuple, List
-from collections import Counter
 
 
 class FootballPredictor:
@@ -26,6 +25,7 @@ class FootballPredictor:
     # Constants for Monte Carlo simulation
     DEFAULT_SIMULATIONS = 10000  # Number of simulations to run (Haralabos Voulgaris style)
     SCORE_VARIANCE = 7.0  # Standard deviation for score variance in simulations
+    SCORE_RANGE_SIZE = 7  # Size of score ranges for distribution grouping (e.g., 0-6, 7-13, etc.)
     
     def __init__(self):
         # Sample FEI-style data (2022 season metrics)
@@ -284,6 +284,9 @@ class FootballPredictor:
         avg_total = sum(totals) / num_simulations
         
         # Calculate spread coverage (using base prediction spread)
+        # Convention: spread is team2_score - team1_score
+        # Negative spread means team1 is favored
+        # team1 covers if actual margin beats the spread
         spread = base_prediction["spread"]
         team1_covers = sum(1 for i in range(num_simulations) 
                           if (team2_scores[i] - team1_scores[i]) < spread)
@@ -295,12 +298,12 @@ class FootballPredictor:
         over_pct = (overs / num_simulations) * 100
         under_pct = 100 - over_pct
         
-        # Score distribution (group by 7-point ranges for readability)
+        # Score distribution (group by ranges for readability)
         def get_score_distribution(scores):
             ranges = {}
             for score in scores:
-                range_key = int(score // 7) * 7
-                range_label = f"{range_key}-{range_key+6}"
+                range_key = int(score // self.SCORE_RANGE_SIZE) * self.SCORE_RANGE_SIZE
+                range_label = f"{range_key}-{range_key + self.SCORE_RANGE_SIZE - 1}"
                 ranges[range_label] = ranges.get(range_label, 0) + 1
             # Convert to percentages and sort
             total = len(scores)
@@ -309,6 +312,10 @@ class FootballPredictor:
         
         return {
             "matchup": f"{team1} vs {team2}",
+            "team_names": {
+                "team1": team1,
+                "team2": team2
+            },
             "simulations_run": num_simulations,
             "base_prediction": base_prediction,
             "win_probabilities": {
@@ -400,8 +407,8 @@ class FootballPredictor:
         print(f"\n{'SPREAD ANALYSIS':^70}")
         print("-"*70)
         print(f"  Predicted Spread: {simulation['spread_analysis']['predicted_spread']}")
-        team1_name = list(simulation['average_scores'].keys())[0]
-        team2_name = list(simulation['average_scores'].keys())[1]
+        team1_name = simulation['team_names']['team1']
+        team2_name = simulation['team_names']['team2']
         print(f"  {team1_name} covers: {simulation['spread_analysis'][f'{team1_name}_covers_spread_pct']}%")
         print(f"  {team2_name} covers: {simulation['spread_analysis'][f'{team2_name}_covers_spread_pct']}%")
         
