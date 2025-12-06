@@ -15,14 +15,30 @@
     "tempo": 69.2
   },
   "Kentucky": {
-    "offensive_efficiency": 113.6,
-    "defensive_efficiency": 93.4,
-    "tempo": 70.8
+    "offensive_efficiency": 85.0,
+    "defensive_efficiency": 125.0,
+    "tempo": 72.0,
+    "recent_offensive_efficiency": 78.0,
+    "recent_defensive_efficiency": 132.0,
+    "recent_games_weight": 0.9,
+    "injury_impact": -10.0,
+    "rest_days": 0,
+    "strength_of_schedule": 112.0,
+    "ft_rate": 0.12,
+    "ft_pct": 0.55
   },
   "Gonzaga": {
-    "offensive_efficiency": 118.5,
-    "defensive_efficiency": 90.2,
-    "tempo": 72.1
+    "offensive_efficiency": 135.0,
+    "defensive_efficiency": 70.0,
+    "tempo": 75.0,
+    "recent_offensive_efficiency": 142.0,
+    "recent_defensive_efficiency": 65.0,
+    "recent_games_weight": 0.9,
+    "injury_impact": 0,
+    "rest_days": 4,
+    "strength_of_schedule": 115.0,
+    "ft_rate": 0.35,
+    "ft_pct": 0.85
   },
   "Villanova": {
     "offensive_efficiency": 114.8,
