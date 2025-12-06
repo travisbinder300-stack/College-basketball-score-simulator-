@@ -3,7 +3,7 @@ Example: Custom Teams Simulation
 
 This file demonstrates how to create your own custom teams and run simulations.
 You can modify the statistics to match any real or hypothetical teams.
-It also includes Kelly Criterion betting analysis examples.
+It also includes Kelly Criterion betting analysis examples for optimal bet sizing.
 """
 
 from basketball_simulator import GameSimulator, TeamStats, KellyCriterion

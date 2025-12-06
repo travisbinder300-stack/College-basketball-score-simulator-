@@ -340,9 +340,8 @@ class KellyCriterion:
         # Full Kelly
         kelly_fraction = (b * p - q) / b
         
-        # Edge calculation
+        # Edge calculation (expected value)
         edge = (decimal_odds * p) - 1
-        expected_value = edge * 100  # As percentage
         
         # Determine recommendation
         if kelly_fraction <= 0:
@@ -370,7 +369,7 @@ class KellyCriterion:
             'half_kelly': max(0, half_kelly),
             'quarter_kelly': max(0, quarter_kelly),
             'edge': edge,
-            'expected_value_pct': expected_value,
+            'edge_pct': edge * 100,  # Edge as percentage
             'recommendation': recommendation,
             'reasoning': reasoning,
             'win_probability': win_probability,
@@ -422,8 +421,7 @@ class KellyCriterion:
         print(f"Team: {team_name}")
         print(f"Win Probability (from simulation): {win_prob*100:.1f}%")
         print(f"Offered Odds: {american_odds:+d} (Decimal: {decimal_odds:.2f})")
-        print(f"\nExpected Value: {kelly_result['expected_value_pct']:+.2f}%")
-        print(f"Edge: {kelly_result['edge']*100:+.2f}%")
+        print(f"\nExpected Value (Edge): {kelly_result['edge_pct']:+.2f}%")
         
         print(f"\n{'='*70}")
         print("KELLY CRITERION BET SIZING")
