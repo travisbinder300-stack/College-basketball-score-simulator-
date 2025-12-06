@@ -7,9 +7,13 @@ A Python-based college men's basketball scoring prediction system that uses poin
 - **Statistical Prediction Engine**: Uses offensive/defensive efficiency ratings and tempo to predict game scores
 - **Point Spread & Total Analysis**: Can predict outcomes from betting lines (spread and total points)
 - **Team Statistics**: Support for KenPom-style team efficiency metrics
-- **Monte Carlo Simulation**: Run thousands of game simulations for probability distributions
+- **Monte Carlo Simulation**: Run thousands of game simulations for probability distributions with configurable iterations (supports 10,000+ simulations like professional models)
 - **Home Court Advantage**: Configurable home court advantage factor
 - **Win Probability**: Calculate win probabilities based on point spreads
+- **Recent Form Weighting**: Weight recent games (last 5-10) more heavily than early season performance
+- **Calibratable Variance**: Adjustable score variance parameter for improved accuracy
+- **Blowout Detection**: Automatically detects large efficiency gaps and adjusts variance for potential blowouts
+- **Advanced Analytics**: Supports recency-weighted efficiency metrics for more accurate predictions
 
 ## Installation
 
@@ -60,7 +64,8 @@ python basketball_predictor.py \
 - `--spread`: Point spread, positive means home team favored (required for `spread_total` mode)
 - `--total`: Expected total points (required for `spread_total` mode)
 - `--neutral`: Flag for neutral site games (removes home court advantage)
-- `--simulate`: Run Monte Carlo simulation with 1000 iterations
+- `--simulate`: Run Monte Carlo simulation
+- `--num-simulations`: Number of simulations to run (default: 1000, supports 10,000+ for professional-grade analysis)
 
 ### Example Output
 
@@ -87,11 +92,31 @@ Team statistics should be provided in JSON format with KenPom-style metrics:
 }
 ```
 
+### Advanced Team Data Format (with Recent Form)
+
+For more accurate predictions, you can include recent form data:
+
+```json
+{
+  "Duke": {
+    "offensive_efficiency": 115.2,
+    "defensive_efficiency": 92.8,
+    "tempo": 71.5,
+    "recent_games_weight": 0.3,
+    "recent_offensive_efficiency": 118.5,
+    "recent_defensive_efficiency": 90.1
+  }
+}
+```
+
 ### Metrics Explained
 
 - **Offensive Efficiency**: Points scored per 100 possessions
 - **Defensive Efficiency**: Points allowed per 100 possessions  
 - **Tempo**: Average possessions per game
+- **Recent Games Weight** (optional): Weight given to recent games (0-1, where 0.3 means 30% recent, 70% season average)
+- **Recent Offensive Efficiency** (optional): Offensive efficiency for last 5-10 games
+- **Recent Defensive Efficiency** (optional): Defensive efficiency for last 5-10 games
 
 These metrics can be obtained from sites like KenPom.com or similar college basketball analytics sources.
 
@@ -102,10 +127,13 @@ These metrics can be obtained from sites like KenPom.com or similar college bask
 The predictor uses the following methodology:
 
 1. **Tempo Calculation**: Estimates game tempo using geometric mean of team tempos
-2. **Efficiency Adjustment**: Adjusts team offensive efficiency against opponent's defensive efficiency
-3. **Score Prediction**: Calculates expected points using efficiency per 100 possessions
-4. **Home Court Advantage**: Adds ~3.5 points for home teams (configurable)
-5. **Win Probability**: Uses logistic regression on point spread
+2. **Recent Form Weighting**: Applies configurable weighting to emphasize recent games over season averages
+3. **Efficiency Adjustment**: Adjusts team offensive efficiency against opponent's defensive efficiency
+4. **Score Prediction**: Calculates expected points using efficiency per 100 possessions
+5. **Home Court Advantage**: Adds ~3.5 points for home teams (configurable)
+6. **Blowout Detection**: Identifies potential blowouts based on efficiency gaps and increases variance
+7. **Win Probability**: Uses logistic regression on point spread
+8. **Calibratable Variance**: Adjustable standard deviation parameter for score simulations
 
 ### Example Calculation
 
@@ -165,14 +193,30 @@ You can also use the predictor programmatically:
 ```python
 from basketball_predictor import BasketballPredictor, TeamStats
 
-# Create predictor
-predictor = BasketballPredictor(home_court_advantage=3.5)
+# Create predictor with custom parameters
+predictor = BasketballPredictor(
+    home_court_advantage=3.5,  # Default home court advantage
+    score_std_dev=10.5          # Calibrated score variance
+)
 
-# Define teams
-duke = TeamStats(name="Duke", offensive_efficiency=115.2, 
-                 defensive_efficiency=92.8, tempo=71.5)
-unc = TeamStats(name="UNC", offensive_efficiency=112.4,
-                defensive_efficiency=94.2, tempo=73.8)
+# Define teams with season averages only
+duke = TeamStats(
+    name="Duke", 
+    offensive_efficiency=115.2, 
+    defensive_efficiency=92.8, 
+    tempo=71.5
+)
+
+# Define teams with recent form weighting
+unc = TeamStats(
+    name="UNC", 
+    offensive_efficiency=112.4,
+    defensive_efficiency=94.2, 
+    tempo=73.8,
+    recent_games_weight=0.3,  # 30% weight to recent games
+    recent_offensive_efficiency=115.0,  # Recent form is better
+    recent_defensive_efficiency=92.0
+)
 
 # Predict game
 prediction = predictor.predict_game(duke, unc)
@@ -183,9 +227,15 @@ prediction = predictor.predict_from_spread_and_total(
     "Duke", "UNC", point_spread=5.5, total_points=148.5
 )
 
-# Run simulation
-results = predictor.simulate_game(prediction, num_simulations=1000)
+# Run simulation with blowout detection
+results = predictor.simulate_game(
+    prediction, 
+    num_simulations=10000,
+    home_team_stats=duke,  # Pass stats for blowout detection
+    away_team_stats=unc
+)
 print(f"Home win probability: {results['home_win_pct']:.1%}")
+print(f"Variance used: {results['score_std_used']:.1f}")
 ```
 
 ## Data Sources
@@ -196,12 +246,28 @@ For real team data, you can use:
 - **Sports-Reference.com**: Historical team statistics
 - **NCAA Stats**: Official NCAA team statistics
 
-## Limitations
+## Limitations and Improvements
 
-- Predictions are based on season-long averages and may not reflect recent form
-- Does not account for injuries, lineup changes, or other situational factors
+### Current Limitations
+- Predictions are based on season-long averages (mitigated with recent form weighting)
+- Does not account for injuries or lineup changes
 - Efficiency ratings are more reliable with larger sample sizes
 - Home court advantage varies by venue (default is 3.5 points)
+
+### Accuracy Improvements (NEW)
+The model now includes several enhancements for better predictions:
+
+1. **Recent Form Weighting**: Weight recent games (last 5-10) more heavily to capture team momentum and current performance
+2. **Calibratable Variance**: Adjust the `score_std_dev` parameter based on historical prediction errors
+3. **Blowout Detection**: Automatically increases variance when large efficiency gaps suggest potential blowouts
+4. **Flexible Data Updates**: Support for optional recent efficiency metrics in team data
+
+### Recommended Usage for Best Accuracy
+1. Update team efficiency data regularly (weekly or after significant games)
+2. Use recent form weighting (0.2-0.4) for teams with strong recent performance trends
+3. Calibrate variance based on historical prediction accuracy
+4. Include injury adjustments by manually adjusting efficiency ratings
+5. Consider situational factors (rest days, travel) when interpreting predictions
 
 ## License
 
