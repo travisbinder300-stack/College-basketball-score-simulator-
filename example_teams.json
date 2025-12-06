@@ -108,5 +108,45 @@
     "offensive_efficiency": 105.3,
     "defensive_efficiency": 103.6,
     "tempo": 69.7
+  },
+  "Siena": {
+    "offensive_efficiency": 99.2,
+    "defensive_efficiency": 107.8,
+    "tempo": 68.1
+  },
+  "Niagara": {
+    "offensive_efficiency": 97.5,
+    "defensive_efficiency": 109.5,
+    "tempo": 67.6
+  },
+  "Bryant": {
+    "offensive_efficiency": 100.1,
+    "defensive_efficiency": 108.3,
+    "tempo": 68.5
+  },
+  "Brown": {
+    "offensive_efficiency": 96.8,
+    "defensive_efficiency": 110.2,
+    "tempo": 66.9
+  },
+  "Marist": {
+    "offensive_efficiency": 98.3,
+    "defensive_efficiency": 109.1,
+    "tempo": 67.4
+  },
+  "Mt. St. Mary's": {
+    "offensive_efficiency": 96.1,
+    "defensive_efficiency": 110.8,
+    "tempo": 67.2
+  },
+  "South Carolina State": {
+    "offensive_efficiency": 94.7,
+    "defensive_efficiency": 111.6,
+    "tempo": 66.8
+  },
+  "Bethune-Cookman": {
+    "offensive_efficiency": 93.2,
+    "defensive_efficiency": 112.8,
+    "tempo": 66.5
   }
 }
