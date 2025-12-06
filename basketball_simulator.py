@@ -23,6 +23,18 @@ from typing import Dict, List, Tuple
 import statistics
 
 
+# Simulation Constants - Tuned for realistic college basketball results
+TURNOVER_RATE_MULTIPLIER = 0.75  # Reduce turnover rate slightly from team stat
+DEFENSIVE_ADJUSTMENT_FACTOR = 0.12  # How much defense impacts opponent shooting (12%)
+THREE_PT_OFFENSIVE_REBOUND_RATE = 0.38  # 3PT shots have lower offensive rebound rate
+TWO_PT_OFFENSIVE_REBOUND_RATE = 0.45  # 2PT shots have higher offensive rebound rate
+PUTBACK_SUCCESS_RATE = 0.62  # Probability of scoring on a putback attempt
+AND_ONE_PROBABILITY_2PT = 0.075  # Probability of and-one on made 2PT shot
+AND_ONE_PROBABILITY_PUTBACK = 0.18  # Higher chance of foul on putback attempts
+FREE_THROW_FOUL_RATE = 0.22  # Percentage of misses that result in shooting fouls
+LEAGUE_AVERAGE_EFFICIENCY = 105.0  # NCAA average points per 100 possessions
+
+
 @dataclass
 class TeamStats:
     """
@@ -77,12 +89,12 @@ class PossessionSimulator:
         variance_multiplier = 1.0 + np.random.normal(0, abs(game_variance))
         
         # Check for turnover first (dead possession)
-        if random.random() < self.offense.turnover_rate * 0.75:
+        if random.random() < self.offense.turnover_rate * TURNOVER_RATE_MULTIPLIER:
             return 0  # Turnover - no points
         
         # Apply defensive adjustment to shooting
-        league_avg_def = 105.0
-        def_factor = 1.0 - ((self.defense.defensive_efficiency - league_avg_def) / league_avg_def) * 0.12
+        def_factor = 1.0 - ((self.defense.defensive_efficiency - LEAGUE_AVERAGE_EFFICIENCY) / 
+                            LEAGUE_AVERAGE_EFFICIENCY) * DEFENSIVE_ADJUSTMENT_FACTOR
         
         # Track if we get an offensive rebound for second chance
         second_chance = False
@@ -98,7 +110,7 @@ class PossessionSimulator:
                 return 3
             else:
                 # Missed 3-pointer, check for offensive rebound (lower rate on 3s)
-                if random.random() < self.offense.offensive_rebound_rate * 0.38:
+                if random.random() < self.offense.offensive_rebound_rate * THREE_PT_OFFENSIVE_REBOUND_RATE:
                     second_chance = True
         else:
             # Two-point attempt
@@ -107,25 +119,25 @@ class PossessionSimulator:
             
             if random.random() < two_pt_pct:
                 # Made 2-pointer, check for and-one
-                if random.random() < 0.075:
+                if random.random() < AND_ONE_PROBABILITY_2PT:
                     return 2 + (1 if random.random() < self.offense.free_throw_percentage else 0)
                 return 2
             else:
                 # Missed 2-pointer, check for foul or offensive rebound
-                if random.random() < self.offense.free_throw_rate * 0.22:
+                if random.random() < self.offense.free_throw_rate * FREE_THROW_FOUL_RATE:
                     # Shooting foul - 2 free throws
                     ft_made = sum(1 for _ in range(2) if random.random() < self.offense.free_throw_percentage)
                     return ft_made
-                elif random.random() < self.offense.offensive_rebound_rate * 0.45:
+                elif random.random() < self.offense.offensive_rebound_rate * TWO_PT_OFFENSIVE_REBOUND_RATE:
                     second_chance = True
         
         # Second chance points from offensive rebounds
         if second_chance:
             # Putback attempt - usually close to the basket
-            if random.random() < 0.62:  # Good chance to score on putback
+            if random.random() < PUTBACK_SUCCESS_RATE:
                 return 2
             # Could also draw a foul
-            elif random.random() < 0.18:
+            elif random.random() < AND_ONE_PROBABILITY_PUTBACK:
                 ft_made = sum(1 for _ in range(2) if random.random() < self.offense.free_throw_percentage)
                 return ft_made
         
