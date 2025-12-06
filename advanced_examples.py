@@ -248,10 +248,15 @@ def example_8_season_simulation():
 
 def main():
     """Run all examples"""
+    import sys
+    
     print("\n")
     print("╔" + "=" * 78 + "╗")
     print("║" + " " * 15 + "SOCCER SIMULATOR - ADVANCED EXAMPLES" + " " * 27 + "║")
     print("╚" + "=" * 78 + "╝")
+    
+    # Check if running in interactive mode
+    interactive = '--interactive' in sys.argv or '-i' in sys.argv
     
     examples = [
         example_1_basic_match,
@@ -271,7 +276,10 @@ def main():
             print(f"\nError in example {i}: {e}")
         
         if i < len(examples):
-            input("\n[Press Enter to continue to next example...]")
+            if interactive:
+                input("\n[Press Enter to continue to next example...]")
+            else:
+                print("\n" + "-" * 80)
 
 
 if __name__ == "__main__":

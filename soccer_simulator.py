@@ -93,8 +93,8 @@ class SoccerSimulator:
         away_xg = self.calculate_expected_goals(away_team, home_team, is_home=False)
         
         # Use Poisson distribution to sample actual goals
-        home_goals = np.random.poisson(home_xg)
-        away_goals = np.random.poisson(away_xg)
+        home_goals = poisson.rvs(home_xg)
+        away_goals = poisson.rvs(away_xg)
         
         return home_goals, away_goals
     
@@ -160,6 +160,19 @@ class SoccerSimulator:
         
         return results
     
+    @staticmethod
+    def _probability_to_decimal_odds(probability: float) -> float:
+        """
+        Convert probability to decimal odds.
+        
+        Args:
+            probability: Probability of outcome (0-1)
+            
+        Returns:
+            Decimal odds (1/probability)
+        """
+        return 1 / probability if probability > 0 else float('inf')
+    
     def calculate_match_odds(self, home_team: Team, away_team: Team, 
                             num_simulations: int = 10000) -> Dict:
         """
@@ -176,9 +189,9 @@ class SoccerSimulator:
         results = self.simulate_matches(home_team, away_team, num_simulations)
         
         # Calculate decimal odds (1/probability)
-        home_decimal = 1 / results['home_win_prob'] if results['home_win_prob'] > 0 else float('inf')
-        draw_decimal = 1 / results['draw_prob'] if results['draw_prob'] > 0 else float('inf')
-        away_decimal = 1 / results['away_win_prob'] if results['away_win_prob'] > 0 else float('inf')
+        home_decimal = self._probability_to_decimal_odds(results['home_win_prob'])
+        draw_decimal = self._probability_to_decimal_odds(results['draw_prob'])
+        away_decimal = self._probability_to_decimal_odds(results['away_win_prob'])
         
         return {
             'home_team': home_team.name,
@@ -246,9 +259,9 @@ class SoccerSimulator:
         print(f"\n" + "-" * 80)
         print("DECIMAL ODDS (Fair Odds - No Margin)")
         print("-" * 80)
-        home_odds = 1 / results['home_win_prob'] if results['home_win_prob'] > 0 else float('inf')
-        draw_odds = 1 / results['draw_prob'] if results['draw_prob'] > 0 else float('inf')
-        away_odds = 1 / results['away_win_prob'] if results['away_win_prob'] > 0 else float('inf')
+        home_odds = self._probability_to_decimal_odds(results['home_win_prob'])
+        draw_odds = self._probability_to_decimal_odds(results['draw_prob'])
+        away_odds = self._probability_to_decimal_odds(results['away_win_prob'])
         print(f"  {home_team.name} Win: {home_odds:.2f}")
         print(f"  Draw:           {draw_odds:.2f}")
         print(f"  {away_team.name} Win: {away_odds:.2f}")
