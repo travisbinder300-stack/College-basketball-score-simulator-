@@ -267,6 +267,12 @@ def main():
         action='store_true',
         help='Run Monte Carlo simulation'
     )
+    parser.add_argument(
+        '--num-simulations',
+        type=int,
+        default=1000,
+        help='Number of Monte Carlo simulations to run (default: 1000)'
+    )
     
     args = parser.parse_args()
     
@@ -304,8 +310,8 @@ def main():
     print(prediction)
     
     if args.simulate:
-        print("\nRunning Monte Carlo Simulation (1000 games)...")
-        sim_results = predictor.simulate_game(prediction)
+        print(f"\nRunning Monte Carlo Simulation ({args.num_simulations} games)...")
+        sim_results = predictor.simulate_game(prediction, num_simulations=args.num_simulations)
         print(f"Simulated Home Win %: {sim_results['home_win_pct']:.1%}")
         print(f"Simulated Away Win %: {sim_results['away_win_pct']:.1%}")
         print(f"Average Simulated Score: {args.away} {sim_results['avg_away_score']:.1f} - "

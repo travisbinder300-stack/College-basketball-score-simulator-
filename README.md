@@ -117,9 +117,10 @@ For Duke (115 OffEff, 92 DefEff, 71 tempo) vs UNC (112 OffEff, 94 DefEff, 73 tem
 
 ## Monte Carlo Simulation
 
-Add the `--simulate` flag to run 1000 game simulations:
+Add the `--simulate` flag to run game simulations. By default, it runs 1,000 simulations, but you can specify any number using `--num-simulations`:
 
 ```bash
+# Run with default 1,000 simulations
 python basketball_predictor.py \
   --mode spread_total \
   --home "Kansas" \
@@ -127,6 +128,15 @@ python basketball_predictor.py \
   --spread 3.0 \
   --total 145.0 \
   --simulate
+
+# Run with 10,000 simulations (like Haralabos Voulgaris's model)
+python basketball_predictor.py \
+  --mode team_stats \
+  --home "Duke" \
+  --away "Kansas" \
+  --team-data example_teams.json \
+  --simulate \
+  --num-simulations 10000
 ```
 
 This provides:
