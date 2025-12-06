@@ -91,9 +91,12 @@ class NBASimulator:
         home_adj_def = home_team.defensive_rating - self.home_court_advantage / 2
         
         # Calculate expected points using offensive/defensive ratings
-        # Account for opponent strength
-        home_expected = (home_adj_off + away_team.defensive_rating) / 2 * (game_pace / 100)
-        away_expected = (away_team.offensive_rating + home_adj_def) / 2 * (game_pace / 100)
+        # League average is approximately 112 points per 100 possessions
+        league_avg = 112.0
+        
+        # Multiplicative approach: (offensive_rating / league_avg) * (opponent_defensive_rating / league_avg) * pace
+        home_expected = (home_adj_off / league_avg) * (away_team.defensive_rating / league_avg) * league_avg * (game_pace / 100)
+        away_expected = (away_team.offensive_rating / league_avg) * (home_adj_def / league_avg) * league_avg * (game_pace / 100)
         
         # Add variance based on four factors
         home_variance = self._calculate_variance(home_team, away_team)
@@ -124,7 +127,7 @@ class NBASimulator:
         base_variance = 12.0  # Base standard deviation
         
         # Adjust for team characteristics
-        tov_factor = 1 + (team.tov_pct / 100) * 0.5
+        tov_factor = 1 + (team.tov_pct) * 0.02  # tov_pct is already a percentage (e.g., 12.5)
         efg_factor = 1 + (0.5 - team.efg_pct) * 0.3
         pace_factor = team.pace / 100
         
@@ -146,14 +149,13 @@ class NBASimulator:
         home_net = home_team.net_rating() + self.home_court_advantage
         away_net = away_team.net_rating()
         
-        # Use log5 method for win probability
-        # This accounts for strength of schedule
-        exponent = 11.5  # NBA exponent
-        
-        home_pythag = home_net ** exponent / (home_net ** exponent + away_net ** exponent) if away_net != 0 else 0.5
+        # Use modified Pythagorean win probability
+        # Convert net ratings to win percentages using point differential
+        # Approximate: each point of net rating ≈ 3% win probability difference from 50%
+        home_win_pct = 0.5 + (home_net * 0.03)
         
         # Bound between reasonable limits
-        return max(0.01, min(0.99, home_pythag))
+        return max(0.01, min(0.99, home_win_pct))
     
     def simulate_multiple_games(self, home_team: TeamStats, away_team: TeamStats,
                                num_simulations: int = 10000) -> Dict[str, float]:
@@ -213,7 +215,7 @@ class KellyBetting:
         Returns:
             Fraction of bankroll to bet (0-1)
         """
-        if true_prob <= 0 or true_prob >= 1 or odds <= 1:
+        if true_prob <= 0 or true_prob >= 1 or odds < 1:
             return 0.0
         
         # Kelly formula: f = (bp - q) / b
