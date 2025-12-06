@@ -7,13 +7,19 @@ A Python-based college men's basketball scoring prediction system that uses poin
 - **Statistical Prediction Engine**: Uses offensive/defensive efficiency ratings and tempo to predict game scores
 - **Point Spread & Total Analysis**: Can predict outcomes from betting lines (spread and total points)
 - **Team Statistics**: Support for KenPom-style team efficiency metrics
-- **Monte Carlo Simulation**: Run thousands of game simulations for probability distributions with configurable iterations (supports 10,000+ simulations like professional models)
-- **Home Court Advantage**: Configurable home court advantage factor
+- **Monte Carlo Simulation**: Run thousands of game simulations for probability distributions with configurable iterations (supports up to 20,000 simulations like professional models)
+- **Home Court Advantage**: Configurable home court advantage factor with neutral site and venue-specific adjustments
 - **Win Probability**: Calculate win probabilities based on point spreads
 - **Recent Form Weighting**: Weight recent games (last 5-10) more heavily than early season performance
+- **Injury/Roster Impact**: Adjust efficiency ratings for missing key players
+- **Rest Days Factor**: Account for fatigue from back-to-back games or short rest
+- **Venue-Specific Adjustments**: Different adjustments for home, away, and neutral site games
+- **Strength of Schedule**: Weight performance against tougher opponents
+- **Tournament/Motivation Boost**: Optional intensity boost for high-stakes games
+- **Free Throw Differential**: Account for teams' fouling rates and free throw percentage
 - **Calibratable Variance**: Adjustable score variance parameter for improved accuracy
 - **Blowout Detection**: Automatically detects large efficiency gaps and adjusts variance for potential blowouts
-- **Advanced Analytics**: Supports recency-weighted efficiency metrics for more accurate predictions
+- **Advanced Analytics**: Comprehensive statistical modeling for professional-grade predictions
 
 ## Installation
 
@@ -63,9 +69,26 @@ python basketball_predictor.py \
 - `--team-data`: JSON file containing team statistics (required for `team_stats` mode)
 - `--spread`: Point spread, positive means home team favored (required for `spread_total` mode)
 - `--total`: Expected total points (required for `spread_total` mode)
-- `--neutral`: Flag for neutral site games (removes home court advantage)
+- `--neutral`: Flag for neutral site games (reduces home court advantage)
+- `--venue-type`: Specify venue type: `home` (default), `neutral`, or `away`
+- `--tournament`: Enable tournament/high-stakes intensity boost
 - `--simulate`: Run Monte Carlo simulation
-- `--num-simulations`: Number of simulations to run (default: 1000, supports 10,000+ for professional-grade analysis)
+- `--num-simulations`: Number of simulations to run (default: 1000, max recommended: 20000)
+
+### Running 20,000 Simulations (Professional-Grade Analysis)
+
+For maximum precision similar to professional sports analytics models:
+
+```bash
+python basketball_predictor.py \
+  --mode team_stats \
+  --home "Gonzaga" \
+  --away "Kentucky" \
+  --team-data example_teams.json \
+  --simulate \
+  --num-simulations 20000 \
+  --tournament
+```
 
 ### Example Output
 
@@ -92,9 +115,9 @@ Team statistics should be provided in JSON format with KenPom-style metrics:
 }
 ```
 
-### Advanced Team Data Format (with Recent Form)
+### Advanced Team Data Format (with All Features)
 
-For more accurate predictions, you can include recent form data:
+For maximum accuracy, you can include all advanced features:
 
 ```json
 {
@@ -104,36 +127,54 @@ For more accurate predictions, you can include recent form data:
     "tempo": 71.5,
     "recent_games_weight": 0.3,
     "recent_offensive_efficiency": 118.5,
-    "recent_defensive_efficiency": 90.1
+    "recent_defensive_efficiency": 90.1,
+    "injury_impact": -3.0,
+    "rest_days": 1,
+    "free_throw_rate": 0.28,
+    "free_throw_pct": 0.75,
+    "strength_of_schedule": 108.5
   }
 }
 ```
 
 ### Metrics Explained
 
+**Core Metrics:**
 - **Offensive Efficiency**: Points scored per 100 possessions
 - **Defensive Efficiency**: Points allowed per 100 possessions  
 - **Tempo**: Average possessions per game
-- **Recent Games Weight** (optional): Weight given to recent games (0-1, where 0.3 means 30% recent, 70% season average)
-- **Recent Offensive Efficiency** (optional): Offensive efficiency for last 5-10 games
-- **Recent Defensive Efficiency** (optional): Defensive efficiency for last 5-10 games
 
-These metrics can be obtained from sites like KenPom.com or similar college basketball analytics sources.
+**Advanced Metrics (all optional):**
+- **Recent Games Weight**: Weight given to recent games (0-1, where 0.3 means 30% recent, 70% season average)
+- **Recent Offensive Efficiency**: Offensive efficiency for last 5-10 games
+- **Recent Defensive Efficiency**: Defensive efficiency for last 5-10 games
+- **Injury Impact**: Efficiency adjustment for missing players (-10 to 0, where -5 = missing star player)
+- **Rest Days**: Days since last game (0 = back-to-back, affects fatigue penalty)
+- **Free Throw Rate**: FT attempts per FG attempt (typical: 0.2-0.3)
+- **Free Throw Percentage**: Free throw shooting percentage (typical: 0.65-0.75)
+- **Strength of Schedule**: Average opponent efficiency (100 = national average, >105 = tough schedule)
+
+These metrics can be obtained from sites like KenPom.com, Barttorvik.com, or similar college basketball analytics sources.
 
 ## How It Works
 
 ### Statistical Model
 
-The predictor uses the following methodology:
+The predictor uses comprehensive statistical methodology:
 
 1. **Tempo Calculation**: Estimates game tempo using geometric mean of team tempos
 2. **Recent Form Weighting**: Applies configurable weighting to emphasize recent games over season averages
-3. **Efficiency Adjustment**: Adjusts team offensive efficiency against opponent's defensive efficiency
-4. **Score Prediction**: Calculates expected points using efficiency per 100 possessions
-5. **Home Court Advantage**: Adds ~3.5 points for home teams (configurable)
-6. **Blowout Detection**: Identifies potential blowouts based on efficiency gaps and increases variance
-7. **Win Probability**: Uses logistic regression on point spread
-8. **Calibratable Variance**: Adjustable standard deviation parameter for score simulations
+3. **Injury & Roster Adjustments**: Accounts for missing key players with efficiency penalties
+4. **Rest & Fatigue Modeling**: Adjusts for back-to-back games and short rest periods
+5. **Efficiency Adjustment**: Adjusts team offensive efficiency against opponent's defensive efficiency
+6. **Free Throw Differential**: Incorporates fouling rates and FT% into scoring predictions
+7. **Strength of Schedule**: Weights performance against tougher opponents higher
+8. **Score Prediction**: Calculates expected points using efficiency per 100 possessions
+9. **Venue-Specific Adjustments**: Different advantages for home (~3.5 pts), neutral (~1.5 pts), and away (0 pts)
+10. **Tournament Intensity**: Optional boost for high-stakes games (March Madness, conference tournaments)
+11. **Blowout Detection**: Identifies potential blowouts based on efficiency gaps and increases variance
+12. **Win Probability**: Uses logistic regression on point spread
+13. **Monte Carlo Simulation**: Runs up to 20,000 simulations with calibratable variance for distribution analysis
 
 ### Example Calculation
 
@@ -141,7 +182,7 @@ For Duke (115 OffEff, 92 DefEff, 71 tempo) vs UNC (112 OffEff, 94 DefEff, 73 tem
 
 1. Expected tempo = √(71 × 73) ≈ 72 possessions
 2. Duke offense vs UNC defense: (115 × 100 / 94) = 122.3 rating
-3. Duke expected score: (122.3 × 72 / 100) + 3.5 (HCA) ≈ 91.5 points
+3. Duke expected score: (122.3 × 72 / 100) + 3.5 (HCA) + FT differential ≈ 91.5 points
 
 ## Monte Carlo Simulation
 

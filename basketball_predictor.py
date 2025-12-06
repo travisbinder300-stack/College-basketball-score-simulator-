@@ -20,6 +20,11 @@ class TeamStats:
     recent_games_weight: float = 0.0  # Weight for recent form (0-1, 0=no weighting)
     recent_offensive_efficiency: float = None  # Last 5-10 games offensive efficiency
     recent_defensive_efficiency: float = None  # Last 5-10 games defensive efficiency
+    injury_impact: float = 0.0  # Efficiency adjustment for missing players (-10 to 0)
+    rest_days: int = 3  # Days since last game (affects performance)
+    free_throw_rate: float = 0.25  # FT attempts per FG attempt (typical: 0.2-0.3)
+    free_throw_pct: float = 0.70  # Free throw percentage (typical: 0.65-0.75)
+    strength_of_schedule: float = 100.0  # Opponent efficiency average (100 = national avg)
     
     def __post_init__(self):
         """Validate team statistics"""
@@ -31,6 +36,10 @@ class TeamStats:
             raise ValueError("Tempo must be positive")
         if self.recent_games_weight < 0 or self.recent_games_weight > 1:
             raise ValueError("Recent games weight must be between 0 and 1")
+        if self.injury_impact < -10 or self.injury_impact > 0:
+            raise ValueError("Injury impact must be between -10 and 0")
+        if self.rest_days < 0:
+            raise ValueError("Rest days cannot be negative")
         
         # Set recent efficiency to season average if not provided
         if self.recent_offensive_efficiency is None:
@@ -51,6 +60,40 @@ class TeamStats:
             return self.defensive_efficiency
         return (self.defensive_efficiency * (1 - self.recent_games_weight) + 
                 self.recent_defensive_efficiency * self.recent_games_weight)
+    
+    def get_adjusted_offensive_efficiency(self) -> float:
+        """Get offensive efficiency with all adjustments applied"""
+        base_eff = self.get_weighted_offensive_efficiency()
+        
+        # Apply injury impact
+        adjusted_eff = base_eff + self.injury_impact
+        
+        # Apply rest adjustment (fatigue penalty for back-to-backs or short rest)
+        if self.rest_days == 0:  # Back-to-back
+            adjusted_eff -= 3.0
+        elif self.rest_days == 1:
+            adjusted_eff -= 1.5
+        elif self.rest_days == 2:
+            adjusted_eff -= 0.5
+        
+        return adjusted_eff
+    
+    def get_adjusted_defensive_efficiency(self) -> float:
+        """Get defensive efficiency with all adjustments applied"""
+        base_eff = self.get_weighted_defensive_efficiency()
+        
+        # Apply injury impact (injuries hurt defense too)
+        adjusted_eff = base_eff - (self.injury_impact * 0.5)
+        
+        # Apply rest adjustment (fatigue hurts defense more than offense)
+        if self.rest_days == 0:  # Back-to-back
+            adjusted_eff += 4.0  # Higher = worse defense
+        elif self.rest_days == 1:
+            adjusted_eff += 2.0
+        elif self.rest_days == 2:
+            adjusted_eff += 0.7
+        
+        return adjusted_eff
 
 
 @dataclass
@@ -82,25 +125,34 @@ Home Win Probability: {self.home_win_probability:.1%}
 class BasketballPredictor:
     """Predicts college basketball game scores using statistical models"""
     
-    def __init__(self, home_court_advantage: float = 3.5, score_std_dev: float = 10.5):
+    def __init__(self, 
+                 home_court_advantage: float = 3.5, 
+                 neutral_site_advantage: float = 1.5,
+                 score_std_dev: float = 10.5,
+                 tournament_intensity_boost: float = 0.0):
         """
         Initialize predictor with configurable parameters
         
         Args:
             home_court_advantage: Points advantage for home team (typically 3-4 points)
+            neutral_site_advantage: Small advantage for designated "home" team at neutral site
             score_std_dev: Standard deviation for score variance in simulations (typically 10-12 points)
+            tournament_intensity_boost: Efficiency boost for tournament/high-stakes games (0-3 points)
         """
         self.home_court_advantage = home_court_advantage
+        self.neutral_site_advantage = neutral_site_advantage
         self.national_avg_efficiency = 100.0  # NCAA D1 average
         self.score_std_dev = score_std_dev  # Calibratable variance parameter
         self.blowout_threshold = 15.0  # Efficiency gap indicating potential blowout
         self.blowout_variance_multiplier = 1.5  # Increase variance for potential blowouts
+        self.tournament_intensity_boost = tournament_intensity_boost
         
     def predict_game(
         self, 
         home_team: TeamStats, 
         away_team: TeamStats,
-        neutral_site: bool = False
+        neutral_site: bool = False,
+        venue_type: str = 'home'  # 'home', 'away', 'neutral'
     ) -> GamePrediction:
         """
         Predict the outcome of a basketball game
@@ -108,7 +160,8 @@ class BasketballPredictor:
         Args:
             home_team: Statistics for the home team
             away_team: Statistics for the away team
-            neutral_site: Whether the game is at a neutral site
+            neutral_site: Whether the game is at a neutral site (deprecated, use venue_type)
+            venue_type: 'home' for true home game, 'neutral' for neutral site, 'away' for road game
             
         Returns:
             GamePrediction with predicted scores and spread
@@ -119,11 +172,19 @@ class BasketballPredictor:
         # Calculate expected possessions (slightly fewer than tempo due to game dynamics)
         expected_possessions = expected_tempo * 0.98
         
-        # Use weighted efficiencies (incorporates recent form if available)
-        home_off_eff = home_team.get_weighted_offensive_efficiency()
-        home_def_eff = home_team.get_weighted_defensive_efficiency()
-        away_off_eff = away_team.get_weighted_offensive_efficiency()
-        away_def_eff = away_team.get_weighted_defensive_efficiency()
+        # Use adjusted efficiencies (incorporates recent form, injuries, rest, tournament intensity)
+        home_off_eff = home_team.get_adjusted_offensive_efficiency() + self.tournament_intensity_boost
+        home_def_eff = home_team.get_adjusted_defensive_efficiency()
+        away_off_eff = away_team.get_adjusted_offensive_efficiency() + self.tournament_intensity_boost
+        away_def_eff = away_team.get_adjusted_defensive_efficiency()
+        
+        # Apply strength of schedule adjustment (tougher schedule = slightly higher effective efficiency)
+        if home_team.strength_of_schedule > 105:  # Tough schedule
+            home_off_eff += 1.0
+            home_def_eff -= 0.5
+        if away_team.strength_of_schedule > 105:
+            away_off_eff += 1.0
+            away_def_eff -= 0.5
         
         # Predict scores using efficiency ratings
         # Home team offense vs away team defense
@@ -140,9 +201,18 @@ class BasketballPredictor:
         predicted_home_score = (home_offensive_rating * expected_possessions / 100.0)
         predicted_away_score = (away_offensive_rating * expected_possessions / 100.0)
         
-        # Add home court advantage if not neutral site
-        if not neutral_site:
+        # Apply free throw differential (teams with higher FT rate and % score more)
+        home_ft_advantage = (home_team.free_throw_rate * home_team.free_throw_pct - 
+                            away_team.free_throw_rate * away_team.free_throw_pct) * 40
+        predicted_home_score += home_ft_advantage
+        predicted_away_score -= home_ft_advantage
+        
+        # Add home court advantage based on venue type
+        if neutral_site or venue_type == 'neutral':
+            predicted_home_score += self.neutral_site_advantage
+        elif venue_type == 'home':
             predicted_home_score += self.home_court_advantage
+        # venue_type == 'away' gets no adjustment
         
         # Calculate spread and total
         point_spread = predicted_home_score - predicted_away_score
@@ -212,25 +282,32 @@ class BasketballPredictor:
     ) -> dict:
         """
         Run Monte Carlo simulation of game outcome with blowout detection
+        Supports up to 20,000+ simulations for high-precision analysis
         
         Args:
             prediction: Game prediction to simulate
-            num_simulations: Number of simulations to run
+            num_simulations: Number of simulations to run (default: 1000, max recommended: 20000)
             home_team_stats: Optional home team stats for blowout detection
             away_team_stats: Optional away team stats for blowout detection
             
         Returns:
             Dictionary with simulation statistics
         """
+        # Validate simulation count
+        if num_simulations < 100:
+            print("Warning: num_simulations < 100 may produce unreliable statistics")
+        if num_simulations > 20000:
+            print(f"Warning: {num_simulations} simulations may take significant time")
+        
         # Use calibrated standard deviation
         score_std = self.score_std_dev
         
         # Blowout detection: increase variance if large efficiency gap exists
         if home_team_stats and away_team_stats:
-            home_eff_net = (home_team_stats.get_weighted_offensive_efficiency() - 
-                           home_team_stats.get_weighted_defensive_efficiency())
-            away_eff_net = (away_team_stats.get_weighted_offensive_efficiency() - 
-                           away_team_stats.get_weighted_defensive_efficiency())
+            home_eff_net = (home_team_stats.get_adjusted_offensive_efficiency() - 
+                           home_team_stats.get_adjusted_defensive_efficiency())
+            away_eff_net = (away_team_stats.get_adjusted_offensive_efficiency() - 
+                           away_team_stats.get_adjusted_defensive_efficiency())
             efficiency_gap = abs(home_eff_net - away_eff_net)
             
             # If efficiency gap exceeds threshold, increase variance
@@ -260,7 +337,8 @@ class BasketballPredictor:
                                 np.percentile(home_scores, 95)),
             'away_score_range': (np.percentile(away_scores, 5), 
                                 np.percentile(away_scores, 95)),
-            'score_std_used': score_std  # Report variance used
+            'score_std_used': score_std,  # Report variance used
+            'num_simulations': num_simulations  # Report simulation count
         }
 
 
@@ -276,6 +354,13 @@ def load_team_data(filename: str) -> dict:
         recent_off = stats.get('recent_offensive_efficiency', stats['offensive_efficiency'])
         recent_def = stats.get('recent_defensive_efficiency', stats['defensive_efficiency'])
         
+        # Support optional advanced features
+        injury_impact = stats.get('injury_impact', 0.0)
+        rest_days = stats.get('rest_days', 3)
+        ft_rate = stats.get('free_throw_rate', 0.25)
+        ft_pct = stats.get('free_throw_pct', 0.70)
+        sos = stats.get('strength_of_schedule', 100.0)
+        
         teams[team_name] = TeamStats(
             name=team_name,
             offensive_efficiency=stats['offensive_efficiency'],
@@ -283,7 +368,12 @@ def load_team_data(filename: str) -> dict:
             tempo=stats['tempo'],
             recent_games_weight=recent_weight,
             recent_offensive_efficiency=recent_off,
-            recent_defensive_efficiency=recent_def
+            recent_defensive_efficiency=recent_def,
+            injury_impact=injury_impact,
+            rest_days=rest_days,
+            free_throw_rate=ft_rate,
+            free_throw_pct=ft_pct,
+            strength_of_schedule=sos
         )
     return teams
 
@@ -331,12 +421,25 @@ def main():
         '--num-simulations',
         type=int,
         default=1000,
-        help='Number of Monte Carlo simulations to run (default: 1000)'
+        help='Number of Monte Carlo simulations to run (default: 1000, max recommended: 20000)'
+    )
+    parser.add_argument(
+        '--tournament',
+        action='store_true',
+        help='Enable tournament/high-stakes intensity boost'
+    )
+    parser.add_argument(
+        '--venue-type',
+        choices=['home', 'neutral', 'away'],
+        default='home',
+        help='Venue type: home (default), neutral, or away'
     )
     
     args = parser.parse_args()
     
-    predictor = BasketballPredictor()
+    # Initialize predictor with tournament boost if requested
+    tournament_boost = 2.0 if args.tournament else 0.0
+    predictor = BasketballPredictor(tournament_intensity_boost=tournament_boost)
     
     home_team_stats = None
     away_team_stats = None
@@ -360,7 +463,8 @@ def main():
         prediction = predictor.predict_game(
             home_team_stats,
             away_team_stats,
-            neutral_site=args.neutral
+            neutral_site=args.neutral,
+            venue_type=args.venue_type if hasattr(args, 'venue_type') else 'home'
         )
     else:  # spread_total mode
         if args.spread is None or args.total is None:
@@ -376,7 +480,7 @@ def main():
     print(prediction)
     
     if args.simulate:
-        print(f"\nRunning Monte Carlo Simulation ({args.num_simulations} games)...")
+        print(f"\nRunning Monte Carlo Simulation ({args.num_simulations:,} games)...")
         sim_results = predictor.simulate_game(
             prediction, 
             num_simulations=args.num_simulations,
@@ -393,6 +497,8 @@ def main():
               f"{sim_results['away_score_range'][1]:.1f}")
         if 'score_std_used' in sim_results:
             print(f"Score Variance Used: {sim_results['score_std_used']:.1f}")
+        if 'num_simulations' in sim_results:
+            print(f"Total Simulations Run: {sim_results['num_simulations']:,}")
 
 
 
