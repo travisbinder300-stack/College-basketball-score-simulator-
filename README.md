@@ -9,6 +9,8 @@ A Python-based prediction system that uses **FEI (Fremeau Efficiency Index)** me
 - Point spread for betting analysis
 - Total points (over/under) for betting analysis
 - Confidence ratings
+- **Monte Carlo simulations (10,000 runs - Haralabos Voulgaris style)**
+- **Win probabilities and spread coverage analysis**
 
 ### Quick Start
 
@@ -22,6 +24,9 @@ For detailed documentation, see [FOOTBALL_PREDICTOR.md](FOOTBALL_PREDICTOR.md)
 - ✅ Real FEI-based efficiency metrics
 - ✅ Predicts spread and total for betting analysis
 - ✅ Home field advantage calculations
+- ✅ **Monte Carlo simulations (10,000 runs)**
+- ✅ **Win probability distributions**
+- ✅ **Spread coverage and Over/Under analysis**
 - ✅ Interactive CLI for custom matchups
 - ✅ 2022 season data for top teams
 

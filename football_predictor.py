@@ -6,7 +6,9 @@ Uses FEI (Fremeau Efficiency Index) methodology to predict game outcomes includi
 
 import json
 import math
-from typing import Dict, Tuple
+import random
+from typing import Dict, Tuple, List
+from collections import Counter
 
 
 class FootballPredictor:
@@ -20,6 +22,10 @@ class FootballPredictor:
     BASE_CONFIDENCE = 50  # Base confidence percentage
     MAX_CONFIDENCE = 95  # Maximum confidence percentage
     CONFIDENCE_MULTIPLIER = 100  # Multiplier for FEI difference in confidence calculation
+    
+    # Constants for Monte Carlo simulation
+    DEFAULT_SIMULATIONS = 10000  # Number of simulations to run (Haralabos Voulgaris style)
+    SCORE_VARIANCE = 7.0  # Standard deviation for score variance in simulations
     
     def __init__(self):
         # Sample FEI-style data (2022 season metrics)
@@ -202,6 +208,136 @@ class FootballPredictor:
             }
         }
     
+    def simulate_game(self, team1: str, team2: str, neutral_site: bool = False, num_simulations: int = None) -> Dict:
+        """
+        Run Monte Carlo simulations for a game (Haralabos Voulgaris style)
+        
+        Args:
+            team1: Home team (or Team 1 if neutral site)
+            team2: Away team (or Team 2 if neutral site)
+            neutral_site: Whether the game is at a neutral site
+            num_simulations: Number of simulations to run (default: 10,000)
+            
+        Returns:
+            Dictionary with simulation results including win probabilities, score distributions, 
+            spread coverage, and over/under percentages
+        """
+        if num_simulations is None:
+            num_simulations = self.DEFAULT_SIMULATIONS
+            
+        if team1 not in self.team_data or team2 not in self.team_data:
+            return {"error": f"Team data not found for {team1} or {team2}"}
+        
+        # Get base prediction
+        base_prediction = self.predict_game(team1, team2, neutral_site)
+        if "error" in base_prediction:
+            return base_prediction
+        
+        # Extract base predicted scores
+        base_team1_score = base_prediction["predicted_scores"][team1]
+        base_team2_score = base_prediction["predicted_scores"][team2]
+        
+        # Run simulations
+        team1_wins = 0
+        team2_wins = 0
+        ties = 0
+        team1_scores = []
+        team2_scores = []
+        margins = []
+        totals = []
+        
+        for _ in range(num_simulations):
+            # Add variance using normal distribution
+            sim_team1_score = random.gauss(base_team1_score, self.SCORE_VARIANCE)
+            sim_team2_score = random.gauss(base_team2_score, self.SCORE_VARIANCE)
+            
+            # Ensure non-negative scores
+            sim_team1_score = max(0, sim_team1_score)
+            sim_team2_score = max(0, sim_team2_score)
+            
+            # Record results
+            team1_scores.append(sim_team1_score)
+            team2_scores.append(sim_team2_score)
+            
+            # Determine winner
+            if sim_team1_score > sim_team2_score:
+                team1_wins += 1
+                margin = sim_team1_score - sim_team2_score
+            elif sim_team2_score > sim_team1_score:
+                team2_wins += 1
+                margin = sim_team2_score - sim_team1_score
+            else:
+                ties += 1
+                margin = 0
+            
+            margins.append(margin)
+            totals.append(sim_team1_score + sim_team2_score)
+        
+        # Calculate statistics
+        team1_win_pct = (team1_wins / num_simulations) * 100
+        team2_win_pct = (team2_wins / num_simulations) * 100
+        tie_pct = (ties / num_simulations) * 100
+        
+        avg_team1_score = sum(team1_scores) / num_simulations
+        avg_team2_score = sum(team2_scores) / num_simulations
+        avg_margin = sum(margins) / num_simulations
+        avg_total = sum(totals) / num_simulations
+        
+        # Calculate spread coverage (using base prediction spread)
+        spread = base_prediction["spread"]
+        team1_covers = sum(1 for i in range(num_simulations) 
+                          if (team2_scores[i] - team1_scores[i]) < spread)
+        spread_cover_pct = (team1_covers / num_simulations) * 100
+        
+        # Calculate over/under (using base prediction total)
+        predicted_total = base_prediction["total_points"]
+        overs = sum(1 for t in totals if t > predicted_total)
+        over_pct = (overs / num_simulations) * 100
+        under_pct = 100 - over_pct
+        
+        # Score distribution (group by 7-point ranges for readability)
+        def get_score_distribution(scores):
+            ranges = {}
+            for score in scores:
+                range_key = int(score // 7) * 7
+                range_label = f"{range_key}-{range_key+6}"
+                ranges[range_label] = ranges.get(range_label, 0) + 1
+            # Convert to percentages and sort
+            total = len(scores)
+            return {k: round((v/total)*100, 1) for k, v in sorted(ranges.items(), 
+                   key=lambda x: int(x[0].split('-')[0]))}
+        
+        return {
+            "matchup": f"{team1} vs {team2}",
+            "simulations_run": num_simulations,
+            "base_prediction": base_prediction,
+            "win_probabilities": {
+                team1: round(team1_win_pct, 2),
+                team2: round(team2_win_pct, 2),
+                "tie": round(tie_pct, 2)
+            },
+            "average_scores": {
+                team1: round(avg_team1_score, 1),
+                team2: round(avg_team2_score, 1)
+            },
+            "average_margin": round(avg_margin, 1),
+            "average_total": round(avg_total, 1),
+            "spread_analysis": {
+                "predicted_spread": round(spread, 1),
+                f"{team1}_covers_spread_pct": round(spread_cover_pct, 1),
+                f"{team2}_covers_spread_pct": round(100 - spread_cover_pct, 1)
+            },
+            "over_under_analysis": {
+                "predicted_total": round(predicted_total, 1),
+                "over_pct": round(over_pct, 1),
+                "under_pct": round(under_pct, 1)
+            },
+            "score_distributions": {
+                team1: get_score_distribution(team1_scores),
+                team2: get_score_distribution(team2_scores)
+            }
+        }
+    
     def get_available_teams(self):
         """Return list of teams with data available"""
         return sorted(list(self.team_data.keys()))
@@ -233,6 +369,58 @@ class FootballPredictor:
             print(f"    Offensive FEI: {metrics['ofei']:.3f}")
             print(f"    Defensive FEI: {metrics['dfei']:.3f}")
         print("="*60 + "\n")
+    
+    def display_simulation(self, simulation: Dict):
+        """Pretty print simulation results"""
+        if "error" in simulation:
+            print(f"Error: {simulation['error']}")
+            return
+        
+        print("\n" + "="*70)
+        print(f"MONTE CARLO SIMULATION RESULTS (Haralabos Voulgaris Style)")
+        print("="*70)
+        print(f"\nMatchup: {simulation['matchup']}")
+        print(f"Simulations Run: {simulation['simulations_run']:,}")
+        
+        print(f"\n{'WIN PROBABILITIES':^70}")
+        print("-"*70)
+        for team, prob in simulation['win_probabilities'].items():
+            if team != 'tie':
+                print(f"  {team}: {prob}%")
+        if simulation['win_probabilities']['tie'] > 0:
+            print(f"  Tie: {simulation['win_probabilities']['tie']}%")
+        
+        print(f"\n{'AVERAGE SIMULATED SCORES':^70}")
+        print("-"*70)
+        for team, score in simulation['average_scores'].items():
+            print(f"  {team}: {score}")
+        print(f"  Average Margin: {simulation['average_margin']} points")
+        print(f"  Average Total: {simulation['average_total']} points")
+        
+        print(f"\n{'SPREAD ANALYSIS':^70}")
+        print("-"*70)
+        print(f"  Predicted Spread: {simulation['spread_analysis']['predicted_spread']}")
+        team1_name = list(simulation['average_scores'].keys())[0]
+        team2_name = list(simulation['average_scores'].keys())[1]
+        print(f"  {team1_name} covers: {simulation['spread_analysis'][f'{team1_name}_covers_spread_pct']}%")
+        print(f"  {team2_name} covers: {simulation['spread_analysis'][f'{team2_name}_covers_spread_pct']}%")
+        
+        print(f"\n{'OVER/UNDER ANALYSIS':^70}")
+        print("-"*70)
+        print(f"  Predicted Total: {simulation['over_under_analysis']['predicted_total']}")
+        print(f"  Over hits: {simulation['over_under_analysis']['over_pct']}%")
+        print(f"  Under hits: {simulation['over_under_analysis']['under_pct']}%")
+        
+        print(f"\n{'SCORE DISTRIBUTION (Top 5 ranges for each team)':^70}")
+        print("-"*70)
+        for team, distribution in simulation['score_distributions'].items():
+            print(f"\n  {team}:")
+            # Show top 5 most common score ranges
+            sorted_dist = sorted(distribution.items(), key=lambda x: x[1], reverse=True)[:5]
+            for score_range, pct in sorted_dist:
+                print(f"    {score_range} points: {pct}%")
+        
+        print("\n" + "="*70 + "\n")
 
 
 def main():
@@ -260,11 +448,28 @@ def main():
     prediction3 = predictor.predict_game("Georgia", "Tennessee", neutral_site=False)
     predictor.display_prediction(prediction3)
     
+    # Monte Carlo Simulation Examples
+    print("\n" + "="*70)
+    print("MONTE CARLO SIMULATIONS (10,000 runs - Haralabos Voulgaris Style)")
+    print("="*70)
+    print("\nRunning 10,000 simulations for key matchups...")
+    print("This adds variance to predictions and shows probability distributions.\n")
+    
+    # Simulation Example 1: Georgia vs Ohio State
+    print("Simulating: Georgia vs Ohio State (Neutral Site)...")
+    sim1 = predictor.simulate_game("Georgia", "Ohio State", neutral_site=True)
+    predictor.display_simulation(sim1)
+    
+    # Simulation Example 2: Alabama vs Georgia
+    print("Simulating: Alabama vs Georgia (Home game)...")
+    sim2 = predictor.simulate_game("Alabama", "Georgia", neutral_site=False)
+    predictor.display_simulation(sim2)
+    
     # Interactive mode
-    print("\n" + "="*60)
+    print("\n" + "="*70)
     print("INTERACTIVE MODE")
-    print("="*60)
-    print("\nEnter team matchups to get predictions")
+    print("="*70)
+    print("\nEnter team matchups to get predictions or simulations")
     print("Type 'quit' to exit\n")
     
     while True:
@@ -279,8 +484,15 @@ def main():
             
             neutral = input("Neutral site? (y/n): ").strip().lower() == 'y'
             
-            prediction = predictor.predict_game(team1, team2, neutral)
-            predictor.display_prediction(prediction)
+            mode = input("Run simulation? (y/n, default=n): ").strip().lower()
+            
+            if mode == 'y':
+                print("\nRunning 10,000 simulations...")
+                simulation = predictor.simulate_game(team1, team2, neutral)
+                predictor.display_simulation(simulation)
+            else:
+                prediction = predictor.predict_game(team1, team2, neutral)
+                predictor.display_prediction(prediction)
             
         except KeyboardInterrupt:
             print("\n\nExiting...")
