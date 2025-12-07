@@ -173,7 +173,10 @@ if __name__ == "__main__":
     print("KELLY CRITERION FOR SPREAD")
     print(f"{'='*70}")
     
-    if duke_cover_pct > 50:
+    # Check if underdog has significantly better coverage (70%+ vs favorite <60%)
+    underdog_dominant = msu_cover_pct >= 70 and duke_cover_pct < 60
+    
+    if duke_cover_pct > 50 and not underdog_dominant:
         print(f"\n\nDuke -1.0 Analysis")
         print("-" * 70)
         print(f"Simulation suggests Duke covers (happens {duke_cover_pct:.1f}% of the time)")
@@ -191,6 +194,8 @@ if __name__ == "__main__":
         print(f"\n\nMichigan State +1.0 Analysis")
         print("-" * 70)
         print(f"Simulation suggests Michigan State covers (happens {msu_cover_pct:.1f}% of the time)")
+        if underdog_dominant:
+            print("*** STRONG UNDERDOG VALUE - Favorite recommendation suppressed ***")
         print("Typical spread odds: -110")
         
         spread_results = {

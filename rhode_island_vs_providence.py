@@ -172,7 +172,10 @@ if __name__ == "__main__":
     print("KELLY CRITERION FOR SPREAD")
     print(f"{'='*70}")
     
-    if providence_cover_pct > 50:
+    # Check if underdog has significantly better coverage (70%+ vs favorite <60%)
+    underdog_dominant = rhode_island_cover_pct >= 70 and providence_cover_pct < 60
+    
+    if providence_cover_pct > 50 and not underdog_dominant:
         print(f"\n\nProvidence -8.0 Analysis")
         print("-" * 70)
         print(f"Simulation suggests Providence covers (happens {providence_cover_pct:.1f}% of the time)")
@@ -190,6 +193,8 @@ if __name__ == "__main__":
         print(f"\n\nRhode Island +8.0 Analysis")
         print("-" * 70)
         print(f"Simulation suggests Rhode Island covers (happens {rhode_island_cover_pct:.1f}% of the time)")
+        if underdog_dominant:
+            print("*** STRONG UNDERDOG VALUE - Favorite recommendation suppressed ***")
         print("Typical spread odds: -110")
         
         spread_results = {

@@ -172,7 +172,10 @@ if __name__ == "__main__":
     print("KELLY CRITERION FOR SPREAD")
     print(f"{'='*70}")
     
-    if purdue_cover_pct > 50:
+    # Check if underdog has significantly better coverage (70%+ vs favorite <60%)
+    underdog_dominant = iowa_state_cover_pct >= 70 and purdue_cover_pct < 60
+    
+    if purdue_cover_pct > 50 and not underdog_dominant:
         print(f"\n\nPurdue -6.0 Analysis")
         print("-" * 70)
         print(f"Simulation suggests Purdue covers (happens {purdue_cover_pct:.1f}% of the time)")
@@ -190,6 +193,8 @@ if __name__ == "__main__":
         print(f"\n\nIowa State +6.0 Analysis")
         print("-" * 70)
         print(f"Simulation suggests Iowa State covers (happens {iowa_state_cover_pct:.1f}% of the time)")
+        if underdog_dominant:
+            print("*** STRONG UNDERDOG VALUE - Favorite recommendation suppressed ***")
         print("Typical spread odds: -110")
         
         spread_results = {
