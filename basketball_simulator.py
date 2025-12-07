@@ -315,13 +315,14 @@ class KellyCriterion:
     """
     
     @staticmethod
-    def calculate_kelly_bet(win_probability: float, decimal_odds: float) -> Dict:
+    def calculate_kelly_bet(win_probability: float, decimal_odds: float, is_underdog_or_total: bool = False) -> Dict:
         """
         Calculate Kelly Criterion bet size
         
         Args:
             win_probability: Probability of winning (0.0 to 1.0)
             decimal_odds: Decimal odds offered (e.g., 2.5 for +150 American odds)
+            is_underdog_or_total: True if betting on underdog or total (over/under), False for favorites
         
         Returns:
             Dictionary with bet recommendations and analysis
@@ -343,22 +344,38 @@ class KellyCriterion:
         # Edge calculation (expected value)
         edge = (decimal_odds * p) - 1
         
-        # Determine recommendation
-        if kelly_fraction <= 0:
-            recommendation = "NO BET"
-            reasoning = "No edge - the odds don't favor betting"
-        elif kelly_fraction < 0.01:
-            recommendation = "MINIMAL BET"
-            reasoning = "Very small edge - bet cautiously"
-        elif kelly_fraction < 0.05:
-            recommendation = "SMALL BET"
-            reasoning = "Small edge detected"
-        elif kelly_fraction < 0.15:
-            recommendation = "MODERATE BET"
-            reasoning = "Good edge - standard Kelly bet"
+        # Determine recommendation with stricter thresholds for underdogs and totals
+        if is_underdog_or_total:
+            # Stricter thresholds for underdogs and totals - don't recommend small edges
+            if kelly_fraction <= 0:
+                recommendation = "NO BET"
+                reasoning = "No edge - the odds don't favor betting"
+            elif kelly_fraction < 0.05:
+                recommendation = "NO BET"
+                reasoning = "Edge too small for underdog/total bet - not recommended"
+            elif kelly_fraction < 0.15:
+                recommendation = "MODERATE BET"
+                reasoning = "Good edge detected"
+            else:
+                recommendation = "LARGE BET"
+                reasoning = "Strong edge detected"
         else:
-            recommendation = "LARGE BET"
-            reasoning = "Strong edge detected"
+            # Standard thresholds for favorites
+            if kelly_fraction <= 0:
+                recommendation = "NO BET"
+                reasoning = "No edge - the odds don't favor betting"
+            elif kelly_fraction < 0.01:
+                recommendation = "MINIMAL BET"
+                reasoning = "Very small edge - bet cautiously"
+            elif kelly_fraction < 0.05:
+                recommendation = "SMALL BET"
+                reasoning = "Small edge detected"
+            elif kelly_fraction < 0.15:
+                recommendation = "MODERATE BET"
+                reasoning = "Good edge - standard Kelly bet"
+            else:
+                recommendation = "LARGE BET"
+                reasoning = "Strong edge detected"
         
         # Fractional Kelly (many bettors use 1/4 or 1/2 Kelly for risk management)
         half_kelly = kelly_fraction / 2
@@ -393,7 +410,7 @@ class KellyCriterion:
             return (100 / abs(american_odds)) + 1
     
     @staticmethod
-    def analyze_betting_opportunity(simulation_results: Dict, team: int, american_odds: int) -> None:
+    def analyze_betting_opportunity(simulation_results: Dict, team: int, american_odds: int, is_total: bool = False) -> None:
         """
         Analyze a betting opportunity using Kelly Criterion
         
@@ -401,6 +418,7 @@ class KellyCriterion:
             simulation_results: Results from GameSimulator.run_simulation()
             team: 1 for team1, 2 for team2
             american_odds: American odds for the team (e.g., +150 or -110)
+            is_total: True if analyzing a total (over/under) bet, False for moneyline/spread
         """
         if team == 1:
             win_prob = simulation_results['team1_win_pct'] / 100
@@ -412,7 +430,16 @@ class KellyCriterion:
             raise ValueError("Team must be 1 or 2")
         
         decimal_odds = KellyCriterion.american_to_decimal(american_odds)
-        kelly_result = KellyCriterion.calculate_kelly_bet(win_prob, decimal_odds)
+        
+        # Determine if this is an underdog or total bet (requires higher edge threshold)
+        # Underdog spread bet: team name contains "+" (getting points)
+        # Underdog moneyline: win probability < 50%
+        # Total bet: always apply stricter threshold
+        is_spread_underdog = "+" in team_name and not is_total
+        is_moneyline_underdog = win_prob < 0.50 and not is_total and not is_spread_underdog
+        is_underdog_or_total = is_spread_underdog or is_moneyline_underdog or is_total
+        
+        kelly_result = KellyCriterion.calculate_kelly_bet(win_prob, decimal_odds, is_underdog_or_total)
         
         print(f"\n{'='*70}")
         print("KELLY CRITERION BETTING ANALYSIS")

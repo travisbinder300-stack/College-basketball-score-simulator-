@@ -128,7 +128,7 @@ if __name__ == "__main__":
             'team2_win_pct': under_pct,
             'num_simulations': results['num_simulations']
         }
-        KellyCriterion.analyze_betting_opportunity(over_results, team=1, american_odds=-110)
+        KellyCriterion.analyze_betting_opportunity(over_results, team=1, american_odds=-110, is_total=True)
     else:
         print(f"\n\nUNDER {total_line} Analysis")
         print("-" * 70)
@@ -143,7 +143,7 @@ if __name__ == "__main__":
             'team2_win_pct': over_pct,
             'num_simulations': results['num_simulations']
         }
-        KellyCriterion.analyze_betting_opportunity(under_results, team=1, american_odds=-110)
+        KellyCriterion.analyze_betting_opportunity(under_results, team=1, american_odds=-110, is_total=True)
     
     # Spread analysis
     print("\n\n" + "="*70)
