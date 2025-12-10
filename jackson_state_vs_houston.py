@@ -3,8 +3,9 @@ Jackson State vs Houston Simulation
 Betting Lines: Houston -38.5, Jackson State +38.5, Total 155
 
 This simulation analyzes an extreme blowout scenario where a national powerhouse (Houston)
-faces a significantly weaker opponent (Jackson State) - showcasing the simulator's ability 
-to identify value even in highly lopsided matchups.
+faces one of the worst teams in college basketball (Jackson State) - showcasing the 
+simulator's ability to identify value even in highly lopsided matchups where the talent 
+gap is massive.
 """
 
 from basketball_simulator import GameSimulator, TeamStats, KellyCriterion
@@ -14,6 +15,7 @@ def create_jackson_state_vs_houston():
     """
     Create Jackson State and Houston teams with realistic statistics
     This represents an extreme mismatch - Houston is a national title contender
+    while Jackson State is one of the worst teams in Division I basketball
     """
     
     # Houston Cougars - Elite national program with dominant defense and offense
@@ -32,20 +34,20 @@ def create_jackson_state_vs_houston():
         performance_variance=0.04       # Very low variance (extremely consistent)
     )
     
-    # Jackson State Tigers - SWAC team, major step down in competition
+    # Jackson State Tigers - One of the worst teams in college basketball
     jackson_state = TeamStats(
         name="Jackson State Tigers",
-        offensive_efficiency=94.8,      # Well below average offense
-        defensive_efficiency=115.5,     # Very poor defense
-        pace=66.5,                      # Slow pace
-        three_point_rate=0.34,          # 34% of shots are 3PT
-        three_point_percentage=0.28,    # 28% from three (very poor)
-        two_point_percentage=0.44,      # 44% from two (very poor)
-        free_throw_rate=0.28,           # Struggles to draw fouls
-        free_throw_percentage=0.65,     # 65% FT shooting (poor)
-        turnover_rate=0.21,             # 21% turnover rate (very high)
-        offensive_rebound_rate=0.24,    # 24% offensive rebound rate (poor)
-        performance_variance=0.10       # High variance (very inconsistent)
+        offensive_efficiency=88.5,      # Extremely poor offense (bottom 10 nationally)
+        defensive_efficiency=118.0,     # Terrible defense (bottom 5 nationally)
+        pace=64.0,                      # Very slow pace (struggles in transition)
+        three_point_rate=0.32,          # 32% of shots are 3PT
+        three_point_percentage=0.26,    # 26% from three (terrible)
+        two_point_percentage=0.41,      # 41% from two (terrible)
+        free_throw_rate=0.25,           # Rarely gets to the line
+        free_throw_percentage=0.62,     # 62% FT shooting (very poor)
+        turnover_rate=0.24,             # 24% turnover rate (extremely high)
+        offensive_rebound_rate=0.22,    # 22% offensive rebound rate (terrible)
+        performance_variance=0.12       # Very high variance (extremely inconsistent)
     )
     
     return houston, jackson_state
