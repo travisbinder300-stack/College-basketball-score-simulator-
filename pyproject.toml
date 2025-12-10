@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "college-basketball-betting"
+version = "1.0.0"
+description = "Machine learning system to beat the sports book market in college basketball"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Travis Binder"}
+]
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "scikit-learn>=1.3.0",
+    "xgboost>=2.0.0",
+    "scipy>=1.11.0",
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "joblib>=1.3.0",
+    "click>=8.1.0",
+]
+
+[project.scripts]
+basketball-betting = "main:main"
+
+[tool.setuptools]
+packages = ["src", "src.data", "src.models", "src.betting", "src.utils"]

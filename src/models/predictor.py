@@ -11,9 +11,13 @@ from sklearn.metrics import accuracy_score, classification_report, roc_auc_score
 from xgboost import XGBClassifier
 import joblib
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import MODEL_TYPES, MODEL_WEIGHTS, TRAIN_TEST_SPLIT, RANDOM_STATE, MODELS_DIR
+try:
+    from ..config import MODEL_TYPES, MODEL_WEIGHTS, TRAIN_TEST_SPLIT, RANDOM_STATE, MODELS_DIR
+except ImportError:
+    # Fallback for running as script
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from config import MODEL_TYPES, MODEL_WEIGHTS, TRAIN_TEST_SPLIT, RANDOM_STATE, MODELS_DIR
 
 
 class BasketballPredictor:

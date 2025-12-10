@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from typing import List
+from typing import List, Optional
 
 
-def plot_bankroll_over_time(bankroll_history: List[float], save_path: str = None):
+def plot_bankroll_over_time(bankroll_history: List[float], save_path: Optional[str] = None):
     """
     Plot bankroll progression over time
     
@@ -35,7 +35,7 @@ def plot_bankroll_over_time(bankroll_history: List[float], save_path: str = None
     plt.close()
 
 
-def plot_model_performance(metrics_df: pd.DataFrame, save_path: str = None):
+def plot_model_performance(metrics_df: pd.DataFrame, save_path: Optional[str] = None):
     """
     Plot model performance comparison
     
@@ -75,7 +75,7 @@ def plot_model_performance(metrics_df: pd.DataFrame, save_path: str = None):
 
 
 def plot_feature_importance(importance_df: pd.DataFrame, top_n: int = 15, 
-                            save_path: str = None):
+                            save_path: Optional[str] = None):
     """
     Plot feature importance
     
@@ -104,7 +104,7 @@ def plot_feature_importance(importance_df: pd.DataFrame, top_n: int = 15,
     plt.close()
 
 
-def plot_bet_distribution(bet_history: List[dict], save_path: str = None):
+def plot_bet_distribution(bet_history: List[dict], save_path: Optional[str] = None):
     """
     Plot distribution of bet outcomes and sizes
     
@@ -164,7 +164,7 @@ def plot_bet_distribution(bet_history: List[dict], save_path: str = None):
 
 
 def plot_calibration_curve(y_true: np.ndarray, y_pred_proba: np.ndarray, 
-                           n_bins: int = 10, save_path: str = None):
+                           n_bins: int = 10, save_path: Optional[str] = None):
     """
     Plot calibration curve to assess probability predictions
     

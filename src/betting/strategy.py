@@ -5,11 +5,16 @@ Betting strategy and bankroll management
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Tuple
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import (MIN_EDGE_THRESHOLD, MAX_EDGE_THRESHOLD, KELLY_FRACTION,
-                    MAX_BET_SIZE, MIN_BET_SIZE, JUICE_ADJUSTMENT)
+try:
+    from ..config import (MIN_EDGE_THRESHOLD, MAX_EDGE_THRESHOLD, KELLY_FRACTION,
+                        MAX_BET_SIZE, MIN_BET_SIZE, JUICE_ADJUSTMENT)
+except ImportError:
+    # Fallback for running as script
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from config import (MIN_EDGE_THRESHOLD, MAX_EDGE_THRESHOLD, KELLY_FRACTION,
+                        MAX_BET_SIZE, MIN_BET_SIZE, JUICE_ADJUSTMENT)
 
 
 class BettingStrategy:
@@ -45,6 +50,9 @@ class BettingStrategy:
         Returns:
             American odds
         """
+        # Clamp probability to valid range to prevent division by zero
+        prob = max(0.01, min(0.99, prob))
+        
         if prob >= 0.5:
             return -(prob * 100) / (1 - prob)
         else:
@@ -107,11 +115,14 @@ class BettingStrategy:
             betting_spread = row['betting_spread']
             
             # Convert spread to approximate moneyline probability
-            # Typical relationship: spread ≈ -4 * log(p/(1-p))
+            # Using logistic function: spread ≈ -4 * log(p/(1-p))
+            # The coefficient 4 represents the typical point spread where the 
+            # probability is ~75% (roughly 8-point favorite)
+            # This is derived from historical sports betting markets
             if betting_spread == 0:
                 market_prob = 0.5
             else:
-                # Approximate market probability from spread
+                # Approximate market probability from spread using inverse logistic
                 market_prob = 1 / (1 + np.exp(betting_spread / 4))
             
             # Adjust for juice

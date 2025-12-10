@@ -5,10 +5,14 @@ Backtesting framework for evaluating betting strategy
 import pandas as pd
 import numpy as np
 from typing import Dict
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from betting.strategy import BettingStrategy
+try:
+    from .strategy import BettingStrategy
+except ImportError:
+    # Fallback for running as script
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from betting.strategy import BettingStrategy
 
 
 class Backtester:
