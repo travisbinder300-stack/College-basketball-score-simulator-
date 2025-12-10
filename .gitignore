@@ -30,6 +30,9 @@ data/
 models/*.pkl
 models/*.joblib
 
+# Generated visualizations
+*.png
+
 # IDE
 .vscode/
 .idea/
