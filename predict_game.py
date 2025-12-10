@@ -59,29 +59,29 @@ def create_game_prediction(home_team: str, away_team: str, betting_spread: float
     print("\nStep 2: Analyzing team statistics...")
     
     # For demonstration, we'll use representative stats based on the spread
-    # A 28.5 spread suggests Baylor is heavily favored
-    # Baylor appears to be a strong team, Norfolk State appears to be significantly weaker
+    # A 3.5 spread suggests a competitive game with Princeton slightly favored
+    # Both teams appear relatively evenly matched
     
-    # Baylor stats (strong team)
+    # Princeton stats (slight favorite)
     home_stats = {
-        'home_ppg': 76.8,      # High scoring
-        'home_fg_pct': 0.468,  # Above average shooting
-        'home_3p_pct': 0.355,  # Good 3-point shooting
-        'home_reb': 37.2,      # Strong rebounding
-        'home_ast': 15.8,      # Good ball movement
-        'home_to': 11.0,       # Low turnovers
-        'home_win_pct': 0.820  # Excellent record
+        'home_ppg': 72.3,      # Average scoring
+        'home_fg_pct': 0.448,  # Average shooting
+        'home_3p_pct': 0.345,  # Good 3-point shooting
+        'home_reb': 35.0,      # Average rebounding
+        'home_ast': 14.5,      # Average assists
+        'home_to': 12.0,       # Average turnovers
+        'home_win_pct': 0.620  # Good record
     }
     
-    # Norfolk State stats (weaker team)
+    # Merrimack stats (slight underdog)
     away_stats = {
-        'away_ppg': 66.5,      # Lower scoring
-        'away_fg_pct': 0.410,  # Below average shooting
-        'away_3p_pct': 0.315,  # Weaker 3-point shooting
-        'away_reb': 32.5,      # Weaker rebounding
-        'away_ast': 13.0,      # Less assists
-        'away_to': 13.8,       # More turnovers
-        'away_win_pct': 0.380  # Poor record
+        'away_ppg': 70.5,      # Slightly lower scoring
+        'away_fg_pct': 0.440,  # Average shooting
+        'away_3p_pct': 0.335,  # Decent 3-point shooting
+        'away_reb': 34.0,      # Average rebounding
+        'away_ast': 13.8,      # Average assists
+        'away_to': 12.5,       # Average turnovers
+        'away_win_pct': 0.580  # Decent record
     }
     
     # Calculate differentials
@@ -202,7 +202,7 @@ def create_game_prediction(home_team: str, away_team: str, betting_spread: float
 if __name__ == "__main__":
     # Specific game prediction
     create_game_prediction(
-        home_team="Baylor",
-        away_team="Norfolk State", 
-        betting_spread=28.5
+        home_team="Princeton",
+        away_team="Merrimack", 
+        betting_spread=3.5
     )
