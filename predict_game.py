@@ -59,29 +59,29 @@ def create_game_prediction(home_team: str, away_team: str, betting_spread: float
     print("\nStep 2: Analyzing team statistics...")
     
     # For demonstration, we'll use representative stats based on the spread
-    # A 10.5 spread suggests Iona is heavily favored
-    # Iona appears to be a strong team, Bryant appears to be significantly weaker
+    # A 15.5 spread suggests South Florida is heavily favored
+    # South Florida appears to be a strong team, Charleston appears to be significantly weaker
     
-    # Iona stats (strong favorite)
+    # South Florida stats (strong favorite)
     home_stats = {
-        'home_ppg': 77.2,      # High scoring
-        'home_fg_pct': 0.465,  # Above average shooting
-        'home_3p_pct': 0.352,  # Good 3-point shooting
-        'home_reb': 37.0,      # Strong rebounding
-        'home_ast': 15.5,      # Good ball movement
-        'home_to': 11.2,       # Low turnovers
-        'home_win_pct': 0.780  # Strong record
+        'home_ppg': 79.0,      # High scoring
+        'home_fg_pct': 0.472,  # Above average shooting
+        'home_3p_pct': 0.358,  # Good 3-point shooting
+        'home_reb': 38.0,      # Strong rebounding
+        'home_ast': 16.0,      # Good ball movement
+        'home_to': 10.8,       # Low turnovers
+        'home_win_pct': 0.800  # Excellent record
     }
     
-    # Bryant stats (underdog)
+    # Charleston stats (underdog)
     away_stats = {
-        'away_ppg': 68.5,      # Lower scoring
-        'away_fg_pct': 0.425,  # Below average shooting
-        'away_3p_pct': 0.325,  # Weaker 3-point shooting
-        'away_reb': 33.5,      # Weaker rebounding
-        'away_ast': 13.0,      # Less assists
-        'away_to': 13.5,       # More turnovers
-        'away_win_pct': 0.420  # Poor record
+        'away_ppg': 67.0,      # Lower scoring
+        'away_fg_pct': 0.420,  # Below average shooting
+        'away_3p_pct': 0.320,  # Weaker 3-point shooting
+        'away_reb': 32.8,      # Weaker rebounding
+        'away_ast': 12.8,      # Less assists
+        'away_to': 13.8,       # More turnovers
+        'away_win_pct': 0.400  # Poor record
     }
     
     # Calculate differentials
@@ -202,7 +202,7 @@ def create_game_prediction(home_team: str, away_team: str, betting_spread: float
 if __name__ == "__main__":
     # Specific game prediction
     create_game_prediction(
-        home_team="Iona",
-        away_team="Bryant", 
-        betting_spread=10.5
+        home_team="South Florida",
+        away_team="Charleston", 
+        betting_spread=15.5
     )
