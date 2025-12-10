@@ -59,29 +59,29 @@ def create_game_prediction(home_team: str, away_team: str, betting_spread: float
     print("\nStep 2: Analyzing team statistics...")
     
     # For demonstration, we'll use representative stats based on the spread
-    # A 22.5 spread suggests George Washington is heavily favored
-    # George Washington appears to be a very strong team, Delaware appears to be significantly weaker
+    # A 7.5 spread suggests Boston University is a solid favorite
+    # Boston University appears to be the better team but not by a huge margin
     
-    # George Washington stats (strong favorite)
+    # Boston University stats (solid favorite)
     home_stats = {
-        'home_ppg': 81.5,      # High scoring
-        'home_fg_pct': 0.478,  # Above average shooting
-        'home_3p_pct': 0.362,  # Good 3-point shooting
-        'home_reb': 39.0,      # Strong rebounding
-        'home_ast': 16.5,      # Excellent ball movement
-        'home_to': 10.5,       # Low turnovers
-        'home_win_pct': 0.850  # Excellent record
+        'home_ppg': 75.0,      # Good scoring
+        'home_fg_pct': 0.458,  # Above average shooting
+        'home_3p_pct': 0.350,  # Good 3-point shooting
+        'home_reb': 36.5,      # Good rebounding
+        'home_ast': 15.0,      # Good ball movement
+        'home_to': 11.5,       # Average turnovers
+        'home_win_pct': 0.700  # Good record
     }
     
-    # Delaware stats (underdog)
+    # Maine stats (underdog)
     away_stats = {
-        'away_ppg': 65.0,      # Lower scoring
-        'away_fg_pct': 0.415,  # Below average shooting
-        'away_3p_pct': 0.318,  # Weaker 3-point shooting
-        'away_reb': 32.0,      # Weaker rebounding
-        'away_ast': 12.0,      # Less assists
-        'away_to': 14.0,       # More turnovers
-        'away_win_pct': 0.350  # Poor record
+        'away_ppg': 69.0,      # Lower scoring
+        'away_fg_pct': 0.435,  # Average shooting
+        'away_3p_pct': 0.335,  # Average 3-point shooting
+        'away_reb': 34.0,      # Average rebounding
+        'away_ast': 13.5,      # Average assists
+        'away_to': 12.8,       # Average turnovers
+        'away_win_pct': 0.500  # Average record
     }
     
     # Calculate differentials
@@ -202,7 +202,7 @@ def create_game_prediction(home_team: str, away_team: str, betting_spread: float
 if __name__ == "__main__":
     # Specific game prediction
     create_game_prediction(
-        home_team="George Washington",
-        away_team="Delaware", 
-        betting_spread=22.5
+        home_team="Boston University",
+        away_team="Maine", 
+        betting_spread=7.5
     )
