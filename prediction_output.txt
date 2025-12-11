@@ -1,0 +1,90 @@
+/home/runner/.local/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:473: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+
+============================================================
+COLLEGE BASKETBALL GAME PREDICTION
+============================================================
+
+Matchup: Jackson State @ Houston
+Betting Spread: Houston +38.5
+============================================================
+
+Step 1: Training prediction models...
+Training models...
+
+Training logistic_regression...
+  Train Accuracy: 0.8112
+  Test Accuracy: 0.8046
+  Test AUC: 0.9267
+
+Training random_forest...
+  Train Accuracy: 0.9986
+  Test Accuracy: 0.8391
+  Test AUC: 0.9234
+
+Training xgboost...
+  Train Accuracy: 1.0000
+  Test Accuracy: 0.8218
+  Test AUC: 0.9099
+
+Training gradient_boosting...
+  Train Accuracy: 1.0000
+  Test Accuracy: 0.8276
+  Test AUC: 0.9141
+
+✓ Models trained successfully
+
+Step 2: Analyzing team statistics...
+
+Houston (Home):
+  PPG: 78.5 | FG%: 47.5% | 3P%: 36.0%
+  REB: 38.5 | AST: 16.2 | TO: 10.5
+  Win %: 85.0%
+
+Jackson State (Away):
+  PPG: 65.2 | FG%: 40.5% | 3P%: 31.0%
+  REB: 32.0 | AST: 12.5 | TO: 14.2
+  Win %: 35.0%
+
+Step 3: Generating prediction...
+
+------------------------------------------------------------
+PREDICTION RESULTS
+------------------------------------------------------------
+Houston Win Probability: 96.4%
+Jackson State Win Probability: 3.6%
+
+------------------------------------------------------------
+BETTING ANALYSIS
+------------------------------------------------------------
+Market Implied Probability: 100.0%
+Betting Spread: Houston +38.5
+
+Model Edge: -3.5%
+
+------------------------------------------------------------
+BETTING RECOMMENDATION
+------------------------------------------------------------
+✗ NO VALUE BET
+  The model does not find sufficient edge (≥3%) to recommend a bet.
+  Current edge: -3.5%
+
+------------------------------------------------------------
+SCORE PROJECTION
+------------------------------------------------------------
+Projected Score: Houston 82, Jackson State 61
+Projected Margin: Houston by 21.3
+⚠ Model sees Jackson State covering the spread
+
+============================================================
+DISCLAIMER: This is for educational purposes only.
+Always bet responsibly and within your means.
+============================================================
+
