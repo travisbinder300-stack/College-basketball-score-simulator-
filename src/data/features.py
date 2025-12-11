@@ -127,6 +127,31 @@ class FeatureEngineer:
             all_games['win_rate_tired'] = all_games[all_games['tired'] == 1]['won'].rolling(
                 window=max(5, self.rolling_window), min_periods=1).mean()
             
+            # NEW: Travel distance and time tracking (for away games only)
+            # Home games have 0 travel, away games have actual travel
+            all_games['travel_distance'] = all_games.apply(
+                lambda x: x.get('travel_distance', 0) if x['is_home'] == 0 else 0, axis=1)
+            all_games['travel_time'] = all_games.apply(
+                lambda x: x.get('travel_time', 0) if x['is_home'] == 0 else 0, axis=1)
+            
+            # Categorize travel burden
+            all_games['short_travel'] = (all_games['travel_distance'] < 200).astype(int)  # < 200 miles (bus)
+            all_games['medium_travel'] = ((all_games['travel_distance'] >= 200) & 
+                                         (all_games['travel_distance'] < 800)).astype(int)  # Regional flight
+            all_games['long_travel'] = (all_games['travel_distance'] >= 800).astype(int)  # Long flight
+            
+            # Calculate performance by travel category (for away games)
+            away_games_only = all_games[all_games['is_home'] == 0]
+            if len(away_games_only) > 0:
+                all_games['win_rate_short_travel'] = away_games_only[away_games_only['short_travel'] == 1]['won'].rolling(
+                    window=max(3, self.rolling_window // 2), min_periods=1).mean()
+                all_games['win_rate_long_travel'] = away_games_only[away_games_only['long_travel'] == 1]['won'].rolling(
+                    window=max(3, self.rolling_window // 2), min_periods=1).mean()
+            
+            # Average recent travel load (last 5 games)
+            all_games['avg_recent_travel'] = all_games['travel_distance'].rolling(
+                window=5, min_periods=1).mean()
+            
             team_stats.append(all_games)
         
         return pd.concat(team_stats, ignore_index=True)
@@ -417,6 +442,18 @@ class FeatureEngineer:
                 'home_close_game_pct': self._get_situational_performance(team_stats_df, home_team, game_date, 'close_games'),
                 'away_close_game_pct': self._get_situational_performance(team_stats_df, away_team, game_date, 'close_games'),
                 
+                # NEW: Travel time and distance features (away team only has travel burden)
+                'travel_distance': game.get('travel_distance', 0),
+                'travel_time': game.get('travel_time', 0),
+                'away_travel_distance': away_stats.get('travel_distance', 0),
+                'away_travel_time': away_stats.get('travel_time', 0),
+                'away_short_travel': away_stats.get('short_travel', 0),
+                'away_medium_travel': away_stats.get('medium_travel', 0),
+                'away_long_travel': away_stats.get('long_travel', 0),
+                'away_avg_recent_travel': away_stats.get('avg_recent_travel', 0),
+                'away_win_rate_short_travel': away_stats.get('win_rate_short_travel', 0.5),
+                'away_win_rate_long_travel': away_stats.get('win_rate_long_travel', 0.5),
+                
                 # Target variables
                 'home_won': game['home_won'],
                 'score_diff': game['score_diff'],
@@ -458,7 +495,12 @@ class FeatureEngineer:
             'home_after_win_pct', 'away_after_win_pct',
             'home_after_loss_pct', 'away_after_loss_pct',
             'home_vs_top_teams', 'away_vs_top_teams',
-            'home_close_game_pct', 'away_close_game_pct'
+            'home_close_game_pct', 'away_close_game_pct',
+            # NEW: Travel time and distance features
+            'travel_distance', 'travel_time',
+            'away_travel_distance', 'away_travel_time',
+            'away_short_travel', 'away_medium_travel', 'away_long_travel',
+            'away_avg_recent_travel', 'away_win_rate_short_travel', 'away_win_rate_long_travel'
         ]
         
         X = df[feature_cols].copy()

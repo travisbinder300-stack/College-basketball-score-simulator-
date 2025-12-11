@@ -36,6 +36,15 @@ class BasketballDataCollector:
         teams = [f"Team_{i}" for i in range(num_teams)]
         team_ratings = {team: np.random.normal(100, 15) for team in teams}
         
+        # Generate team locations (for travel distance calculation)
+        # Simulate geographic distribution across US (longitude -125 to -70, latitude 25 to 50)
+        team_locations = {
+            team: {
+                'latitude': np.random.uniform(25, 50),
+                'longitude': np.random.uniform(-125, -70)
+            } for team in teams
+        }
+        
         games = []
         game_id_counter = 0
         
@@ -98,6 +107,26 @@ class BasketballDataCollector:
                 days_back = (seasons * num_games) - game_id
                 game_date = datetime.now() - timedelta(days=days_back)
                 
+                # Calculate travel distance for away team (haversine formula approximation)
+                home_loc = team_locations[home_team]
+                away_loc = team_locations[away_team]
+                
+                # Simplified distance calculation (rough miles estimate)
+                lat_diff = abs(home_loc['latitude'] - away_loc['latitude'])
+                lon_diff = abs(home_loc['longitude'] - away_loc['longitude'])
+                distance_miles = np.sqrt(lat_diff**2 * 69**2 + lon_diff**2 * 54.6**2)  # Approximate
+                
+                # Estimate travel time (hours): short flight ~2-3hrs, long flight ~5-6hrs, driving varies
+                if distance_miles < 200:
+                    travel_time = distance_miles / 60  # Bus travel at 60mph average
+                elif distance_miles < 500:
+                    travel_time = 3 + (distance_miles - 200) / 300  # Short flight + logistics
+                else:
+                    travel_time = 5 + (distance_miles - 500) / 500  # Long flight + logistics
+                
+                # Cap at reasonable max (cross-country is ~6 hours flight + 4 hours logistics = 10)
+                travel_time = min(travel_time, 10)
+                
                 games.append({
                     'game_id': game_id,
                     'date': game_date,
@@ -118,7 +147,9 @@ class BasketballDataCollector:
                     'home_to': max(5, home_to),
                     'away_to': max(5, away_to),
                     'betting_spread': betting_spread,
-                    'home_won': int(home_won)
+                    'home_won': int(home_won),
+                    'travel_distance': distance_miles,
+                    'travel_time': travel_time
                 })
         
         df = pd.DataFrame(games)
