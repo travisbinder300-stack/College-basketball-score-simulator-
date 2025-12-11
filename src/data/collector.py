@@ -16,14 +16,16 @@ class BasketballDataCollector:
         self.teams_data = {}
         self.games_data = []
         
-    def generate_sample_data(self, num_teams: int = 50, num_games: int = 1000) -> pd.DataFrame:
+    def generate_sample_data(self, num_teams: int = 50, num_games: int = 2000, 
+                           seasons: int = 3) -> pd.DataFrame:
         """
-        Generate sample historical data for demonstration and testing
+        Generate sample historical data for demonstration and testing with multiple seasons
         In production, this would fetch real data from APIs or web scraping
         
         Args:
             num_teams: Number of teams to generate data for
-            num_games: Number of games to simulate
+            num_games: Number of games to simulate per season
+            seasons: Number of seasons to generate
             
         Returns:
             DataFrame with historical game data
@@ -35,73 +37,89 @@ class BasketballDataCollector:
         team_ratings = {team: np.random.normal(100, 15) for team in teams}
         
         games = []
-        for game_id in range(num_games):
-            # Select two random teams
-            home_team, away_team = np.random.choice(teams, 2, replace=False)
+        game_id_counter = 0
+        
+        # Generate data for multiple seasons
+        for season in range(seasons):
+            print(f"Generating season {season + 1}/{seasons}...")
             
-            # Calculate expected performance with home court advantage
-            home_rating = team_ratings[home_team] + 3  # Home court advantage
-            away_rating = team_ratings[away_team]
-            
-            # Generate stats with some randomness
-            home_ppg = np.random.normal(home_rating * 0.7, 10)
-            away_ppg = np.random.normal(away_rating * 0.7, 10)
-            
-            home_fg_pct = np.random.normal(0.44 + (home_rating - 100) * 0.001, 0.05)
-            away_fg_pct = np.random.normal(0.44 + (away_rating - 100) * 0.001, 0.05)
-            
-            home_3p_pct = np.random.normal(0.34 + (home_rating - 100) * 0.001, 0.05)
-            away_3p_pct = np.random.normal(0.34 + (away_rating - 100) * 0.001, 0.05)
-            
-            home_reb = np.random.normal(35 + (home_rating - 100) * 0.1, 5)
-            away_reb = np.random.normal(35 + (away_rating - 100) * 0.1, 5)
-            
-            home_ast = np.random.normal(15 + (home_rating - 100) * 0.05, 3)
-            away_ast = np.random.normal(15 + (away_rating - 100) * 0.05, 3)
-            
-            home_to = np.random.normal(12 - (home_rating - 100) * 0.02, 3)
-            away_to = np.random.normal(12 - (away_rating - 100) * 0.02, 3)
-            
-            # Calculate actual score with randomness
-            rating_diff = home_rating - away_rating
-            win_prob = 1 / (1 + np.exp(-rating_diff / 15))
-            home_won = np.random.random() < win_prob
-            
-            if home_won:
-                home_score = np.random.normal(home_ppg + 2, 8)
-                away_score = np.random.normal(away_ppg - 2, 8)
-            else:
-                home_score = np.random.normal(home_ppg - 2, 8)
-                away_score = np.random.normal(away_ppg + 2, 8)
-            
-            # Generate betting line (spread)
-            true_spread = rating_diff * 0.5
-            betting_spread = true_spread + np.random.normal(0, 2)  # Add noise to create opportunities
-            
-            game_date = datetime.now() - timedelta(days=num_games - game_id)
-            
-            games.append({
-                'game_id': game_id,
-                'date': game_date,
-                'home_team': home_team,
-                'away_team': away_team,
-                'home_score': max(40, home_score),
-                'away_score': max(40, away_score),
-                'home_ppg': home_ppg,
-                'away_ppg': away_ppg,
-                'home_fg_pct': np.clip(home_fg_pct, 0.3, 0.6),
-                'away_fg_pct': np.clip(away_fg_pct, 0.3, 0.6),
-                'home_3p_pct': np.clip(home_3p_pct, 0.2, 0.5),
-                'away_3p_pct': np.clip(away_3p_pct, 0.2, 0.5),
-                'home_reb': max(20, home_reb),
-                'away_reb': max(20, away_reb),
-                'home_ast': max(5, home_ast),
-                'away_ast': max(5, away_ast),
-                'home_to': max(5, home_to),
-                'away_to': max(5, away_to),
-                'betting_spread': betting_spread,
-                'home_won': int(home_won)
-            })
+            # Slightly adjust team ratings between seasons (team improvement/decline)
+            if season > 0:
+                for team in teams:
+                    team_ratings[team] += np.random.normal(0, 3)
+        
+            for game_num in range(num_games):
+                game_id = game_id_counter
+                game_id_counter += 1
+                
+                # Select two random teams
+                home_team, away_team = np.random.choice(teams, 2, replace=False)
+                
+                # Calculate expected performance with home court advantage
+                home_rating = team_ratings[home_team] + 3  # Home court advantage
+                away_rating = team_ratings[away_team]
+                
+                # Generate stats with some randomness
+                home_ppg = np.random.normal(home_rating * 0.7, 10)
+                away_ppg = np.random.normal(away_rating * 0.7, 10)
+                
+                home_fg_pct = np.random.normal(0.44 + (home_rating - 100) * 0.001, 0.05)
+                away_fg_pct = np.random.normal(0.44 + (away_rating - 100) * 0.001, 0.05)
+                
+                home_3p_pct = np.random.normal(0.34 + (home_rating - 100) * 0.001, 0.05)
+                away_3p_pct = np.random.normal(0.34 + (away_rating - 100) * 0.001, 0.05)
+                
+                home_reb = np.random.normal(35 + (home_rating - 100) * 0.1, 5)
+                away_reb = np.random.normal(35 + (away_rating - 100) * 0.1, 5)
+                
+                home_ast = np.random.normal(15 + (home_rating - 100) * 0.05, 3)
+                away_ast = np.random.normal(15 + (away_rating - 100) * 0.05, 3)
+                
+                home_to = np.random.normal(12 - (home_rating - 100) * 0.02, 3)
+                away_to = np.random.normal(12 - (away_rating - 100) * 0.02, 3)
+                
+                # Calculate actual score with randomness
+                rating_diff = home_rating - away_rating
+                win_prob = 1 / (1 + np.exp(-rating_diff / 15))
+                home_won = np.random.random() < win_prob
+                
+                if home_won:
+                    home_score = np.random.normal(home_ppg + 2, 8)
+                    away_score = np.random.normal(away_ppg - 2, 8)
+                else:
+                    home_score = np.random.normal(home_ppg - 2, 8)
+                    away_score = np.random.normal(away_ppg + 2, 8)
+                
+                # Generate betting line (spread)
+                true_spread = rating_diff * 0.5
+                betting_spread = true_spread + np.random.normal(0, 2)  # Add noise to create opportunities
+                
+                # Date calculation: spread games across season
+                days_back = (seasons * num_games) - game_id
+                game_date = datetime.now() - timedelta(days=days_back)
+                
+                games.append({
+                    'game_id': game_id,
+                    'date': game_date,
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'home_score': max(40, home_score),
+                    'away_score': max(40, away_score),
+                    'home_ppg': home_ppg,
+                    'away_ppg': away_ppg,
+                    'home_fg_pct': np.clip(home_fg_pct, 0.3, 0.6),
+                    'away_fg_pct': np.clip(away_fg_pct, 0.3, 0.6),
+                    'home_3p_pct': np.clip(home_3p_pct, 0.2, 0.5),
+                    'away_3p_pct': np.clip(away_3p_pct, 0.2, 0.5),
+                    'home_reb': max(20, home_reb),
+                    'away_reb': max(20, away_reb),
+                    'home_ast': max(5, home_ast),
+                    'away_ast': max(5, away_ast),
+                    'home_to': max(5, home_to),
+                    'away_to': max(5, away_to),
+                    'betting_spread': betting_spread,
+                    'home_won': int(home_won)
+                })
         
         df = pd.DataFrame(games)
         df['score_diff'] = df['home_score'] - df['away_score']

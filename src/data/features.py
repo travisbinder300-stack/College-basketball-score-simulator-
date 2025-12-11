@@ -20,6 +20,7 @@ class FeatureEngineer:
     
     def __init__(self, rolling_window: int = ROLLING_WINDOW):
         self.rolling_window = rolling_window
+        self.head_to_head_cache = {}  # Cache for head-to-head records
         
     def create_team_stats(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -82,9 +83,123 @@ class FeatureEngineer:
                 window=self.rolling_window, min_periods=1).mean()
             all_games['games_played'] = range(1, len(all_games) + 1)
             
+            # NEW: Additional advanced features
+            # Pace of play (possessions per game)
+            all_games['pace'] = (all_games['team_score'] + all_games['opp_score']) / 2
+            all_games['rolling_pace'] = all_games['pace'].rolling(
+                window=self.rolling_window, min_periods=1).mean()
+            
+            # Home/Away performance splits
+            all_games['rolling_home_win_pct'] = all_games[all_games['is_home'] == 1]['won'].rolling(
+                window=max(3, self.rolling_window // 2), min_periods=1).mean()
+            all_games['rolling_away_win_pct'] = all_games[all_games['is_home'] == 0]['won'].rolling(
+                window=max(3, self.rolling_window // 2), min_periods=1).mean()
+            
+            # Recent form (last 3 games momentum)
+            all_games['recent_form'] = all_games['won'].rolling(
+                window=3, min_periods=1).mean()
+            
+            # Scoring margin
+            all_games['margin'] = all_games['team_score'] - all_games['opp_score']
+            all_games['rolling_margin'] = all_games['margin'].rolling(
+                window=self.rolling_window, min_periods=1).mean()
+            
+            # Defensive rating (opponent points per game)
+            all_games['opp_ppg'] = all_games['opp_score']
+            all_games['rolling_opp_ppg'] = all_games['opp_ppg'].rolling(
+                window=self.rolling_window, min_periods=1).mean()
+            
             team_stats.append(all_games)
         
         return pd.concat(team_stats, ignore_index=True)
+    
+    def calculate_head_to_head(self, df: pd.DataFrame, team1: str, team2: str, before_date) -> dict:
+        """
+        Calculate head-to-head record between two teams
+        
+        Args:
+            df: Historical game data
+            team1: First team
+            team2: Second team
+            before_date: Only consider games before this date
+            
+        Returns:
+            Dict with head-to-head statistics
+        """
+        # Filter games between these two teams before the given date
+        h2h_games = df[
+            (((df['home_team'] == team1) & (df['away_team'] == team2)) |
+             ((df['home_team'] == team2) & (df['away_team'] == team1))) &
+            (df['date'] < before_date)
+        ]
+        
+        if len(h2h_games) == 0:
+            return {'h2h_games': 0, 'team1_wins': 0, 'team1_win_pct': 0.5, 'avg_margin': 0}
+        
+        team1_wins = 0
+        margins = []
+        
+        for _, game in h2h_games.iterrows():
+            if game['home_team'] == team1:
+                won = game['home_won']
+                margin = game['score_diff']
+            else:
+                won = 1 - game['home_won']
+                margin = -game['score_diff']
+            
+            team1_wins += won
+            margins.append(margin)
+        
+        return {
+            'h2h_games': len(h2h_games),
+            'team1_wins': team1_wins,
+            'team1_win_pct': team1_wins / len(h2h_games),
+            'avg_margin': np.mean(margins) if margins else 0
+        }
+    
+    def calculate_strength_of_schedule(self, df: pd.DataFrame, team: str, before_date) -> float:
+        """
+        Calculate strength of schedule for a team
+        
+        Args:
+            df: Historical game data
+            team: Team name
+            before_date: Only consider games before this date
+            
+        Returns:
+            Average win percentage of opponents
+        """
+        # Get games for this team
+        team_games = df[
+            ((df['home_team'] == team) | (df['away_team'] == team)) &
+            (df['date'] < before_date)
+        ]
+        
+        if len(team_games) == 0:
+            return 0.5
+        
+        opponent_win_pcts = []
+        
+        for _, game in team_games.iterrows():
+            opponent = game['away_team'] if game['home_team'] == team else game['home_team']
+            
+            # Calculate opponent's win percentage before this game
+            opp_games = df[
+                ((df['home_team'] == opponent) | (df['away_team'] == opponent)) &
+                (df['date'] < game['date'])
+            ]
+            
+            if len(opp_games) > 0:
+                opp_wins = 0
+                for _, opp_game in opp_games.iterrows():
+                    if opp_game['home_team'] == opponent:
+                        opp_wins += opp_game['home_won']
+                    else:
+                        opp_wins += (1 - opp_game['home_won'])
+                
+                opponent_win_pcts.append(opp_wins / len(opp_games))
+        
+        return np.mean(opponent_win_pcts) if opponent_win_pcts else 0.5
     
     def create_matchup_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -128,6 +243,11 @@ class FeatureEngineer:
             if home_stats['games_played'] < MIN_GAMES_THRESHOLD or away_stats['games_played'] < MIN_GAMES_THRESHOLD:
                 continue
             
+            # Calculate head-to-head and strength of schedule
+            h2h = self.calculate_head_to_head(df, home_team, away_team, game_date)
+            home_sos = self.calculate_strength_of_schedule(df, home_team, game_date)
+            away_sos = self.calculate_strength_of_schedule(df, away_team, game_date)
+            
             # Create feature set
             features = {
                 'game_id': game['game_id'],
@@ -162,6 +282,33 @@ class FeatureEngineer:
                 'to_diff': away_stats['rolling_to'] - home_stats['rolling_to'],  # Lower is better
                 'win_pct_diff': home_stats['win_pct'] - away_stats['win_pct'],
                 
+                # NEW: Advanced features
+                'home_pace': home_stats.get('rolling_pace', 70),
+                'away_pace': away_stats.get('rolling_pace', 70),
+                'pace_diff': home_stats.get('rolling_pace', 70) - away_stats.get('rolling_pace', 70),
+                
+                'home_recent_form': home_stats.get('recent_form', 0.5),
+                'away_recent_form': away_stats.get('recent_form', 0.5),
+                'form_diff': home_stats.get('recent_form', 0.5) - away_stats.get('recent_form', 0.5),
+                
+                'home_margin': home_stats.get('rolling_margin', 0),
+                'away_margin': away_stats.get('rolling_margin', 0),
+                'margin_diff': home_stats.get('rolling_margin', 0) - away_stats.get('rolling_margin', 0),
+                
+                'home_def_rating': home_stats.get('rolling_opp_ppg', 70),
+                'away_def_rating': away_stats.get('rolling_opp_ppg', 70),
+                'def_rating_diff': away_stats.get('rolling_opp_ppg', 70) - home_stats.get('rolling_opp_ppg', 70),
+                
+                # Head-to-head features
+                'h2h_games': h2h['h2h_games'],
+                'home_h2h_win_pct': h2h['team1_win_pct'],
+                'h2h_avg_margin': h2h['avg_margin'],
+                
+                # Strength of schedule
+                'home_sos': home_sos,
+                'away_sos': away_sos,
+                'sos_diff': home_sos - away_sos,
+                
                 # Target variables
                 'home_won': game['home_won'],
                 'score_diff': game['score_diff'],
@@ -183,9 +330,18 @@ class FeatureEngineer:
             Tuple of (features DataFrame, target Series)
         """
         feature_cols = [
+            # Basic team stats
             'home_ppg', 'home_fg_pct', 'home_3p_pct', 'home_reb', 'home_ast', 'home_to', 'home_win_pct',
             'away_ppg', 'away_fg_pct', 'away_3p_pct', 'away_reb', 'away_ast', 'away_to', 'away_win_pct',
-            'ppg_diff', 'fg_pct_diff', '3p_pct_diff', 'reb_diff', 'ast_diff', 'to_diff', 'win_pct_diff'
+            # Basic differentials
+            'ppg_diff', 'fg_pct_diff', '3p_pct_diff', 'reb_diff', 'ast_diff', 'to_diff', 'win_pct_diff',
+            # NEW: Advanced features
+            'home_pace', 'away_pace', 'pace_diff',
+            'home_recent_form', 'away_recent_form', 'form_diff',
+            'home_margin', 'away_margin', 'margin_diff',
+            'home_def_rating', 'away_def_rating', 'def_rating_diff',
+            'h2h_games', 'home_h2h_win_pct', 'h2h_avg_margin',
+            'home_sos', 'away_sos', 'sos_diff'
         ]
         
         X = df[feature_cols].copy()
