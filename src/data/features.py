@@ -109,6 +109,24 @@ class FeatureEngineer:
             all_games['rolling_opp_ppg'] = all_games['opp_ppg'].rolling(
                 window=self.rolling_window, min_periods=1).mean()
             
+            # NEW: Rest days effect (days since last game)
+            all_games['rest_days'] = all_games['date'].diff().dt.days
+            all_games['rest_days'] = all_games['rest_days'].fillna(7)  # First game default
+            all_games['rest_days'] = all_games['rest_days'].clip(upper=10)  # Cap at 10 days
+            
+            # Rest advantage tracking (performance after different rest periods)
+            # Performance improves with 2-4 days rest, declines with 0-1 or 5+
+            all_games['optimal_rest'] = ((all_games['rest_days'] >= 2) & 
+                                        (all_games['rest_days'] <= 4)).astype(int)
+            all_games['tired'] = (all_games['rest_days'] <= 1).astype(int)  # Back-to-back or next day
+            all_games['rusty'] = (all_games['rest_days'] >= 5).astype(int)  # Long layoff
+            
+            # Calculate win rate by rest category
+            all_games['win_rate_optimal_rest'] = all_games[all_games['optimal_rest'] == 1]['won'].rolling(
+                window=max(5, self.rolling_window), min_periods=1).mean()
+            all_games['win_rate_tired'] = all_games[all_games['tired'] == 1]['won'].rolling(
+                window=max(5, self.rolling_window), min_periods=1).mean()
+            
             team_stats.append(all_games)
         
         return pd.concat(team_stats, ignore_index=True)
@@ -165,6 +183,59 @@ class FeatureEngineer:
         # Cache the result
         self.head_to_head_cache[cache_key] = result
         return result
+    
+    def _get_situational_performance(self, team_stats_df: pd.DataFrame, team: str, 
+                                    before_date, situation: str) -> float:
+        """
+        Get team's performance in specific situations (coaching effect tendencies)
+        
+        Args:
+            team_stats_df: Team statistics DataFrame
+            team: Team name
+            before_date: Only consider games before this date
+            situation: Type of situation ('after_win', 'after_loss', 'vs_top', 'close_games')
+            
+        Returns:
+            Win percentage in the specified situation
+        """
+        team_games = team_stats_df[
+            (team_stats_df['team'] == team) &
+            (team_stats_df['date'] < before_date)
+        ].sort_values('date')
+        
+        if len(team_games) < 3:
+            return 0.5  # Not enough data
+        
+        situation_games = []
+        
+        if situation == 'after_win':
+            # Performance after winning previous game
+            for i in range(1, len(team_games)):
+                if team_games.iloc[i-1]['won'] == 1:
+                    situation_games.append(team_games.iloc[i]['won'])
+        
+        elif situation == 'after_loss':
+            # Performance after losing previous game (coaching adjustment/motivation)
+            for i in range(1, len(team_games)):
+                if team_games.iloc[i-1]['won'] == 0:
+                    situation_games.append(team_games.iloc[i]['won'])
+        
+        elif situation == 'vs_top':
+            # Performance against top 25% of opponents (big game performance)
+            win_pct_threshold = team_games['win_pct'].quantile(0.75)
+            for i in range(len(team_games)):
+                # This is simplified - ideally would check opponent's actual win%
+                if team_games.iloc[i]['win_pct'] >= win_pct_threshold:
+                    situation_games.append(team_games.iloc[i]['won'])
+        
+        elif situation == 'close_games':
+            # Performance in close games (margin ≤ 5 points) - coaching impact in clutch
+            for i in range(len(team_games)):
+                margin = abs(team_games.iloc[i].get('margin', 999))
+                if margin <= 5:
+                    situation_games.append(team_games.iloc[i]['won'])
+        
+        return np.mean(situation_games) if len(situation_games) >= 2 else 0.5
     
     def calculate_strength_of_schedule(self, df: pd.DataFrame, team: str, before_date) -> float:
         """
@@ -324,6 +395,28 @@ class FeatureEngineer:
                 'away_sos': away_sos,
                 'sos_diff': home_sos - away_sos,
                 
+                # NEW: Rest days features
+                'home_rest_days': home_stats.get('rest_days', 3),
+                'away_rest_days': away_stats.get('rest_days', 3),
+                'rest_advantage': home_stats.get('rest_days', 3) - away_stats.get('rest_days', 3),
+                'home_optimal_rest': home_stats.get('optimal_rest', 0),
+                'away_optimal_rest': away_stats.get('optimal_rest', 0),
+                'home_tired': home_stats.get('tired', 0),
+                'away_tired': away_stats.get('tired', 0),
+                'home_rusty': home_stats.get('rusty', 0),
+                'away_rusty': away_stats.get('rusty', 0),
+                
+                # NEW: Coaching effect tendencies (situational performance)
+                # Teams perform differently in various situations - track this
+                'home_after_win_pct': self._get_situational_performance(team_stats_df, home_team, game_date, 'after_win'),
+                'away_after_win_pct': self._get_situational_performance(team_stats_df, away_team, game_date, 'after_win'),
+                'home_after_loss_pct': self._get_situational_performance(team_stats_df, home_team, game_date, 'after_loss'),
+                'away_after_loss_pct': self._get_situational_performance(team_stats_df, away_team, game_date, 'after_loss'),
+                'home_vs_top_teams': self._get_situational_performance(team_stats_df, home_team, game_date, 'vs_top'),
+                'away_vs_top_teams': self._get_situational_performance(team_stats_df, away_team, game_date, 'vs_top'),
+                'home_close_game_pct': self._get_situational_performance(team_stats_df, home_team, game_date, 'close_games'),
+                'away_close_game_pct': self._get_situational_performance(team_stats_df, away_team, game_date, 'close_games'),
+                
                 # Target variables
                 'home_won': game['home_won'],
                 'score_diff': game['score_diff'],
@@ -350,13 +443,22 @@ class FeatureEngineer:
             'away_ppg', 'away_fg_pct', 'away_3p_pct', 'away_reb', 'away_ast', 'away_to', 'away_win_pct',
             # Basic differentials
             'ppg_diff', 'fg_pct_diff', '3p_pct_diff', 'reb_diff', 'ast_diff', 'to_diff', 'win_pct_diff',
-            # NEW: Advanced features
+            # Advanced features (pace, form, defense)
             'home_pace', 'away_pace', 'pace_diff',
             'home_recent_form', 'away_recent_form', 'form_diff',
             'home_margin', 'away_margin', 'margin_diff',
             'home_def_rating', 'away_def_rating', 'def_rating_diff',
             'h2h_games', 'home_h2h_win_pct', 'h2h_avg_margin',
-            'home_sos', 'away_sos', 'sos_diff'
+            'home_sos', 'away_sos', 'sos_diff',
+            # NEW: Rest days features
+            'home_rest_days', 'away_rest_days', 'rest_advantage',
+            'home_optimal_rest', 'away_optimal_rest',
+            'home_tired', 'away_tired', 'home_rusty', 'away_rusty',
+            # NEW: Coaching effect tendencies (situational performance)
+            'home_after_win_pct', 'away_after_win_pct',
+            'home_after_loss_pct', 'away_after_loss_pct',
+            'home_vs_top_teams', 'away_vs_top_teams',
+            'home_close_game_pct', 'away_close_game_pct'
         ]
         
         X = df[feature_cols].copy()
