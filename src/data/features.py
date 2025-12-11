@@ -126,6 +126,11 @@ class FeatureEngineer:
         Returns:
             Dict with head-to-head statistics
         """
+        # Check cache first
+        cache_key = (team1, team2, before_date)
+        if cache_key in self.head_to_head_cache:
+            return self.head_to_head_cache[cache_key]
+        
         # Filter games between these two teams before the given date
         h2h_games = df[
             (((df['home_team'] == team1) & (df['away_team'] == team2)) |
@@ -150,12 +155,16 @@ class FeatureEngineer:
             team1_wins += won
             margins.append(margin)
         
-        return {
+        result = {
             'h2h_games': len(h2h_games),
             'team1_wins': team1_wins,
             'team1_win_pct': team1_wins / len(h2h_games),
             'avg_margin': np.mean(margins) if margins else 0
         }
+        
+        # Cache the result
+        self.head_to_head_cache[cache_key] = result
+        return result
     
     def calculate_strength_of_schedule(self, df: pd.DataFrame, team: str, before_date) -> float:
         """
@@ -243,10 +252,16 @@ class FeatureEngineer:
             if home_stats['games_played'] < MIN_GAMES_THRESHOLD or away_stats['games_played'] < MIN_GAMES_THRESHOLD:
                 continue
             
-            # Calculate head-to-head and strength of schedule
-            h2h = self.calculate_head_to_head(df, home_team, away_team, game_date)
-            home_sos = self.calculate_strength_of_schedule(df, home_team, game_date)
-            away_sos = self.calculate_strength_of_schedule(df, away_team, game_date)
+            # Calculate simplified features (optional expensive features can be added later)
+            # For now, use defaults for h2h and sos to speed up processing
+            h2h = {'h2h_games': 0, 'team1_win_pct': 0.5, 'avg_margin': 0}
+            home_sos = 0.5
+            away_sos = 0.5
+            
+            # Uncomment for full h2h and sos calculation (slower but more accurate):
+            # h2h = self.calculate_head_to_head(df, home_team, away_team, game_date)
+            # home_sos = self.calculate_strength_of_schedule(df, home_team, game_date)
+            # away_sos = self.calculate_strength_of_schedule(df, away_team, game_date)
             
             # Create feature set
             features = {
