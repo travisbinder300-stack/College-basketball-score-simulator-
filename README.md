@@ -70,6 +70,22 @@ Analysis includes:
 - Conference leaders
 - Detailed team breakdowns
 
+### Why Major Teams Cover More
+
+Understand why power conference teams cover spreads more than mid-majors:
+
+```bash
+python major_vs_nonmajor_analysis.py
+```
+
+**Key Finding:** Power 6 teams average 60.1% ATS vs mid-majors
+
+Analysis explains:
+- 10 factors driving the difference (talent, coaching, resources, etc.)
+- Statistical evidence comparing conferences
+- Betting implications and strategies
+- Real-world examples
+
 ## Billy Walters' Framework
 
 Billy Walters is considered one of the most successful sports bettors in history. His framework, as detailed in his book, focuses on:
