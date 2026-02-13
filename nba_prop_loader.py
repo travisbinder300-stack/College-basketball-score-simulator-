@@ -5,7 +5,7 @@ Loads interfuture NBA prop data from JSON files and converts to Python objects
 
 import json
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from nba_prop_data import (
     Player, Game, PropLine, PlayerProp, PropType,
     OddsFormat
@@ -123,7 +123,7 @@ class PropDataLoader:
         
         return props
     
-    def load_all(self) -> tuple[List[Player], List[Game], List[PlayerProp]]:
+    def load_all(self) -> Tuple[List[Player], List[Game], List[PlayerProp]]:
         """Load all data (players, games, props)"""
         self.load_data()
         players = self.parse_players()

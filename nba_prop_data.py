@@ -174,7 +174,7 @@ def generate_sample_props() -> List[PlayerProp]:
         home_team="Miami Heat",
         away_team="Boston Celtics",
         scheduled_time=datetime(2024, 3, 15, 20, 0),
-        venue="FTX Arena",
+        venue="Kaseya Center",
         season="2023-24"
     )
     
