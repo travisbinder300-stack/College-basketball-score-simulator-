@@ -1,0 +1,357 @@
+{
+  "metadata": {
+    "source": "PropMadness.com",
+    "data_type": "interfuture_nba_props",
+    "generated_at": "2024-03-15T12:00:00Z",
+    "season": "2023-24",
+    "description": "NBA player prop betting data with future game projections"
+  },
+  "games": [
+    {
+      "game_id": "NBA_2024_LAL_GSW_001",
+      "home_team": "Golden State Warriors",
+      "away_team": "Los Angeles Lakers",
+      "scheduled_time": "2024-03-15T19:30:00Z",
+      "venue": "Chase Center",
+      "status": "scheduled"
+    },
+    {
+      "game_id": "NBA_2024_BOS_MIA_001",
+      "home_team": "Miami Heat",
+      "away_team": "Boston Celtics",
+      "scheduled_time": "2024-03-15T20:00:00Z",
+      "venue": "FTX Arena",
+      "status": "scheduled"
+    }
+  ],
+  "players": [
+    {
+      "player_id": "2544",
+      "name": "LeBron James",
+      "team": "Los Angeles Lakers",
+      "position": "SF",
+      "jersey_number": 23
+    },
+    {
+      "player_id": "201939",
+      "name": "Stephen Curry",
+      "team": "Golden State Warriors",
+      "position": "PG",
+      "jersey_number": 30
+    },
+    {
+      "player_id": "1628369",
+      "name": "Jayson Tatum",
+      "team": "Boston Celtics",
+      "position": "SF",
+      "jersey_number": 0
+    },
+    {
+      "player_id": "202710",
+      "name": "Jimmy Butler",
+      "team": "Miami Heat",
+      "position": "SF",
+      "jersey_number": 22
+    }
+  ],
+  "props": [
+    {
+      "prop_id": "PROP_001",
+      "player_id": "2544",
+      "game_id": "NBA_2024_LAL_GSW_001",
+      "prop_type": "points",
+      "line": {
+        "value": 25.5,
+        "over_odds": -110,
+        "under_odds": -110,
+        "bookmaker": "DraftKings",
+        "last_updated": "2024-03-15T11:30:00Z"
+      },
+      "player_stats": {
+        "season_avg": 27.3,
+        "last_5_avg": 29.8,
+        "vs_opponent_avg": 28.5,
+        "home_away_split": {
+          "home": 26.8,
+          "away": 27.8
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 35.0,
+        "usage_rate": 0.312,
+        "pace_factor": 102.3
+      }
+    },
+    {
+      "prop_id": "PROP_002",
+      "player_id": "201939",
+      "game_id": "NBA_2024_LAL_GSW_001",
+      "prop_type": "three_pointers",
+      "line": {
+        "value": 4.5,
+        "over_odds": -115,
+        "under_odds": -105,
+        "bookmaker": "FanDuel",
+        "last_updated": "2024-03-15T11:45:00Z"
+      },
+      "player_stats": {
+        "season_avg": 4.8,
+        "last_5_avg": 5.2,
+        "vs_opponent_avg": 4.3,
+        "home_away_split": {
+          "home": 5.1,
+          "away": 4.5
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 34.0,
+        "usage_rate": 0.298,
+        "pace_factor": 102.3
+      }
+    },
+    {
+      "prop_id": "PROP_003",
+      "player_id": "1628369",
+      "game_id": "NBA_2024_BOS_MIA_001",
+      "prop_type": "points_rebounds_assists",
+      "line": {
+        "value": 40.5,
+        "over_odds": -120,
+        "under_odds": 100,
+        "bookmaker": "BetMGM",
+        "last_updated": "2024-03-15T12:00:00Z"
+      },
+      "player_stats": {
+        "season_avg": 41.2,
+        "last_5_avg": 43.5,
+        "vs_opponent_avg": 39.8,
+        "home_away_split": {
+          "home": 42.5,
+          "away": 39.9
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 36.0,
+        "usage_rate": 0.325,
+        "pace_factor": 98.7
+      }
+    },
+    {
+      "prop_id": "PROP_004",
+      "player_id": "202710",
+      "game_id": "NBA_2024_BOS_MIA_001",
+      "prop_type": "rebounds",
+      "line": {
+        "value": 5.5,
+        "over_odds": -110,
+        "under_odds": -110,
+        "bookmaker": "Caesars",
+        "last_updated": "2024-03-15T11:55:00Z"
+      },
+      "player_stats": {
+        "season_avg": 6.1,
+        "last_5_avg": 7.0,
+        "vs_opponent_avg": 5.8,
+        "home_away_split": {
+          "home": 6.5,
+          "away": 5.7
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 33.0,
+        "usage_rate": 0.285,
+        "pace_factor": 98.7
+      }
+    },
+    {
+      "prop_id": "PROP_005",
+      "player_id": "2544",
+      "game_id": "NBA_2024_LAL_GSW_001",
+      "prop_type": "assists",
+      "line": {
+        "value": 7.5,
+        "over_odds": -105,
+        "under_odds": -115,
+        "bookmaker": "DraftKings",
+        "last_updated": "2024-03-15T11:30:00Z"
+      },
+      "player_stats": {
+        "season_avg": 8.2,
+        "last_5_avg": 9.0,
+        "vs_opponent_avg": 7.8,
+        "home_away_split": {
+          "home": 7.9,
+          "away": 8.5
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 35.0,
+        "usage_rate": 0.312,
+        "pace_factor": 102.3
+      }
+    },
+    {
+      "prop_id": "PROP_006",
+      "player_id": "201939",
+      "game_id": "NBA_2024_LAL_GSW_001",
+      "prop_type": "points",
+      "line": {
+        "value": 28.5,
+        "over_odds": -110,
+        "under_odds": -110,
+        "bookmaker": "FanDuel",
+        "last_updated": "2024-03-15T11:45:00Z"
+      },
+      "player_stats": {
+        "season_avg": 29.7,
+        "last_5_avg": 31.2,
+        "vs_opponent_avg": 27.8,
+        "home_away_split": {
+          "home": 30.5,
+          "away": 28.9
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 34.0,
+        "usage_rate": 0.298,
+        "pace_factor": 102.3
+      }
+    },
+    {
+      "prop_id": "PROP_007",
+      "player_id": "1628369",
+      "game_id": "NBA_2024_BOS_MIA_001",
+      "prop_type": "points",
+      "line": {
+        "value": 27.5,
+        "over_odds": -115,
+        "under_odds": -105,
+        "bookmaker": "BetMGM",
+        "last_updated": "2024-03-15T12:00:00Z"
+      },
+      "player_stats": {
+        "season_avg": 28.1,
+        "last_5_avg": 29.5,
+        "vs_opponent_avg": 26.7,
+        "home_away_split": {
+          "home": 29.2,
+          "away": 27.0
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 36.0,
+        "usage_rate": 0.325,
+        "pace_factor": 98.7
+      }
+    },
+    {
+      "prop_id": "PROP_008",
+      "player_id": "202710",
+      "game_id": "NBA_2024_BOS_MIA_001",
+      "prop_type": "points",
+      "line": {
+        "value": 22.5,
+        "over_odds": -110,
+        "under_odds": -110,
+        "bookmaker": "Caesars",
+        "last_updated": "2024-03-15T11:55:00Z"
+      },
+      "player_stats": {
+        "season_avg": 23.2,
+        "last_5_avg": 24.8,
+        "vs_opponent_avg": 22.1,
+        "home_away_split": {
+          "home": 24.1,
+          "away": 22.3
+        }
+      },
+      "context": {
+        "injury_status": "healthy",
+        "minutes_projection": 33.0,
+        "usage_rate": 0.285,
+        "pace_factor": 98.7
+      }
+    }
+  ],
+  "bookmakers": [
+    {
+      "bookmaker_id": "draftkings",
+      "name": "DraftKings",
+      "active": true
+    },
+    {
+      "bookmaker_id": "fanduel",
+      "name": "FanDuel",
+      "active": true
+    },
+    {
+      "bookmaker_id": "betmgm",
+      "name": "BetMGM",
+      "active": true
+    },
+    {
+      "bookmaker_id": "caesars",
+      "name": "Caesars",
+      "active": true
+    }
+  ],
+  "prop_types": [
+    {
+      "type": "points",
+      "display_name": "Points",
+      "description": "Total points scored by player"
+    },
+    {
+      "type": "rebounds",
+      "display_name": "Rebounds",
+      "description": "Total rebounds (offensive + defensive)"
+    },
+    {
+      "type": "assists",
+      "display_name": "Assists",
+      "description": "Total assists"
+    },
+    {
+      "type": "three_pointers",
+      "display_name": "3-Pointers Made",
+      "description": "Total three-point field goals made"
+    },
+    {
+      "type": "steals",
+      "display_name": "Steals",
+      "description": "Total steals"
+    },
+    {
+      "type": "blocks",
+      "display_name": "Blocks",
+      "description": "Total blocks"
+    },
+    {
+      "type": "turnovers",
+      "display_name": "Turnovers",
+      "description": "Total turnovers"
+    },
+    {
+      "type": "points_rebounds_assists",
+      "display_name": "Points + Rebounds + Assists",
+      "description": "Combined total of points, rebounds, and assists"
+    },
+    {
+      "type": "double_double",
+      "display_name": "Double-Double",
+      "description": "10+ in two statistical categories"
+    },
+    {
+      "type": "triple_double",
+      "display_name": "Triple-Double",
+      "description": "10+ in three statistical categories"
+    }
+  ]
+}
