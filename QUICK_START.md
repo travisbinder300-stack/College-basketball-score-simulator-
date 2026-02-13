@@ -26,6 +26,7 @@ A complete college basketball prediction system based on Billy Walters' legendar
 - **`teamrankings_importer.py`** - Import ATS data from TeamRankings.com
 - **`sample_teamrankings_data.csv`** - Sample ATS data template
 - **`ats_demo.py`** - Complete demonstration of ATS tracking
+- **`best_ats_performers.py`** - Identify which teams cover spread most (NEW!)
 - **`ATS_GUIDE.md`** - Comprehensive ATS tracking guide
 
 ### Configuration
@@ -57,6 +58,9 @@ python complete_team_system.py
 
 # Track ATS records
 python ats_demo.py
+
+# Find best ATS performers (which teams cover spread most)
+python best_ats_performers.py
 ```
 
 ## Core Concepts

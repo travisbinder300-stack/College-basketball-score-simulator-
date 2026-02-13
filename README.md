@@ -53,6 +53,23 @@ python teamrankings_importer.py
 
 **See [ATS_GUIDE.md](ATS_GUIDE.md) for complete documentation.**
 
+### Identify Best ATS Performers
+
+Find which teams cover the spread most frequently:
+
+```bash
+python best_ats_performers.py
+```
+
+**Top Spread-Covering Team:** Houston (72.4% ATS, 21-8-1 record)
+
+Analysis includes:
+- Overall ATS rankings
+- Home vs Away performance
+- As Favorite vs Underdog splits
+- Conference leaders
+- Detailed team breakdowns
+
 ## Billy Walters' Framework
 
 Billy Walters is considered one of the most successful sports bettors in history. His framework, as detailed in his book, focuses on:
