@@ -11,6 +11,28 @@ This system replicates the legendary sports bettor Billy Walters' approach to co
 - **Game Factors**: Travel fatigue, home court advantage, motivation, and situational elements
 - **Bankroll Management**: Conservative 1-3% risk per bet following Walters' principles
 - **Edge Calculation**: Identifying value by comparing model predictions to market lines
+- **ATS Record Tracking**: Track Against The Spread performance using TeamRankings.com data
+
+## New: ATS (Against The Spread) Tracking
+
+Track how teams perform against betting spreads with data from **TeamRankings.com**:
+
+- Manual game-by-game ATS tracking
+- Import comprehensive ATS records from TeamRankings.com
+- Home/Away and Favorite/Underdog splits
+- Head-to-head ATS analysis
+- Leaderboards and team statistics
+
+**Quick Start:**
+```bash
+# Track ATS records manually
+python ats_tracker.py
+
+# Import from TeamRankings.com data
+python teamrankings_importer.py
+```
+
+**See [ATS_GUIDE.md](ATS_GUIDE.md) for complete documentation.**
 
 ## Billy Walters' Framework
 
