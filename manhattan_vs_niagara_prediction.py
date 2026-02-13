@@ -151,9 +151,9 @@ def run_prediction():
     niagara_stats = get_niagara_stats()
     
     print("GAME SETUP")
-    print(f"  Home Team: Manhattan Jaspers")
-    print(f"  Away Team: Niagara Purple Eagles")
-    print(f"  Location: Draddy Gymnasium (Bronx, NY)")
+    print(f"  Home Team: Niagara Purple Eagles")
+    print(f"  Away Team: Manhattan Jaspers")
+    print(f"  Location: Gallagher Center (Lewiston, NY)")
     print(f"  Conference: MAAC")
     print()
     
@@ -237,16 +237,16 @@ def run_prediction():
     
     # ATS Trends Analysis
     print("ATS TRENDS FOR THIS MATCHUP:")
-    print(f"  Manhattan at home: {manhattan_ats.home_percentage:.1f}% ATS")
-    print(f"  Niagara on road: {niagara_ats.away_percentage:.1f}% ATS")
+    print(f"  Niagara at home: {niagara_ats.home_percentage:.1f}% ATS")
+    print(f"  Manhattan on road: {manhattan_ats.away_percentage:.1f}% ATS")
     
     # Determine ATS edge
-    ats_edge = manhattan_ats.home_percentage - niagara_ats.away_percentage
+    ats_edge = niagara_ats.home_percentage - manhattan_ats.away_percentage
     if abs(ats_edge) >= 15:
-        edge_team = "Manhattan" if ats_edge > 0 else "Niagara"
+        edge_team = "Niagara" if ats_edge > 0 else "Manhattan"
         print(f"  🔥 STRONG ATS EDGE: {edge_team} ({abs(ats_edge):.1f}% difference)")
     elif abs(ats_edge) >= 10:
-        edge_team = "Manhattan" if ats_edge > 0 else "Niagara"
+        edge_team = "Niagara" if ats_edge > 0 else "Manhattan"
         print(f"  ✓ MODERATE ATS EDGE: {edge_team} ({abs(ats_edge):.1f}% difference)")
     else:
         print(f"  → EVEN ATS MATCHUP (within {abs(ats_edge):.1f}%)")
@@ -261,12 +261,12 @@ def run_prediction():
     
     # Home court advantage
     home_court = GameFactors.HOME_COURT_ADVANTAGE
-    print(f"✓ Home Court Advantage: +{home_court:.1f} points for Manhattan")
+    print(f"✓ Home Court Advantage: +{home_court:.1f} points for Niagara")
     
     # Travel factor (Manhattan to Niagara is ~350 miles)
     travel_miles = 350
     travel_penalty = GameFactors.calculate_travel_fatigue(travel_miles, 2)
-    print(f"✓ Travel Factor: -{travel_penalty:.1f} points for Niagara ({travel_miles} miles)")
+    print(f"✓ Travel Factor: -{travel_penalty:.1f} points for Manhattan ({travel_miles} miles)")
     
     # Motivational factors
     motivation = GameFactors.calculate_motivation_factor(
@@ -288,8 +288,8 @@ def run_prediction():
     
     # Get spread prediction
     predicted_spread, favorite = predictor.predict_spread(
-        home_team="Manhattan",
-        away_team="Niagara",
+        home_team="Niagara",
+        away_team="Manhattan",
         is_neutral_site=False,
         miles_traveled=travel_miles,
         days_rest_home=2,
@@ -301,10 +301,10 @@ def run_prediction():
     
     # Get total prediction
     predicted_total = predictor.predict_total(
-        home_team="Manhattan",
-        away_team="Niagara",
-        home_stats=manhattan_stats,
-        away_stats=niagara_stats
+        home_team="Niagara",
+        away_team="Manhattan",
+        home_stats=niagara_stats,
+        away_stats=manhattan_stats
     )
     
     # Calculate individual scores
@@ -433,35 +433,29 @@ def run_prediction():
     print("-" * 90)
     print()
     
-    print("FACTORS FAVORING MANHATTAN:")
+    print("FACTORS FAVORING NIAGARA:")
     print(f"  ✓ Home court advantage (+{home_court:.1f} points)")
+    if niagara_net > manhattan_net:
+        print("  ✓ Superior net efficiency")
+    else:
+        print("  ✓ Better defensive efficiency")
+    print("  ✓ Familiar venue (Gallagher Center)")
+    print("  ✓ No travel fatigue")
+    if niagara_ats.home_percentage > 50:
+        print(f"  ✓ Solid home ATS record ({niagara_ats.home_percentage:.1f}%)")
+    if niagara_ats.dog_wins > niagara_ats.dog_losses and favorite != "Niagara":
+        print(f"  ✓ Covers well as underdog ({niagara_ats.underdog_percentage:.1f}%)")
+    
+    print()
+    print("FACTORS FAVORING MANHATTAN:")
     if manhattan_net > niagara_net:
         print("  ✓ Superior net efficiency")
     if manhattan_stats.tempo > niagara_stats.tempo:
         print("  ✓ Controls pace with faster tempo")
-    print("  ✓ Familiar venue (Draddy Gymnasium)")
-    print("  ✓ No travel fatigue")
-    if manhattan_ats.home_percentage > 55:
-        print(f"  ✓ Strong home ATS record ({manhattan_ats.home_percentage:.1f}%)")
-    if manhattan_ats.fav_wins > manhattan_ats.fav_losses and favorite == "Manhattan":
-        print(f"  ✓ Covers well as favorite ({manhattan_ats.favorite_percentage:.1f}%)")
-    
-    print()
-    print("FACTORS FAVORING NIAGARA:")
-    if niagara_net > manhattan_net:
-        print("  ✓ Superior net efficiency")
-    print("  ✓ Better defensive efficiency")
-    if niagara_stats.tempo < manhattan_stats.tempo:
-        print("  ✓ Can slow the game to their preferred pace")
     print("  ✓ Recent form equally strong (3-2)")
-    print("  ✓ Experience in road conference games")
-    if niagara_ats.dog_wins > niagara_ats.dog_losses and underdog == "Niagara":
-        print(f"  ✓ Covers well as underdog ({niagara_ats.underdog_percentage:.1f}%)")
-    if niagara_ats.away_percentage > 50:
-        print(f"  ✓ Solid away ATS record ({niagara_ats.away_percentage:.1f}%)")
-        print("  ✓ Can slow the game to their preferred pace")
-    print("  ✓ Recent form equally strong (3-2)")
-    print("  ✓ Experience in road conference games")
+    print("  ✓ Experience in conference road games")
+    if manhattan_ats.dog_wins > manhattan_ats.dog_losses and underdog == "Manhattan":
+        print(f"  ✓ Covers well as underdog ({manhattan_ats.underdog_percentage:.1f}%)")
     
     print()
     
@@ -479,19 +473,19 @@ def run_prediction():
     print()
     
     print("ANALYSIS SUMMARY:")
-    print("  Manhattan hosts Niagara in a key MAAC conference matchup.")
-    print("  The home team has a slight edge in offensive efficiency")
-    print("  while Niagara boasts the better defense.")
+    print("  Niagara hosts Manhattan in a key MAAC conference matchup.")
+    print("  The home team (Niagara) has home court advantage (+3.5)")
+    print("  and better defensive efficiency, while Manhattan brings")
+    print("  superior net efficiency and a faster tempo.")
     print()
-    print("  Key Factor: Manhattan's home court advantage (+3.5) combined")
-    print("  with their faster pace should be decisive in this matchup.")
-    print("  Niagara will try to slow the game down, but Manhattan's")
-    print("  familiarity with their home venue gives them the edge.")
+    print("  Key Factor: Niagara's home court advantage combined with")
+    print("  their defensive strength should be enough to overcome")
+    print("  Manhattan's offensive edge. Manhattan will try to speed up")
+    print("  the game, but playing at Gallagher Center favors Niagara.")
     print()
-    print(f"  Expected Score: Manhattan {manhattan_score:.0f}, Niagara {niagara_score:.0f}")
-    print(f"  Recommended Play: Manhattan -{predicted_spread:.1f}")
+    print(f"  Expected Score: Niagara {niagara_score:.0f}, Manhattan {manhattan_score:.0f}")
+    print(f"  Recommended Play: {favorite} -{predicted_spread:.1f}")
     print(f"  Risk Level: {'2%' if confidence == 'HIGH' else '1-1.5%'} of bankroll")
-    print()
     
     # Additional context
     print("-" * 90)
@@ -499,16 +493,16 @@ def run_prediction():
     print("-" * 90)
     print()
     print("CONFERENCE: MAAC (Metro Atlantic Athletic Conference)")
-    print("VENUE: Draddy Gymnasium (Riverdale, Bronx, NY)")
-    print("CAPACITY: ~2,500")
+    print("VENUE: Gallagher Center (Lewiston, NY)")
+    print("CAPACITY: ~2,100")
     print("IMPORTANCE: Mid-season conference game affecting tournament seeding")
     print("RIVALRY: Moderate - geographic proximity (both in NY/New England region)")
     print("STYLE CLASH: Manhattan's up-tempo style vs Niagara's methodical approach")
     print()
     print("BETTING MARKETS:")
-    print("  Side: Manhattan likely favored by 4-6 points")
-    print("  Total: Likely set around 135-138 points")
-    print("  Moneyline: Manhattan ~-200, Niagara ~+170")
+    print("  Side: Niagara likely favored by 5-7 points")
+    print("  Total: Likely set around 142-145 points")
+    print("  Moneyline: Niagara ~-220, Manhattan ~+180")
     print()
     
     print("=" * 90)
