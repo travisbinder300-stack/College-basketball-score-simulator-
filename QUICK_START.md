@@ -39,7 +39,10 @@ A complete college basketball prediction system based on Billy Walters' legendar
 - **`ats_demo.py`** - Complete demonstration of ATS tracking
 - **`best_ats_performers.py`** - Identify which teams cover spread most
 - **`major_vs_nonmajor_analysis.py`** - Why major teams cover more
+- **`ats_vs_ranked_analysis.py`** - ATS performance vs ranked opponents (NEW!)
+- **`sample_ats_vs_ranked_data.csv`** - Sample vs ranked data
 - **`ATS_GUIDE.md`** - Comprehensive ATS tracking guide
+- **`ATS_VS_RANKED_GUIDE.md`** - ATS vs ranked opponents guide (NEW!)
 
 ### Configuration
 - **`requirements.txt`** - Python dependencies (numpy, pandas, scipy)
@@ -76,6 +79,9 @@ python best_ats_performers.py
 
 # Analyze why major teams cover more than mid-majors
 python major_vs_nonmajor_analysis.py
+
+# Analyze ATS performance vs ranked opponents (NEW!)
+python ats_vs_ranked_analysis.py
 ```
 
 ## Core Concepts

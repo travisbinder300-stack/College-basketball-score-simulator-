@@ -124,6 +124,30 @@ Analysis explains:
 - Betting implications and strategies
 - Real-world examples
 
+### ATS Performance vs Ranked Opponents
+
+**NEW!** Analyze how teams perform ATS when facing ranked opponents:
+
+```bash
+python ats_vs_ranked_analysis.py
+```
+
+**Data Source:** https://www.teamrankings.com/ncb/trends/ats_trends/?sc=vs_ranked
+
+**Key Insights:**
+- **Best vs Ranked:** Duke (75.0%, 9-3 record)
+- **Rise to Competition:** Miami +34.1% gap, Duke +25.0% gap
+- **Struggle vs Ranked:** Marquette -35.4% gap, Creighton -35.0% gap
+
+Analysis includes:
+- ATS performance specifically vs ranked teams
+- Teams that rise to competition vs elite opponents
+- Teams that struggle vs ranked teams
+- Performance gap analysis (vs ranked vs unranked)
+- Situational betting recommendations
+
+**See [ATS_VS_RANKED_GUIDE.md](ATS_VS_RANKED_GUIDE.md) for complete documentation.**
+
 ## Billy Walters' Framework
 
 Billy Walters is considered one of the most successful sports bettors in history. His framework, as detailed in his book, focuses on:
