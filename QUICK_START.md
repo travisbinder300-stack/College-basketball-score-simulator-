@@ -4,6 +4,8 @@
 
 A complete college basketball prediction system based on Billy Walters' legendary sports betting methodology from his book "Gambler: Secrets from a Life at Risk".
 
+**NEW:** Now includes ATS (Against The Spread) record tracking with TeamRankings.com integration!
+
 ## Files Overview
 
 ### Core System
@@ -11,6 +13,13 @@ A complete college basketball prediction system based on Billy Walters' legendar
 - **`advanced_analysis.py`** - Monte Carlo simulations, advanced metrics, and line movement analysis
 - **`game_slate_analyzer.py`** - Analyze multiple games to find best betting opportunities
 - **`customization_guide.py`** - Examples of extending and customizing the system
+
+### ATS Tracking (NEW!)
+- **`ats_tracker.py`** - Manual ATS record tracking system
+- **`teamrankings_importer.py`** - Import ATS data from TeamRankings.com
+- **`sample_teamrankings_data.csv`** - Sample ATS data template
+- **`ats_demo.py`** - Complete demonstration of ATS tracking
+- **`ATS_GUIDE.md`** - Comprehensive ATS tracking guide
 
 ### Configuration
 - **`requirements.txt`** - Python dependencies (numpy, pandas, scipy)
@@ -32,6 +41,18 @@ python billy_walters_predictor.py
 ### 3. Analyze a Game Slate
 ```bash
 python game_slate_analyzer.py
+```
+
+### 4. Track ATS Records (NEW!)
+```bash
+# See complete demonstration
+python ats_demo.py
+
+# Manual tracking
+python ats_tracker.py
+
+# Import from TeamRankings.com
+python teamrankings_importer.py
 ```
 
 ## Core Concepts
@@ -61,6 +82,16 @@ Conservative approach:
 - Scale bet size by edge and confidence
 - Never chase losses
 - Total daily action < 10% of bankroll
+
+### ATS (Against The Spread) - NEW!
+Track how teams perform vs betting spreads:
+- **Win ATS**: Team covers the spread
+- **Loss ATS**: Team fails to cover
+- **Above 55% ATS**: Strong performer (profitable)
+- Track by home/away and favorite/underdog
+- Import from TeamRankings.com for historical data
+
+**See [ATS_GUIDE.md](ATS_GUIDE.md) for complete ATS documentation.**
 
 ## Billy Walters' 7 Key Principles
 
