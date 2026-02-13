@@ -12,8 +12,27 @@ This system replicates the legendary sports bettor Billy Walters' approach to co
 - **Bankroll Management**: Conservative 1-3% risk per bet following Walters' principles
 - **Edge Calculation**: Identifying value by comparing model predictions to market lines
 - **ATS Record Tracking**: Track Against The Spread performance using TeamRankings.com data
+- **Complete Team System**: Track all 356 Division I teams with comprehensive statistics
 
-## New: ATS (Against The Spread) Tracking
+## New: Complete 356-Team Database System
+
+Track all Division I college basketball teams with:
+
+- **All Offensive Stats**: Points, FG%, 3P%, FT%, assists, rebounds, turnovers, steals, blocks
+- **All Defensive Stats**: Opponent scoring, field goal defense, rebounding, forcing turnovers
+- **Advanced Metrics**: Efficiency ratings, Four Factors, tempo, pace adjustments
+- **SOS Calculations**: Strength of Schedule from opponent power ratings
+- **Team Rankings**: National and conference rankings using Billy Walters formulas
+- **Pace-Adjusted Predictions**: Score predictions accounting for team tempo
+
+**Quick Start:**
+```bash
+python complete_team_system.py
+```
+
+**See [COMPLETE_SYSTEM_GUIDE.md](COMPLETE_SYSTEM_GUIDE.md) for full documentation.**
+
+## ATS (Against The Spread) Tracking
 
 Track how teams perform against betting spreads with data from **TeamRankings.com**:
 
