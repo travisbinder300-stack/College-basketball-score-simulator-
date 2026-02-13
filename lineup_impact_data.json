@@ -1,0 +1,325 @@
+{
+  "metadata": {
+    "source": "NBA Advanced Stats & Lineup Data",
+    "data_type": "lineup_impact_data",
+    "generated_at": "2024-03-15T12:00:00Z",
+    "season": "2023-24",
+    "description": "Lineup-dependent performance data including minutes, pace, usage, and hit rates"
+  },
+  "lineup_configurations": [
+    {
+      "config_id": "LAL_WITH_AD",
+      "game_id": "sample_1",
+      "team": "Los Angeles Lakers",
+      "players_in": ["2544", "203076"],
+      "players_out": [],
+      "season": "2023-24",
+      "description": "LeBron James with Anthony Davis"
+    },
+    {
+      "config_id": "LAL_WITHOUT_AD",
+      "game_id": "sample_2",
+      "team": "Los Angeles Lakers",
+      "players_in": ["2544"],
+      "players_out": ["203076"],
+      "season": "2023-24",
+      "description": "LeBron James without Anthony Davis"
+    },
+    {
+      "config_id": "GSW_WITH_DRAYMOND",
+      "game_id": "sample_3",
+      "team": "Golden State Warriors",
+      "players_in": ["201939", "203110"],
+      "players_out": [],
+      "season": "2023-24",
+      "description": "Stephen Curry with Draymond Green"
+    },
+    {
+      "config_id": "GSW_WITHOUT_DRAYMOND",
+      "game_id": "sample_4",
+      "team": "Golden State Warriors",
+      "players_in": ["201939"],
+      "players_out": ["203110"],
+      "season": "2023-24",
+      "description": "Stephen Curry without Draymond Green"
+    }
+  ],
+  "lineup_impact_stats": [
+    {
+      "player_id": "2544",
+      "player_name": "LeBron James",
+      "config_id": "LAL_WITH_AD",
+      "minutes_per_game": 35.2,
+      "games_played": 45,
+      "pace": 102.5,
+      "usage_rate": 0.295,
+      "performance": {
+        "points_per_game": 25.8,
+        "rebounds_per_game": 7.2,
+        "assists_per_game": 8.5,
+        "field_goal_percentage": 0.528,
+        "three_point_percentage": 0.385,
+        "true_shooting_percentage": 0.615
+      },
+      "hit_rates": {
+        "points": {
+          "25.5": 0.58,
+          "27.5": 0.48,
+          "30.5": 0.32
+        },
+        "rebounds": {
+          "7.5": 0.52,
+          "8.5": 0.38
+        },
+        "assists": {
+          "8.5": 0.51,
+          "9.5": 0.38
+        }
+      }
+    },
+    {
+      "player_id": "2544",
+      "player_name": "LeBron James",
+      "config_id": "LAL_WITHOUT_AD",
+      "minutes_per_game": 37.8,
+      "games_played": 15,
+      "pace": 98.2,
+      "usage_rate": 0.335,
+      "performance": {
+        "points_per_game": 28.5,
+        "rebounds_per_game": 8.9,
+        "assists_per_game": 10.2,
+        "field_goal_percentage": 0.495,
+        "three_point_percentage": 0.368,
+        "true_shooting_percentage": 0.592
+      },
+      "hit_rates": {
+        "points": {
+          "25.5": 0.73,
+          "27.5": 0.60,
+          "30.5": 0.42
+        },
+        "rebounds": {
+          "7.5": 0.67,
+          "8.5": 0.55
+        },
+        "assists": {
+          "8.5": 0.80,
+          "9.5": 0.65
+        }
+      }
+    },
+    {
+      "player_id": "201939",
+      "player_name": "Stephen Curry",
+      "config_id": "GSW_WITH_DRAYMOND",
+      "minutes_per_game": 32.5,
+      "games_played": 52,
+      "pace": 104.8,
+      "usage_rate": 0.315,
+      "performance": {
+        "points_per_game": 27.2,
+        "rebounds_per_game": 4.5,
+        "assists_per_game": 5.8,
+        "field_goal_percentage": 0.458,
+        "three_point_percentage": 0.425,
+        "true_shooting_percentage": 0.665
+      },
+      "hit_rates": {
+        "points": {
+          "26.5": 0.54,
+          "28.5": 0.44,
+          "30.5": 0.35
+        },
+        "rebounds": {
+          "4.5": 0.52,
+          "5.5": 0.35
+        },
+        "assists": {
+          "5.5": 0.58,
+          "6.5": 0.42
+        }
+      }
+    },
+    {
+      "player_id": "201939",
+      "player_name": "Stephen Curry",
+      "config_id": "GSW_WITHOUT_DRAYMOND",
+      "minutes_per_game": 34.8,
+      "games_played": 18,
+      "pace": 99.5,
+      "usage_rate": 0.348,
+      "performance": {
+        "points_per_game": 30.2,
+        "rebounds_per_game": 5.2,
+        "assists_per_game": 6.8,
+        "field_goal_percentage": 0.448,
+        "three_point_percentage": 0.415,
+        "true_shooting_percentage": 0.658
+      },
+      "hit_rates": {
+        "points": {
+          "26.5": 0.72,
+          "28.5": 0.61,
+          "30.5": 0.50
+        },
+        "rebounds": {
+          "4.5": 0.67,
+          "5.5": 0.50
+        },
+        "assists": {
+          "5.5": 0.72,
+          "6.5": 0.58
+        }
+      }
+    },
+    {
+      "player_id": "1628369",
+      "player_name": "Jayson Tatum",
+      "config_id": "BOS_WITH_BROWN",
+      "minutes_per_game": 36.2,
+      "games_played": 55,
+      "pace": 97.8,
+      "usage_rate": 0.308,
+      "performance": {
+        "points_per_game": 26.4,
+        "rebounds_per_game": 8.1,
+        "assists_per_game": 4.8,
+        "field_goal_percentage": 0.471,
+        "three_point_percentage": 0.373,
+        "true_shooting_percentage": 0.598
+      },
+      "hit_rates": {
+        "points": {
+          "26.5": 0.51,
+          "28.5": 0.40,
+          "30.5": 0.29
+        },
+        "rebounds": {
+          "7.5": 0.60,
+          "8.5": 0.47
+        },
+        "assists": {
+          "4.5": 0.55,
+          "5.5": 0.38
+        }
+      }
+    },
+    {
+      "player_id": "1628369",
+      "player_name": "Jayson Tatum",
+      "config_id": "BOS_WITHOUT_BROWN",
+      "minutes_per_game": 38.5,
+      "games_played": 12,
+      "pace": 95.2,
+      "usage_rate": 0.352,
+      "performance": {
+        "points_per_game": 30.1,
+        "rebounds_per_game": 8.8,
+        "assists_per_game": 6.2,
+        "field_goal_percentage": 0.458,
+        "three_point_percentage": 0.365,
+        "true_shooting_percentage": 0.585
+      },
+      "hit_rates": {
+        "points": {
+          "26.5": 0.75,
+          "28.5": 0.58,
+          "30.5": 0.50
+        },
+        "rebounds": {
+          "7.5": 0.75,
+          "8.5": 0.58
+        },
+        "assists": {
+          "4.5": 0.83,
+          "5.5": 0.67
+        }
+      }
+    }
+  ],
+  "key_player_impacts": [
+    {
+      "affected_player_id": "2544",
+      "affected_player_name": "LeBron James",
+      "key_player_id": "203076",
+      "key_player_name": "Anthony Davis",
+      "impact_summary": {
+        "minutes_diff": -2.6,
+        "pace_diff": 4.3,
+        "usage_diff": -0.040,
+        "points_diff": -2.7,
+        "rebounds_diff": -1.7,
+        "assists_diff": -1.7,
+        "fg_pct_diff": 0.033,
+        "ts_pct_diff": 0.023
+      },
+      "recommendation": "LeBron performs better statistically without AD due to higher usage, but less efficiently"
+    },
+    {
+      "affected_player_id": "201939",
+      "affected_player_name": "Stephen Curry",
+      "key_player_id": "203110",
+      "key_player_name": "Draymond Green",
+      "impact_summary": {
+        "minutes_diff": -2.3,
+        "pace_diff": 5.3,
+        "usage_diff": -0.033,
+        "points_diff": -3.0,
+        "rebounds_diff": -0.7,
+        "assists_diff": -1.0
+      },
+      "recommendation": "Curry scores more without Draymond but team plays faster with Draymond"
+    },
+    {
+      "affected_player_id": "1628369",
+      "affected_player_name": "Jayson Tatum",
+      "key_player_id": "1627759",
+      "key_player_name": "Jaylen Brown",
+      "impact_summary": {
+        "minutes_diff": -2.3,
+        "pace_diff": 2.6,
+        "usage_diff": -0.044,
+        "points_diff": -3.7,
+        "rebounds_diff": -0.7,
+        "assists_diff": -1.4
+      },
+      "recommendation": "Tatum becomes primary option without Brown, significantly higher usage and scoring"
+    }
+  ],
+  "team_pace_metrics": [
+    {
+      "team": "Los Angeles Lakers",
+      "season": "2023-24",
+      "overall_pace": 100.2,
+      "home_pace": 101.5,
+      "away_pace": 98.9,
+      "pace_by_lineup": {
+        "LAL_WITH_AD": 102.5,
+        "LAL_WITHOUT_AD": 98.2
+      }
+    },
+    {
+      "team": "Golden State Warriors",
+      "season": "2023-24",
+      "overall_pace": 102.1,
+      "home_pace": 103.8,
+      "away_pace": 100.4,
+      "pace_by_lineup": {
+        "GSW_WITH_DRAYMOND": 104.8,
+        "GSW_WITHOUT_DRAYMOND": 99.5
+      }
+    },
+    {
+      "team": "Boston Celtics",
+      "season": "2023-24",
+      "overall_pace": 96.8,
+      "home_pace": 97.5,
+      "away_pace": 96.1,
+      "pace_by_lineup": {
+        "BOS_WITH_BROWN": 97.8,
+        "BOS_WITHOUT_BROWN": 95.2
+      }
+    }
+  ]
+}
