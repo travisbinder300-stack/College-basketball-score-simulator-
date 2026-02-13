@@ -1,0 +1,22 @@
+{
+  "_comment": "TEMPLATE FILE - Replace with your actual 2025-26 roster data",
+  "_instructions": "Add all players you want to track. Ensure team abbreviations are correct for current season.",
+  "players": [
+    {
+      "player_id": "example_player_1",
+      "name": "Example Player One",
+      "team": "XXX",
+      "position": "PG",
+      "active": true,
+      "season": "2025-26"
+    },
+    {
+      "player_id": "example_player_2",
+      "name": "Example Player Two",
+      "team": "YYY",
+      "position": "SG",
+      "active": true,
+      "season": "2025-26"
+    }
+  ]
+}

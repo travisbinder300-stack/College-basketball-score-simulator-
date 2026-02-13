@@ -1,0 +1,58 @@
+{
+  "_comment": "TEMPLATE FILE - Replace with your actual shot chart and defensive data",
+  "_instructions": "Add shot distribution and defensive matchup statistics.",
+  "shot_charts": [
+    {
+      "player_id": "example_player_1",
+      "season": "2025-26",
+      "zones": {
+        "restricted_area": {
+          "attempts_per_game": 0.0,
+          "percentage": 0.0
+        },
+        "paint": {
+          "attempts_per_game": 0.0,
+          "percentage": 0.0
+        },
+        "midrange": {
+          "attempts_per_game": 0.0,
+          "percentage": 0.0
+        },
+        "corner_three": {
+          "attempts_per_game": 0.0,
+          "percentage": 0.0
+        },
+        "above_break_three": {
+          "attempts_per_game": 0.0,
+          "percentage": 0.0
+        }
+      }
+    }
+  ],
+  "defenders": [
+    {
+      "defender_id": "example_player_2",
+      "team": "YYY",
+      "defensive_rating": 0.0,
+      "opponent_fg_pct": 0.0,
+      "hit_rate_allowed": {
+        "points": 0.0,
+        "rebounds": 0.0,
+        "assists": 0.0,
+        "threes": 0.0
+      }
+    }
+  ],
+  "team_defenses": [
+    {
+      "team": "YYY",
+      "defensive_rating": 0.0,
+      "pace": 0.0,
+      "hit_rate_allowed": {
+        "points": 0.0,
+        "rebounds": 0.0,
+        "assists": 0.0
+      }
+    }
+  ]
+}

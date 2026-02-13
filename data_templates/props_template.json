@@ -1,0 +1,19 @@
+{
+  "_comment": "TEMPLATE FILE - Replace with your actual prop betting data",
+  "_instructions": "Add prop lines from your betting source. Include historical hit rates if available.",
+  "props": [
+    {
+      "prop_id": "example_prop_1",
+      "player_id": "example_player_1",
+      "game_date": "2026-02-13",
+      "opponent": "YYY",
+      "venue": "home",
+      "prop_type": "points",
+      "line": 0.0,
+      "over_odds": -110,
+      "under_odds": -110,
+      "hit_rate": 0.0,
+      "recent_games": []
+    }
+  ]
+}

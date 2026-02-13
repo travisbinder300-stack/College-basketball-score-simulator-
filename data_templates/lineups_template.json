@@ -1,0 +1,19 @@
+{
+  "_comment": "TEMPLATE FILE - Replace with your actual lineup impact data",
+  "_instructions": "Track how players perform with/without specific teammates.",
+  "lineups": [
+    {
+      "team": "XXX",
+      "player_id": "example_player_1",
+      "lineup_config": "with_player_2",
+      "with_players": ["example_player_2"],
+      "without_players": [],
+      "minutes_per_game": 0.0,
+      "pace": 0.0,
+      "usage_rate": 0.0,
+      "offensive_rating": 0.0,
+      "hit_rate": 0.0,
+      "sample_size": 0
+    }
+  ]
+}
