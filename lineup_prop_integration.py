@@ -278,18 +278,18 @@ def main():
     lebron_prop = props[0]  # LeBron points prop
     
     # Get lineup configurations
-    lebron_with_ad = lineup_stats[0].lineup_config
-    lebron_without_ad = lineup_stats[1].lineup_config
+    lebron_with_reaves = lineup_stats[0].lineup_config
+    lebron_without_reaves = lineup_stats[1].lineup_config
     
-    # Analyze with AD in lineup
-    print("SCENARIO 1: Anthony Davis PLAYING")
+    # Analyze with Reaves in lineup
+    print("SCENARIO 1: Austin Reaves PLAYING")
     print("-" * 80)
-    analysis_with_ad = prop_analyzer.analyze_prop_with_lineup(
+    analysis_with_reaves = prop_analyzer.analyze_prop_with_lineup(
         lebron_prop,
-        lebron_with_ad
+        lebron_with_reaves
     )
     
-    for key, value in analysis_with_ad.items():
+    for key, value in analysis_with_reaves.items():
         if key == 'lineup_context':
             print(f"\n{key}:")
             for k, v in value.items():
@@ -305,16 +305,16 @@ def main():
         else:
             print(f"  {key}: {value}")
     
-    # Analyze without AD
+    # Analyze without Reaves
     print("\n\n" + "=" * 80)
-    print("SCENARIO 2: Anthony Davis OUT")
+    print("SCENARIO 2: Austin Reaves OUT")
     print("-" * 80)
-    analysis_without_ad = prop_analyzer.analyze_prop_with_lineup(
+    analysis_without_reaves = prop_analyzer.analyze_prop_with_lineup(
         lebron_prop,
-        lebron_without_ad
+        lebron_without_reaves
     )
     
-    for key, value in analysis_without_ad.items():
+    for key, value in analysis_without_reaves.items():
         if key == 'lineup_context':
             print(f"\n{key}:")
             for k, v in value.items():
@@ -337,16 +337,16 @@ def main():
     
     comparison = prop_analyzer.compare_lineup_scenarios(
         lebron_prop,
-        lebron_with_ad,
-        lebron_without_ad,
-        "Anthony Davis"
+        lebron_with_reaves,
+        lebron_without_reaves,
+        "Austin Reaves"
     )
     
     print(f"\nProp: {comparison['prop']}")
     print(f"Key Player: {comparison['key_player']}")
     print()
     
-    print("WITH Anthony Davis:")
+    print("WITH Austin Reaves:")
     for key, value in comparison['with_key_player'].items():
         if isinstance(value, float):
             if 'rate' in key or 'prob' in key or 'edge' in key:
@@ -356,7 +356,7 @@ def main():
         else:
             print(f"  {key}: {value}")
     
-    print("\nWITHOUT Anthony Davis:")
+    print("\nWITHOUT Austin Reaves:")
     for key, value in comparison['without_key_player'].items():
         if isinstance(value, float):
             if 'rate' in key or 'prob' in key or 'edge' in key:
@@ -380,7 +380,7 @@ def main():
     
     report = prop_analyzer.generate_lineup_report(
         lebron_prop,
-        lebron_without_ad,
+        lebron_without_reaves,
         None
     )
     

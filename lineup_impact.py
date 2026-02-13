@@ -314,123 +314,123 @@ class LineupImpactAnalyzer:
 
 
 def generate_sample_lineup_data() -> List[LineupImpactStats]:
-    """Generate sample lineup impact data"""
+    """Generate sample lineup impact data for 2025-26 season"""
     
-    # LeBron James with Anthony Davis in lineup
-    lebron_with_ad = LineupConfiguration(
+    # LeBron James with Austin Reaves in lineup (2025-26)
+    lebron_with_reaves = LineupConfiguration(
         game_id="sample_1",
         team="Los Angeles Lakers",
-        players_in=["2544", "203076"],  # LeBron, AD
+        players_in=["2544", "1630559"],  # LeBron, Austin Reaves
         players_out=[],
-        season="2023-24"
+        season="2025-26"
     )
     
-    lebron_with_ad_stats = LineupImpactStats(
+    lebron_with_reaves_stats = LineupImpactStats(
         player_id="2544",
         player_name="LeBron James",
-        lineup_config=lebron_with_ad,
-        minutes_per_game=35.2,
-        games_played=45,
-        pace=102.5,
-        usage_rate=0.295,
-        points_per_game=25.8,
-        rebounds_per_game=7.2,
-        assists_per_game=8.5,
-        field_goal_percentage=0.528,
-        three_point_percentage=0.385,
-        true_shooting_percentage=0.615,
-        points_hit_rate={25.5: 0.58, 27.5: 0.48, 30.5: 0.32},
-        rebounds_hit_rate={7.5: 0.52, 8.5: 0.38},
-        assists_hit_rate={8.5: 0.51, 9.5: 0.38}
+        lineup_config=lebron_with_reaves,
+        minutes_per_game=32.8,
+        games_played=42,
+        pace=101.2,
+        usage_rate=0.285,
+        points_per_game=24.2,
+        rebounds_per_game=7.5,
+        assists_per_game=8.8,
+        field_goal_percentage=0.515,
+        three_point_percentage=0.368,
+        true_shooting_percentage=0.598,
+        points_hit_rate={23.5: 0.55, 25.5: 0.45, 27.5: 0.35},
+        rebounds_hit_rate={7.5: 0.52, 8.5: 0.40},
+        assists_hit_rate={8.5: 0.54, 9.5: 0.42}
     )
     
-    # LeBron James without Anthony Davis
-    lebron_without_ad = LineupConfiguration(
+    # LeBron James without Austin Reaves (2025-26)
+    lebron_without_reaves = LineupConfiguration(
         game_id="sample_2",
         team="Los Angeles Lakers",
         players_in=["2544"],  # Just LeBron
-        players_out=["203076"],  # AD out
-        season="2023-24"
+        players_out=["1630559"],  # Reaves out
+        season="2025-26"
     )
     
-    lebron_without_ad_stats = LineupImpactStats(
+    lebron_without_reaves_stats = LineupImpactStats(
         player_id="2544",
         player_name="LeBron James",
-        lineup_config=lebron_without_ad,
-        minutes_per_game=37.8,
-        games_played=15,
-        pace=98.2,
-        usage_rate=0.335,
-        points_per_game=28.5,
-        rebounds_per_game=8.9,
-        assists_per_game=10.2,
-        field_goal_percentage=0.495,
-        three_point_percentage=0.368,
-        true_shooting_percentage=0.592,
-        points_hit_rate={25.5: 0.73, 27.5: 0.60, 30.5: 0.42},
-        rebounds_hit_rate={7.5: 0.67, 8.5: 0.55},
-        assists_hit_rate={8.5: 0.80, 9.5: 0.65}
+        lineup_config=lebron_without_reaves,
+        minutes_per_game=35.5,
+        games_played=12,
+        pace=97.5,
+        usage_rate=0.325,
+        points_per_game=27.2,
+        rebounds_per_game=8.8,
+        assists_per_game=10.5,
+        field_goal_percentage=0.488,
+        three_point_percentage=0.355,
+        true_shooting_percentage=0.578,
+        points_hit_rate={23.5: 0.75, 25.5: 0.67, 27.5: 0.50},
+        rebounds_hit_rate={7.5: 0.75, 8.5: 0.58},
+        assists_hit_rate={8.5: 0.83, 9.5: 0.67}
     )
     
-    # Stephen Curry with Draymond Green
+    # Stephen Curry with Draymond Green (2025-26)
     curry_with_draymond = LineupConfiguration(
         game_id="sample_3",
         team="Golden State Warriors",
         players_in=["201939", "203110"],  # Curry, Draymond
         players_out=[],
-        season="2023-24"
+        season="2025-26"
     )
     
     curry_with_draymond_stats = LineupImpactStats(
         player_id="201939",
         player_name="Stephen Curry",
         lineup_config=curry_with_draymond,
-        minutes_per_game=32.5,
-        games_played=52,
-        pace=104.8,
-        usage_rate=0.315,
-        points_per_game=27.2,
-        rebounds_per_game=4.5,
-        assists_per_game=5.8,
-        field_goal_percentage=0.458,
-        three_point_percentage=0.425,
-        true_shooting_percentage=0.665,
-        points_hit_rate={26.5: 0.54, 28.5: 0.44, 30.5: 0.35},
-        rebounds_hit_rate={4.5: 0.52, 5.5: 0.35},
-        assists_hit_rate={5.5: 0.58, 6.5: 0.42}
+        minutes_per_game=31.2,
+        games_played=48,
+        pace=103.5,
+        usage_rate=0.305,
+        points_per_game=25.8,
+        rebounds_per_game=4.2,
+        assists_per_game=6.2,
+        field_goal_percentage=0.448,
+        three_point_percentage=0.412,
+        true_shooting_percentage=0.652,
+        points_hit_rate={25.5: 0.52, 27.5: 0.42, 29.5: 0.32},
+        rebounds_hit_rate={4.5: 0.48, 5.5: 0.32},
+        assists_hit_rate={6.5: 0.48, 7.5: 0.35}
     )
     
-    # Stephen Curry without Draymond Green
+    # Stephen Curry without Draymond Green (2025-26)
     curry_without_draymond = LineupConfiguration(
         game_id="sample_4",
         team="Golden State Warriors",
         players_in=["201939"],  # Just Curry
         players_out=["203110"],  # Draymond out
-        season="2023-24"
+        season="2025-26"
     )
     
     curry_without_draymond_stats = LineupImpactStats(
         player_id="201939",
         player_name="Stephen Curry",
         lineup_config=curry_without_draymond,
-        minutes_per_game=34.8,
-        games_played=18,
-        pace=99.5,
-        usage_rate=0.348,
-        points_per_game=30.2,
-        rebounds_per_game=5.2,
-        assists_per_game=6.8,
-        field_goal_percentage=0.448,
-        three_point_percentage=0.415,
-        true_shooting_percentage=0.658,
-        points_hit_rate={26.5: 0.72, 28.5: 0.61, 30.5: 0.50},
-        rebounds_hit_rate={4.5: 0.67, 5.5: 0.50},
-        assists_hit_rate={5.5: 0.72, 6.5: 0.58}
+        minutes_per_game=33.5,
+        games_played=16,
+        pace=98.8,
+        usage_rate=0.338,
+        points_per_game=28.8,
+        rebounds_per_game=4.8,
+        assists_per_game=7.2,
+        field_goal_percentage=0.438,
+        three_point_percentage=0.405,
+        true_shooting_percentage=0.645,
+        points_hit_rate={25.5: 0.69, 27.5: 0.56, 29.5: 0.44},
+        rebounds_hit_rate={4.5: 0.62, 5.5: 0.44},
+        assists_hit_rate={6.5: 0.69, 7.5: 0.56}
     )
     
     return [
-        lebron_with_ad_stats,
-        lebron_without_ad_stats,
+        lebron_with_reaves_stats,
+        lebron_without_reaves_stats,
         curry_with_draymond_stats,
         curry_without_draymond_stats
     ]
@@ -453,21 +453,21 @@ def main():
     for stats in lineup_stats:
         analyzer.add_lineup_stats(stats)
     
-    # Analyze LeBron with/without AD
+    # Analyze LeBron with/without Austin Reaves
     print("KEY PLAYER IMPACT ANALYSIS")
     print("-" * 80)
     
-    lebron_ad_impact = analyzer.analyze_key_player_impact(
+    lebron_reaves_impact = analyzer.analyze_key_player_impact(
         "2544",  # LeBron
-        "203076",  # AD
+        "1630559",  # Austin Reaves
         lineup_stats
     )
     
-    if lebron_ad_impact:
-        print(lebron_ad_impact.get_impact_summary())
+    if lebron_reaves_impact:
+        print(lebron_reaves_impact.get_impact_summary())
         print()
         
-        diff = lebron_ad_impact.get_impact_differential()
+        diff = lebron_reaves_impact.get_impact_differential()
         print("Impact Differential:")
         for key, value in diff.items():
             print(f"  {key}: {value:+.3f}")
@@ -476,16 +476,16 @@ def main():
     print("PROP ADJUSTMENT BASED ON LINEUP")
     print("-" * 80)
     
-    # LeBron points prop with AD in lineup
-    lebron_with_ad_config = lineup_stats[0].lineup_config
+    # LeBron points prop with Reaves in lineup
+    lebron_with_reaves_config = lineup_stats[0].lineup_config
     adjustment = analyzer.calculate_prop_adjustment(
         "2544",  # LeBron
-        lebron_with_ad_config,
+        lebron_with_reaves_config,
         "points",
         25.5  # Base line
     )
     
-    print("\nLeBron James Points (O/U 25.5) WITH Anthony Davis:")
+    print("\nLeBron James Points (O/U 25.5) WITH Austin Reaves:")
     for key, value in adjustment.items():
         if isinstance(value, float):
             if 'rate' in key or 'factor' in key or 'confidence' in key:
@@ -495,17 +495,17 @@ def main():
         else:
             print(f"  {key}: {value}")
     
-    # LeBron points prop without AD
-    lebron_without_ad_config = lineup_stats[1].lineup_config
-    adjustment_no_ad = analyzer.calculate_prop_adjustment(
+    # LeBron points prop without Reaves
+    lebron_without_reaves_config = lineup_stats[1].lineup_config
+    adjustment_no_reaves = analyzer.calculate_prop_adjustment(
         "2544",
-        lebron_without_ad_config,
+        lebron_without_reaves_config,
         "points",
         25.5
     )
     
-    print("\nLeBron James Points (O/U 25.5) WITHOUT Anthony Davis:")
-    for key, value in adjustment_no_ad.items():
+    print("\nLeBron James Points (O/U 25.5) WITHOUT Austin Reaves:")
+    for key, value in adjustment_no_reaves.items():
         if isinstance(value, float):
             if 'rate' in key or 'factor' in key or 'confidence' in key:
                 print(f"  {key}: {value:.3f}")
@@ -516,13 +516,13 @@ def main():
     
     # Compare the two scenarios
     print("\n" + "-" * 80)
-    print("COMPARISON: With AD vs Without AD")
+    print("COMPARISON: With Reaves vs Without Reaves")
     print("-" * 80)
     
-    print(f"Adjusted Value: {adjustment['adjusted_value']:.1f} vs {adjustment_no_ad['adjusted_value']:.1f}")
-    print(f"Hit Rate: {adjustment.get('hit_rate', 0):.1%} vs {adjustment_no_ad.get('hit_rate', 0):.1%}")
-    print(f"Usage Rate: {adjustment['usage_rate']:.1%} vs {adjustment_no_ad['usage_rate']:.1%}")
-    print(f"Pace: {adjustment['pace']:.1f} vs {adjustment_no_ad['pace']:.1f}")
+    print(f"Adjusted Value: {adjustment['adjusted_value']:.1f} vs {adjustment_no_reaves['adjusted_value']:.1f}")
+    print(f"Hit Rate: {adjustment.get('hit_rate', 0):.1%} vs {adjustment_no_reaves.get('hit_rate', 0):.1%}")
+    print(f"Usage Rate: {adjustment['usage_rate']:.1%} vs {adjustment_no_reaves['usage_rate']:.1%}")
+    print(f"Pace: {adjustment['pace']:.1f} vs {adjustment_no_reaves['pace']:.1f}")
     
     print("\n✅ Lineup impact analysis complete!")
 

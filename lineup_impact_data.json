@@ -2,28 +2,28 @@
   "metadata": {
     "source": "NBA Advanced Stats & Lineup Data",
     "data_type": "lineup_impact_data",
-    "generated_at": "2024-03-15T12:00:00Z",
-    "season": "2023-24",
-    "description": "Lineup-dependent performance data including minutes, pace, usage, and hit rates"
+    "generated_at": "2025-11-15T12:00:00Z",
+    "season": "2025-26",
+    "description": "Lineup-dependent performance data including minutes, pace, usage, and hit rates for 2025-26 season"
   },
   "lineup_configurations": [
     {
-      "config_id": "LAL_WITH_AD",
+      "config_id": "LAL_WITH_REAVES",
       "game_id": "sample_1",
       "team": "Los Angeles Lakers",
-      "players_in": ["2544", "203076"],
+      "players_in": ["2544", "1630559"],
       "players_out": [],
-      "season": "2023-24",
-      "description": "LeBron James with Anthony Davis"
+      "season": "2025-26",
+      "description": "LeBron James with Austin Reaves"
     },
     {
-      "config_id": "LAL_WITHOUT_AD",
+      "config_id": "LAL_WITHOUT_REAVES",
       "game_id": "sample_2",
       "team": "Los Angeles Lakers",
       "players_in": ["2544"],
-      "players_out": ["203076"],
-      "season": "2023-24",
-      "description": "LeBron James without Anthony Davis"
+      "players_out": ["1630559"],
+      "season": "2025-26",
+      "description": "LeBron James without Austin Reaves"
     },
     {
       "config_id": "GSW_WITH_DRAYMOND",
@@ -31,7 +31,7 @@
       "team": "Golden State Warriors",
       "players_in": ["201939", "203110"],
       "players_out": [],
-      "season": "2023-24",
+      "season": "2025-26",
       "description": "Stephen Curry with Draymond Green"
     },
     {
@@ -40,7 +40,7 @@
       "team": "Golden State Warriors",
       "players_in": ["201939"],
       "players_out": ["203110"],
-      "season": "2023-24",
+      "season": "2025-26",
       "description": "Stephen Curry without Draymond Green"
     }
   ],
@@ -48,64 +48,64 @@
     {
       "player_id": "2544",
       "player_name": "LeBron James",
-      "config_id": "LAL_WITH_AD",
-      "minutes_per_game": 35.2,
-      "games_played": 45,
-      "pace": 102.5,
-      "usage_rate": 0.295,
+      "config_id": "LAL_WITH_REAVES",
+      "minutes_per_game": 32.8,
+      "games_played": 42,
+      "pace": 101.2,
+      "usage_rate": 0.285,
       "performance": {
-        "points_per_game": 25.8,
-        "rebounds_per_game": 7.2,
-        "assists_per_game": 8.5,
-        "field_goal_percentage": 0.528,
-        "three_point_percentage": 0.385,
-        "true_shooting_percentage": 0.615
+        "points_per_game": 24.2,
+        "rebounds_per_game": 7.5,
+        "assists_per_game": 8.8,
+        "field_goal_percentage": 0.515,
+        "three_point_percentage": 0.368,
+        "true_shooting_percentage": 0.598
       },
       "hit_rates": {
         "points": {
-          "25.5": 0.58,
-          "27.5": 0.48,
-          "30.5": 0.32
+          "23.5": 0.55,
+          "25.5": 0.45,
+          "27.5": 0.35
         },
         "rebounds": {
           "7.5": 0.52,
-          "8.5": 0.38
+          "8.5": 0.40
         },
         "assists": {
-          "8.5": 0.51,
-          "9.5": 0.38
+          "8.5": 0.54,
+          "9.5": 0.42
         }
       }
     },
     {
       "player_id": "2544",
       "player_name": "LeBron James",
-      "config_id": "LAL_WITHOUT_AD",
-      "minutes_per_game": 37.8,
-      "games_played": 15,
-      "pace": 98.2,
-      "usage_rate": 0.335,
+      "config_id": "LAL_WITHOUT_REAVES",
+      "minutes_per_game": 35.5,
+      "games_played": 12,
+      "pace": 97.5,
+      "usage_rate": 0.325,
       "performance": {
-        "points_per_game": 28.5,
-        "rebounds_per_game": 8.9,
-        "assists_per_game": 10.2,
-        "field_goal_percentage": 0.495,
-        "three_point_percentage": 0.368,
-        "true_shooting_percentage": 0.592
+        "points_per_game": 27.2,
+        "rebounds_per_game": 8.8,
+        "assists_per_game": 10.5,
+        "field_goal_percentage": 0.488,
+        "three_point_percentage": 0.355,
+        "true_shooting_percentage": 0.578
       },
       "hit_rates": {
         "points": {
-          "25.5": 0.73,
-          "27.5": 0.60,
-          "30.5": 0.42
+          "23.5": 0.75,
+          "25.5": 0.67,
+          "27.5": 0.50
         },
         "rebounds": {
-          "7.5": 0.67,
-          "8.5": 0.55
+          "7.5": 0.75,
+          "8.5": 0.58
         },
         "assists": {
-          "8.5": 0.80,
-          "9.5": 0.65
+          "8.5": 0.83,
+          "9.5": 0.67
         }
       }
     },
@@ -113,31 +113,31 @@
       "player_id": "201939",
       "player_name": "Stephen Curry",
       "config_id": "GSW_WITH_DRAYMOND",
-      "minutes_per_game": 32.5,
-      "games_played": 52,
-      "pace": 104.8,
-      "usage_rate": 0.315,
+      "minutes_per_game": 31.2,
+      "games_played": 48,
+      "pace": 103.5,
+      "usage_rate": 0.305,
       "performance": {
-        "points_per_game": 27.2,
-        "rebounds_per_game": 4.5,
-        "assists_per_game": 5.8,
-        "field_goal_percentage": 0.458,
-        "three_point_percentage": 0.425,
-        "true_shooting_percentage": 0.665
+        "points_per_game": 25.8,
+        "rebounds_per_game": 4.2,
+        "assists_per_game": 6.2,
+        "field_goal_percentage": 0.448,
+        "three_point_percentage": 0.412,
+        "true_shooting_percentage": 0.652
       },
       "hit_rates": {
         "points": {
-          "26.5": 0.54,
-          "28.5": 0.44,
-          "30.5": 0.35
+          "25.5": 0.52,
+          "27.5": 0.42,
+          "29.5": 0.32
         },
         "rebounds": {
-          "4.5": 0.52,
-          "5.5": 0.35
+          "4.5": 0.48,
+          "5.5": 0.32
         },
         "assists": {
-          "5.5": 0.58,
-          "6.5": 0.42
+          "6.5": 0.48,
+          "7.5": 0.35
         }
       }
     },
@@ -145,31 +145,31 @@
       "player_id": "201939",
       "player_name": "Stephen Curry",
       "config_id": "GSW_WITHOUT_DRAYMOND",
-      "minutes_per_game": 34.8,
-      "games_played": 18,
-      "pace": 99.5,
-      "usage_rate": 0.348,
+      "minutes_per_game": 33.5,
+      "games_played": 16,
+      "pace": 98.8,
+      "usage_rate": 0.338,
       "performance": {
-        "points_per_game": 30.2,
-        "rebounds_per_game": 5.2,
-        "assists_per_game": 6.8,
-        "field_goal_percentage": 0.448,
-        "three_point_percentage": 0.415,
-        "true_shooting_percentage": 0.658
+        "points_per_game": 28.8,
+        "rebounds_per_game": 4.8,
+        "assists_per_game": 7.2,
+        "field_goal_percentage": 0.438,
+        "three_point_percentage": 0.405,
+        "true_shooting_percentage": 0.645
       },
       "hit_rates": {
         "points": {
-          "26.5": 0.72,
-          "28.5": 0.61,
-          "30.5": 0.50
+          "25.5": 0.69,
+          "27.5": 0.56,
+          "29.5": 0.44
         },
         "rebounds": {
-          "4.5": 0.67,
-          "5.5": 0.50
+          "4.5": 0.62,
+          "5.5": 0.44
         },
         "assists": {
-          "5.5": 0.72,
-          "6.5": 0.58
+          "6.5": 0.69,
+          "7.5": 0.56
         }
       }
     },
@@ -242,19 +242,19 @@
     {
       "affected_player_id": "2544",
       "affected_player_name": "LeBron James",
-      "key_player_id": "203076",
-      "key_player_name": "Anthony Davis",
+      "key_player_id": "1630559",
+      "key_player_name": "Austin Reaves",
       "impact_summary": {
-        "minutes_diff": -2.6,
-        "pace_diff": 4.3,
+        "minutes_diff": -2.7,
+        "pace_diff": 3.7,
         "usage_diff": -0.040,
-        "points_diff": -2.7,
-        "rebounds_diff": -1.7,
+        "points_diff": -3.0,
+        "rebounds_diff": -1.3,
         "assists_diff": -1.7,
-        "fg_pct_diff": 0.033,
-        "ts_pct_diff": 0.023
+        "fg_pct_diff": 0.027,
+        "ts_pct_diff": 0.020
       },
-      "recommendation": "LeBron performs better statistically without AD due to higher usage, but less efficiently"
+      "recommendation": "LeBron has higher usage and scoring without Reaves but team plays at faster pace with Reaves"
     },
     {
       "affected_player_id": "201939",
@@ -290,32 +290,32 @@
   "team_pace_metrics": [
     {
       "team": "Los Angeles Lakers",
-      "season": "2023-24",
-      "overall_pace": 100.2,
-      "home_pace": 101.5,
-      "away_pace": 98.9,
+      "season": "2025-26",
+      "overall_pace": 99.8,
+      "home_pace": 101.0,
+      "away_pace": 98.6,
       "pace_by_lineup": {
-        "LAL_WITH_AD": 102.5,
-        "LAL_WITHOUT_AD": 98.2
+        "LAL_WITH_REAVES": 101.2,
+        "LAL_WITHOUT_REAVES": 97.5
       }
     },
     {
       "team": "Golden State Warriors",
-      "season": "2023-24",
-      "overall_pace": 102.1,
-      "home_pace": 103.8,
-      "away_pace": 100.4,
+      "season": "2025-26",
+      "overall_pace": 101.5,
+      "home_pace": 103.2,
+      "away_pace": 99.8,
       "pace_by_lineup": {
-        "GSW_WITH_DRAYMOND": 104.8,
-        "GSW_WITHOUT_DRAYMOND": 99.5
+        "GSW_WITH_DRAYMOND": 103.5,
+        "GSW_WITHOUT_DRAYMOND": 98.8
       }
     },
     {
       "team": "Boston Celtics",
-      "season": "2023-24",
-      "overall_pace": 96.8,
-      "home_pace": 97.5,
-      "away_pace": 96.1,
+      "season": "2025-26",
+      "overall_pace": 96.5,
+      "home_pace": 97.2,
+      "away_pace": 95.8,
       "pace_by_lineup": {
         "BOS_WITH_BROWN": 97.8,
         "BOS_WITHOUT_BROWN": 95.2
