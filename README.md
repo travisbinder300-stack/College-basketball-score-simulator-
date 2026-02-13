@@ -2,6 +2,24 @@
 
 A comprehensive college basketball prediction system implementing the methodologies from Billy Walters' book **"Gambler: Secrets from a Life at Risk"**.
 
+## Latest Prediction: Manhattan vs Niagara
+
+**Manhattan 75, Niagara 69** - Manhattan -6.2
+
+Comprehensive MAAC conference matchup analysis featuring:
+- Complete team statistics and power ratings
+- Handicapping factors (home court, travel, motivation)
+- Score and spread prediction
+- Betting recommendations with edge analysis
+
+```bash
+python manhattan_vs_niagara_prediction.py
+```
+
+**Key Finding:** Manhattan's home court advantage (+3.5) and pace control (70.5 vs 68.2 poss/game) should be decisive in this MAAC rivalry game.
+
+---
+
 ## Overview
 
 This system replicates the legendary sports bettor Billy Walters' approach to college basketball predictions, incorporating:

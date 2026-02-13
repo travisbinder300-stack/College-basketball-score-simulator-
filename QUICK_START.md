@@ -6,7 +6,12 @@ A complete college basketball prediction system based on Billy Walters' legendar
 
 **NEW:** Now includes complete 356-team database with all offensive and defensive statistics!
 
+**LATEST:** Manhattan vs Niagara game prediction - Full MAAC matchup analysis!
+
 ## Files Overview
+
+### Game Predictions
+- **`manhattan_vs_niagara_prediction.py`** - Complete Manhattan vs Niagara analysis (NEW!)
 
 ### Core System
 - **`billy_walters_predictor.py`** - Main prediction engine with power ratings, game factors, and bankroll management
@@ -14,7 +19,7 @@ A complete college basketball prediction system based on Billy Walters' legendar
 - **`game_slate_analyzer.py`** - Analyze multiple games to find best betting opportunities
 - **`customization_guide.py`** - Examples of extending and customizing the system
 
-### Complete Team System (NEW!)
+### Complete Team System
 - **`complete_team_system.py`** - Track all 356 Division I teams with complete stats
 - **`teams_data_template.csv`** - CSV template for loading team data
 - **`COMPLETE_SYSTEM_GUIDE.md`** - Full documentation for 356-team system
@@ -26,8 +31,8 @@ A complete college basketball prediction system based on Billy Walters' legendar
 - **`teamrankings_importer.py`** - Import ATS data from TeamRankings.com
 - **`sample_teamrankings_data.csv`** - Sample ATS data template
 - **`ats_demo.py`** - Complete demonstration of ATS tracking
-- **`best_ats_performers.py`** - Identify which teams cover spread most (NEW!)
-- **`major_vs_nonmajor_analysis.py`** - Why major teams cover more (NEW!)
+- **`best_ats_performers.py`** - Identify which teams cover spread most
+- **`major_vs_nonmajor_analysis.py`** - Why major teams cover more
 - **`ATS_GUIDE.md`** - Comprehensive ATS tracking guide
 
 ### Configuration
