@@ -11,8 +11,10 @@ This repository contains a complete NBA prop betting system that includes:
 - **Shot chart analysis and defensive matchup tracking** ⭐
 - **Player vs defense ranking with similar player matching** ⭐
 - **Defender hit rate tracking and zone-specific analysis** ⭐
-- **Lineup impact analysis with minutes, pace, and usage tracking** ⭐ NEW
-- **Player performance based on who's in/out of lineup** ⭐ NEW
+- **Lineup impact analysis with minutes, pace, and usage tracking** ⭐
+- **Player performance based on who's in/out of lineup** ⭐
+- **Player comparison system (Luka Doncic vs LeBron James)** ⭐ NEW
+- **Prop effectiveness analysis with current 2025-26 data** ⭐ NEW
 - Interfuture data format based on PropMadness.com structure
 - JSON data loader for easy integration
 
@@ -110,6 +112,30 @@ JSON structure based on PropMadness.com format:
   - Usage and pace differentials
   - Edge calculation by lineup
 - **Comprehensive Lineup Reports** - Full lineup impact reports for props
+
+### 9. Player Comparison System (`player_comparison.py`) ⭐ NEW
+- **Player Profiles** - Complete player profiles with advanced stats
+  - Points, rebounds, assists per game
+  - Usage rate, pace, efficiency metrics
+  - Prop hit rates by line
+  - Minutes and games played
+- **PlayerComparator** - Compare two players across multiple metrics
+  - Statistical similarity scores
+  - Identify strengths and weaknesses
+  - Prop hit rate comparisons
+  - Generate betting recommendations
+- **Pre-built Profiles** - Luka Doncic and LeBron James (2025-26 season)
+  - Updated with current February 2026 data
+  - Includes lineup impact stats
+
+### 10. Effectiveness Analysis (`luka_vs_lebron_effectiveness.py`) ⭐ NEW
+- **Comprehensive Comparison** - Full analysis of Luka Doncic vs LeBron James
+  - Statistical dominance breakdown
+  - Prop hit rate effectiveness
+  - Lineup impact effectiveness
+  - Overall prop betting value
+- **Visual Reports** - Formatted comparison reports
+- **Betting Recommendations** - Specific prop recommendations for each player
 
 ## Installation
 
