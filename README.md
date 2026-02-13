@@ -8,6 +8,7 @@ A comprehensive college basketball prediction system implementing the methodolog
 
 Comprehensive MAAC conference matchup analysis featuring:
 - Complete team statistics and power ratings
+- **ATS (Against The Spread) analysis with full records**
 - Handicapping factors (home court, travel, motivation)
 - Score and spread prediction
 - Betting recommendations with edge analysis
@@ -16,7 +17,10 @@ Comprehensive MAAC conference matchup analysis featuring:
 python manhattan_vs_niagara_prediction.py
 ```
 
-**Key Finding:** Manhattan's home court advantage (+3.5) and pace control (70.5 vs 68.2 poss/game) should be decisive in this MAAC rivalry game.
+**Key Findings:** 
+- Manhattan's home court advantage (+3.5) and pace control decisive
+- **🔥 Strong ATS Edge: Manhattan 69.2% home vs Niagara 41.7% away (27.6% difference)**
+- ATS trends strongly support the home team pick
 
 ---
 
