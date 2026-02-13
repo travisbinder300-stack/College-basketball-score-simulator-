@@ -8,6 +8,9 @@ This repository contains a complete NBA prop betting system that includes:
 - Data models for NBA players, games, and prop bets
 - Prop betting analyzer with value bet detection
 - Monte Carlo simulation engine for prop outcomes
+- **Shot chart analysis and defensive matchup tracking** ⭐ NEW
+- **Player vs defense ranking with similar player matching** ⭐ NEW
+- **Defender hit rate tracking and zone-specific analysis** ⭐ NEW
 - Interfuture data format based on PropMadness.com structure
 - JSON data loader for easy integration
 
@@ -56,6 +59,28 @@ JSON structure based on PropMadness.com format:
 - Parse timestamps and odds formats
 - Validate data integrity
 
+### 5. Shot Chart & Defensive Matchup Analysis (`shot_chart_defense.py`) ⭐ NEW
+- **Shot Chart Data** - Zone-based shooting statistics (paint, mid-range, 3-point zones)
+- **Player Profiles** - Play style classification (volume scorer, 3-point specialist, etc.)
+- **Defender Stats** - Individual defender metrics and hit rates allowed by zone
+- **Team Defense Rankings** - Defensive ratings, scheme types, zone-specific rankings
+- **Defensive Matchup Analyzer** - Analyze player vs defense matchups
+  - Calculate favorable/unfavorable shooting zones
+  - Project hit rates based on defensive matchup
+  - Find similar players based on play style and shot distribution
+  - Historical performance of similar players vs specific defenses
+
+### 6. Enhanced Prop Integration (`prop_matchup_integration.py`) ⭐ NEW
+- **Enhanced Prop Analyzer** - Combines prop analysis with defensive matchups
+  - Adjust projections based on shot chart and defensive data
+  - Calculate hit probabilities with matchup context
+  - Generate confidence levels for recommendations
+- **Matchup Reports** - Comprehensive defensive matchup reports
+  - Player vs defense analysis
+  - Zone-by-zone projections
+  - Similar player comparisons
+  - Defender-specific adjustments
+
 ## Installation
 
 ```bash
@@ -93,6 +118,27 @@ Output:
 - Displays players, games, and props
 - Shows filtered examples
 
+### Running Shot Chart & Defensive Analysis ⭐ NEW
+```bash
+python shot_chart_defense.py
+```
+Output:
+- Shot chart statistics by zone
+- Player vs defense matchup analysis
+- Favorable/unfavorable shooting zones
+- Similar player matching
+- Defender hit rate tracking
+
+### Running Enhanced Prop Analysis ⭐ NEW
+```bash
+python prop_matchup_integration.py
+```
+Output:
+- Enhanced prop analysis with defensive matchups
+- Matchup-adjusted projections
+- Similar player performance comparisons
+- Comprehensive matchup reports
+
 ### Using as a Module
 ```python
 from nba_prop_data import generate_sample_props
@@ -116,6 +162,90 @@ for prop, edge, side in value_bets:
 simulator = PropSimulator(analyzer)
 sim_result = simulator.simulate_prop_outcome(props[0], num_simulations=10000)
 print(sim_result)
+```
+
+### Using Shot Chart & Defensive Matchup Analysis ⭐ NEW
+```python
+from shot_chart_defense import (
+    PlayerProfile, DefensiveMatchupAnalyzer,
+    generate_sample_shot_charts, generate_sample_team_defenses
+)
+
+# Load shot chart and defense data
+shot_charts = generate_sample_shot_charts()
+team_defenses = generate_sample_team_defenses()
+
+# Create player profile
+lebron_profile = PlayerProfile(
+    player_id="2544",
+    player_name="LeBron James",
+    team="Los Angeles Lakers",
+    position="SF",
+    primary_play_style=PlayStyle.VOLUME_SCORER,
+    shot_chart=shot_charts[0],
+    usage_rate=0.312,
+    true_shooting_pct=0.605,
+    effective_fg_pct=0.564,
+    preferred_zones=[ShotZone.PAINT, ShotZone.THREE_POINT_TOP],
+    avoids_zones=[ShotZone.MID_RANGE]
+)
+
+# Analyze matchup vs Warriors defense
+analyzer = DefensiveMatchupAnalyzer()
+matchup = analyzer.analyze_matchup(
+    lebron_profile,
+    team_defenses[2],  # Warriors
+    None  # No specific defender
+)
+
+# Get matchup summary
+summary = matchup.get_matchup_summary()
+print(f"Matchup Rating: {summary['matchup_rating']}")
+print(f"Expected FG Boost: {summary['expected_fg_boost']}")
+print(f"Favorable Zones: {summary['favorable_zones']}")
+
+# Find similar players
+similar_players = analyzer.find_similar_players(
+    lebron_profile,
+    all_player_profiles,
+    min_similarity=0.6
+)
+for player, similarity in similar_players:
+    print(f"{player.player_name}: {similarity:.1%} similar")
+```
+
+### Using Enhanced Prop Analysis with Matchups ⭐ NEW
+```python
+from prop_matchup_integration import EnhancedPropAnalyzer
+
+# Initialize enhanced analyzer
+matchup_analyzer = DefensiveMatchupAnalyzer()
+enhanced_analyzer = EnhancedPropAnalyzer(matchup_analyzer)
+
+# Analyze prop with defensive matchup
+analysis = enhanced_analyzer.analyze_prop_with_matchup(
+    prop=lebron_points_prop,
+    player_profile=lebron_profile,
+    team_defense=warriors_defense,
+    primary_defender=None
+)
+
+print(f"Base Projection: {analysis['base_projection']}")
+print(f"Adjusted Projection: {analysis['adjusted_projection']}")
+print(f"Matchup Rating: {analysis['matchup_rating']}")
+print(f"Hit Probability: {analysis['hit_probability']:.1%}")
+print(f"Edge: {analysis['edge']:+.2%}")
+print(f"Recommendation: {analysis['recommendation']}")
+print(f"Confidence: {analysis['confidence']}")
+
+# Compare with similar players
+comparison = enhanced_analyzer.compare_with_similar_players(
+    lebron_profile,
+    all_player_profiles,
+    warriors_defense
+)
+print(f"Similar Players Found: {comparison['num_similar_players']}")
+print(f"Historical FG%: {comparison['historical_avg_fg_pct']:.1%}")
 ```
 
 ## Data Structure
@@ -226,6 +356,42 @@ for prop in game_props:
 3. **Hit Rate**: Calculates percentage of simulations where prop hits
 4. **Expected Value**: Computes EV = (hit_rate × payout) - stake
 5. **Parlay Simulation**: Requires all legs to hit for parlay success
+
+### Shot Chart & Defensive Matchup Analysis ⭐ NEW
+1. **Zone Classification**: Divides court into 6 zones (paint, mid-range, 3-point corners/wings/top, free throw line)
+2. **Shot Distribution**: Tracks attempts, makes, and efficiency by zone
+3. **Play Style Matching**: Classifies players into 8 play styles (volume scorer, 3-point specialist, slasher, etc.)
+4. **Defensive Scheme Analysis**: Tracks team defensive types (switch-heavy, drop coverage, aggressive trap, etc.)
+5. **Matchup Calculation**: 
+   - Compare player's strong zones vs defense's weak zones
+   - Adjust FG% projections based on defensive ranking
+   - Factor in specific defender matchups
+   - Weight by shot frequency for overall impact
+6. **Similar Player Algorithm**:
+   - 40% weight on play style match
+   - 40% weight on shot distribution similarity
+   - 20% weight on efficiency similarity
+   - Returns top matches with similarity score
+7. **Defender Hit Rate**: Tracks FG% allowed by defenders in each zone
+8. **Historical Performance**: Aggregates similar players' performance vs specific defenses
+
+## Key Features Summary
+
+### Original Features
+✅ **Prop Betting Models** - Complete data structures for props, lines, and bets  
+✅ **Value Bet Detection** - Finds props with 5%+ positive edge  
+✅ **Monte Carlo Simulation** - 10,000+ run simulations for accurate probabilities  
+✅ **Parlay Analysis** - EV and ROI calculations for multi-leg parlays  
+✅ **Multiple Prop Types** - Points, rebounds, assists, 3-pointers, combined stats  
+✅ **Odds Conversion** - American, Decimal, Fractional formats  
+
+### New Features ⭐
+✅ **Shot Chart Analysis** - Zone-based shooting statistics and tendencies  
+✅ **Player vs Defense Ranking** - Matchup ratings and projections  
+✅ **Similar Player Matching** - Find comparable players by play style  
+✅ **Defender Hit Rate Tracking** - Zone-specific defense metrics  
+✅ **Matchup-Adjusted Props** - Enhanced projections with defensive context  
+✅ **Comprehensive Reports** - Detailed matchup breakdowns with recommendations  
 
 ## Technical Details
 
