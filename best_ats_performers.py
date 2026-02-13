@@ -1,6 +1,9 @@
 """
-Best ATS Performers Analysis
+Best ATS Performers Analysis - 2025-26 Season
 Identifies which Division I teams cover the spread most frequently
+
+IMPORTANT: Use ONLY current 2025-26 season data
+Do NOT use data from previous seasons (2024-25, 2023-24, etc.)
 """
 
 from teamrankings_importer import TeamRankingsImporter, TeamRankingsATSData
@@ -18,9 +21,15 @@ class ATSPerformanceAnalyzer:
         self.importer = TeamRankingsImporter()
         
     def load_data(self, filepath: str = 'sample_teamrankings_data.csv'):
-        """Load ATS data from CSV file"""
+        """
+        Load ATS data from CSV file
+        
+        IMPORTANT: File must contain 2025-26 season data only.
+        Do NOT use data from previous seasons.
+        """
         self.importer.import_from_csv(filepath)
         print(f"Loaded {len(self.importer.teams_data)} teams with ATS data")
+        print("⚠️  WARNING: Verify data is from current 2025-26 season only!")
     
     def get_best_overall_ats(self, min_games: int = 10) -> List[Tuple[str, float, int, int, int]]:
         """

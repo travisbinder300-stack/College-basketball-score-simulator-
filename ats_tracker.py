@@ -1,6 +1,10 @@
 """
-ATS (Against The Spread) Record Tracking System
+ATS (Against The Spread) Record Tracking System - 2025-26 Season
 Track how teams perform against betting spreads for college basketball
+
+IMPORTANT: Track ONLY current 2025-26 season games
+Do NOT mix data from previous seasons (2024-25, 2023-24, etc.)
+Ensure all game dates are from the 2025-26 season (Aug 2025 - April 2026)
 """
 
 from dataclasses import dataclass, field

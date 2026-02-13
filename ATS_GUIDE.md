@@ -1,4 +1,14 @@
-# ATS Record Tracking Guide
+# ATS Record Tracking Guide - 2025-26 Season
+
+⚠️ **CRITICAL: Use ONLY 2025-26 Season Data**
+
+This guide is for tracking the **current 2025-26 season** only.
+- **DO NOT** use data from previous seasons (2024-25, 2023-24, etc.)
+- **DO NOT** mix data from multiple seasons
+- **VERIFY** all game dates are from August 2025 through April 2026
+- **UPDATE** data regularly throughout the current season
+
+---
 
 ## Overview
 
@@ -15,11 +25,11 @@ This system provides comprehensive ATS (Against The Spread) record tracking for 
 
 1. **`ats_tracker.py`** - Core ATS tracking system for manually adding game results
 2. **`teamrankings_importer.py`** - Import pre-existing ATS records from TeamRankings.com
-3. **`sample_teamrankings_data.csv`** - Sample data template
+3. **`sample_teamrankings_data.csv`** - Sample data template (2025-26 season)
 
 ## Method 1: Manual Game Entry (ats_tracker.py)
 
-Use this when you want to track games as they happen.
+Use this when you want to track games as they happen during the 2025-26 season.
 
 ### Basic Usage
 
@@ -29,9 +39,9 @@ from ats_tracker import ATSTracker
 # Initialize tracker
 tracker = ATSTracker()
 
-# Add a game result
+# Add a game result (use current season dates!)
 tracker.add_game(
-    date="2026-02-15",
+    date="2026-02-15",  # Current 2025-26 season date
     home_team="Duke",
     away_team="UNC",
     home_score=85,
@@ -134,29 +144,38 @@ importer.compare_teams("Duke", "UNC")
 importer.compare_teams("Houston", "Purdue")
 ```
 
-## How to Get Data from TeamRankings.com
+## How to Get Data from TeamRankings.com (2025-26 Season)
+
+⚠️ **IMPORTANT**: When collecting data, ensure you're viewing the **current 2025-26 season** page, NOT previous seasons!
 
 ### Step 1: Visit TeamRankings.com
 
 Go to: https://www.teamrankings.com/ncb/trends/ats_trends/
 
+**⚠️ VERIFY**: The page shows "2025-26 Season" data at the top!
+
 ### Step 2: View ATS Statistics
 
-TeamRankings.com provides:
-- Overall ATS records
+TeamRankings.com provides (for current season):
+- Overall ATS records (2025-26 season)
 - Home/Away splits
 - As favorite/underdog splits
 - Conference standings
 - Historical trends
 
+**⚠️ DO NOT** use data from:
+- "Previous Season" dropdown
+- "Historical" or "Last Season" tabs
+- Archived pages from 2024-25 or earlier
+
 ### Step 3: Manual Entry
 
-Copy the data into Python:
+Copy the data into Python (verify it's from 2025-26 season):
 
 ```python
 importer = TeamRankingsImporter()
 
-# Add each team's data
+# Add each team's data (2025-26 season only!)
 importer.add_team_ats_record(
     team="Duke",
     wins=18,
@@ -173,9 +192,10 @@ importer.add_team_ats_record(
 
 ### Step 4: Or Create CSV
 
-Create a CSV file with this format:
+Create a CSV file with this format (include season header):
 
 ```csv
+# 2025-26 Season ATS Data from TeamRankings.com
 Team,ATS_Wins,ATS_Losses,ATS_Pushes,Home_Record,Away_Record,Favorite_Record,Underdog_Record,Conference
 Duke,18,12,1,10-5-0,8-7-1,12-8-1,6-4-0,ACC
 UNC,16,14,0,9-6-0,7-8-0,10-9-0,6-5-0,ACC
@@ -186,6 +206,8 @@ Then import:
 ```python
 importer.import_from_csv('your_data.csv')
 ```
+
+**⚠️ Before importing**: Double-check the CSV header confirms "2025-26 Season"!
 
 ## Integration with Billy Walters Framework
 

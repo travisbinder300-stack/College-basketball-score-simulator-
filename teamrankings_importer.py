@@ -1,6 +1,10 @@
 """
-Import ATS records from TeamRankings.com data
+Import ATS records from TeamRankings.com data - 2025-26 Season
 Provides functionality to load team ATS records from TeamRankings.com format
+
+IMPORTANT: Import ONLY current 2025-26 season data
+Do NOT import data from previous seasons
+Verify all data is from TeamRankings.com current season page
 """
 
 import csv
@@ -98,21 +102,33 @@ class TeamRankingsImporter:
         
         Expected CSV format:
         Team,ATS_Wins,ATS_Losses,ATS_Pushes,Home_Record,Away_Record,Favorite_Record,Underdog_Record,Conference
+        
+        IMPORTANT: CSV file must contain 2025-26 season data only.
+        Verify file header indicates "2025-26 Season" before importing.
         """
+        print(f"⚠️  Importing ATS data from {filepath}")
+        print("⚠️  WARNING: Verify this file contains ONLY 2025-26 season data!")
+        print("⚠️  Do NOT use data from previous seasons (2024-25, 2023-24, etc.)")
+        
         with open(filepath, 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                self.add_team_ats_record(
-                    team=row['Team'],
-                    wins=int(row['ATS_Wins']),
-                    losses=int(row['ATS_Losses']),
-                    pushes=int(row.get('ATS_Pushes', 0)),
-                    home_record=row.get('Home_Record'),
-                    away_record=row.get('Away_Record'),
-                    favorite_record=row.get('Favorite_Record'),
-                    underdog_record=row.get('Underdog_Record'),
-                    conference=row.get('Conference')
-                )
+            # Skip comment lines starting with #
+            lines = [line for line in f if not line.strip().startswith('#')]
+            
+        # Parse the filtered lines
+        import io
+        reader = csv.DictReader(io.StringIO(''.join(lines)))
+        for row in reader:
+            self.add_team_ats_record(
+                team=row['Team'],
+                wins=int(row['ATS_Wins']),
+                losses=int(row['ATS_Losses']),
+                pushes=int(row.get('ATS_Pushes', 0)),
+                home_record=row.get('Home_Record'),
+                away_record=row.get('Away_Record'),
+                favorite_record=row.get('Favorite_Record'),
+                underdog_record=row.get('Underdog_Record'),
+                conference=row.get('Conference')
+            )
     
     def display_team_stats(self, team: str):
         """Display ATS statistics for a team from TeamRankings data"""
