@@ -6,11 +6,13 @@ A comprehensive college basketball prediction system implementing the methodolog
 
 **This system is designed to use CURRENT 2025-26 season data.** All predictions, analyses, and recommendations should be based on up-to-date statistics from the current season. Do not use old data from previous seasons (2023-24, 2024-25, etc.).
 
+**⚠️ ATS Records**: When importing ATS (Against The Spread) records, ensure they are from the current 2025-26 season only. The system will display warnings to verify data currency.
+
 **📖 Read [DATA_REQUIREMENTS.md](DATA_REQUIREMENTS.md) for complete data guidelines.**
 
 **Data Sources for 2025-26 Season:**
 - KenPom.com - Current efficiency and tempo stats
-- TeamRankings.com - Current ATS records and trends
+- TeamRankings.com - Current ATS records and trends (verify 2025-26 season page)
 - BartTorvik.com - Current advanced metrics
 - Sports-Reference.com - Current traditional statistics
 

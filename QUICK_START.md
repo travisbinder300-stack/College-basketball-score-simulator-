@@ -4,6 +4,8 @@
 
 **All data used in this system should be from the CURRENT 2025-26 season.** Do not use outdated data from previous seasons. Update team statistics, ATS records, and all metrics regularly throughout the season.
 
+**⚠️ ATS RECORDS**: When using ATS tracking tools, ensure all data is from 2025-26 season. The system displays warnings when importing data to verify season currency.
+
 ## What is This?
 
 A complete college basketball prediction system based on Billy Walters' legendary sports betting methodology from his book "Gambler: Secrets from a Life at Risk".
