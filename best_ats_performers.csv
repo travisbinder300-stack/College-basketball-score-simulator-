@@ -1,0 +1,16 @@
+Rank,Team,ATS_Win_Pct,Wins,Losses,Pushes,Total_Games,Conference
+1,Houston,0.724,21,8,1,30,Big 12
+2,Purdue,0.690,20,9,1,30,Big Ten
+3,Gonzaga,0.667,20,10,0,30,WCC
+4,Arizona,0.655,19,10,1,30,Pac-12
+5,Kansas,0.633,19,11,0,30,Big 12
+6,UCLA,0.621,18,11,1,30,Pac-12
+7,Tennessee,0.621,18,11,1,30,SEC
+8,Duke,0.600,18,12,1,31,ACC
+9,Texas,0.586,17,12,1,30,Big 12
+10,Baylor,0.586,17,12,1,30,Big 12
+11,Kentucky,0.567,17,13,0,30,SEC
+12,Michigan State,0.552,16,13,1,30,Big Ten
+13,Alabama,0.552,16,13,1,30,SEC
+14,UNC,0.533,16,14,0,30,ACC
+15,Villanova,0.500,15,15,0,30,Big East
