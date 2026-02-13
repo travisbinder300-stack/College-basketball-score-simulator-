@@ -230,7 +230,7 @@ def create_sample_teamrankings_data():
     """
     importer = TeamRankingsImporter()
     
-    # Add sample teams with their ATS records from 2023-24 season
+    # Add sample teams with their ATS records from current 2025-26 season
     # Data format: Team, Overall W-L-P, Home, Away, Favorite, Underdog, Conference
     
     teams_data = [

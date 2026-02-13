@@ -376,16 +376,16 @@ def example_ats_tracking():
     # Add some example games
     games = [
         # Date, Home, Away, Home Score, Away Score, Spread
-        ("2024-01-15", "Duke", "UNC", 85, 78, -7.5),
-        ("2024-01-18", "Duke", "Virginia", 72, 68, -8.0),
-        ("2024-01-22", "Kentucky", "Duke", 88, 84, -3.5),
-        ("2024-01-25", "UNC", "Kentucky", 76, 81, -2.5),
-        ("2024-01-29", "UNC", "Virginia", 69, 65, -5.5),
-        ("2024-02-01", "Kansas", "Duke", 77, 75, -1.0),
-        ("2024-02-05", "Duke", "Kansas", 82, 79, -4.5),
-        ("2024-02-08", "Virginia", "UNC", 71, 74, 3.0),
-        ("2024-02-12", "Kentucky", "Kansas", 90, 87, -6.5),
-        ("2024-02-15", "Duke", "Kentucky", 79, 76, -2.5),
+        ("2026-01-15", "Duke", "UNC", 85, 78, -7.5),
+        ("2026-01-18", "Duke", "Virginia", 72, 68, -8.0),
+        ("2026-01-22", "Kentucky", "Duke", 88, 84, -3.5),
+        ("2026-01-25", "UNC", "Kentucky", 76, 81, -2.5),
+        ("2026-01-29", "UNC", "Virginia", 69, 65, -5.5),
+        ("2026-02-01", "Kansas", "Duke", 77, 75, -1.0),
+        ("2026-02-05", "Duke", "Kansas", 82, 79, -4.5),
+        ("2026-02-08", "Virginia", "UNC", 71, 74, 3.0),
+        ("2026-02-12", "Kentucky", "Kansas", 90, 87, -6.5),
+        ("2026-02-13", "Duke", "Kentucky", 79, 76, -2.5),
     ]
     
     for game_data in games:

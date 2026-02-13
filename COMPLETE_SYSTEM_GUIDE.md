@@ -366,7 +366,7 @@ tracker = ATSTracker()
 spread, favorite = db.predict_spread("Duke", "UNC")
 
 # Track actual result
-tracker.add_game("2024-02-15", "Duke", "UNC", 85, 78, -spread)
+tracker.add_game("2026-02-15", "Duke", "UNC", 85, 78, -spread)
 ```
 
 ### With Billy Walters Predictor

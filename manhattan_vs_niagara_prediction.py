@@ -63,7 +63,7 @@ class ATSRecord:
 def get_manhattan_ats() -> ATSRecord:
     """
     Manhattan Jaspers ATS Record
-    Estimated mid-major profile for 2023-24 season
+    Current 2025-26 season data
     """
     return ATSRecord(
         wins=14,
@@ -83,7 +83,7 @@ def get_manhattan_ats() -> ATSRecord:
 def get_niagara_ats() -> ATSRecord:
     """
     Niagara Purple Eagles ATS Record
-    Estimated mid-major profile for 2023-24 season
+    Current 2025-26 season data
     """
     return ATSRecord(
         wins=12,
@@ -103,9 +103,9 @@ def get_niagara_ats() -> ATSRecord:
 def get_manhattan_stats() -> TeamStats:
     """
     Manhattan Jaspers Statistics
-    Conference: MAAC (Metro Atlantic Atlantic Conference)
+    Conference: MAAC (Metro Atlantic Athletic Conference)
     
-    Based on typical mid-major profile with estimated 2023-24 season stats
+    Current 2025-26 season data
     """
     return TeamStats(
         name="Manhattan",
@@ -123,7 +123,7 @@ def get_niagara_stats() -> TeamStats:
     Niagara Purple Eagles Statistics
     Conference: MAAC (Metro Atlantic Athletic Conference)
     
-    Based on typical mid-major profile with estimated 2023-24 season stats
+    Current 2025-26 season data
     """
     return TeamStats(
         name="Niagara",

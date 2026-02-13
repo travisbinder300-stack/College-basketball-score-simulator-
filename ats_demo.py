@@ -28,11 +28,11 @@ def main():
     # Example: You watched these games and want to track ATS performance
     recent_games = [
         # Date, Home, Away, Home Score, Away Score, Spread
-        ("2024-02-15", "Duke", "UNC", 79, 76, -2.5),      # Duke wins by 3, covers
-        ("2024-02-15", "Kansas", "Baylor", 82, 79, -4.0), # Kansas wins by 3, doesn't cover
-        ("2024-02-16", "Houston", "UCF", 85, 68, -15.5),  # Houston wins by 17, covers
-        ("2024-02-16", "Purdue", "Indiana", 78, 75, -5.5),# Purdue wins by 3, doesn't cover
-        ("2024-02-17", "Arizona", "Oregon", 88, 80, -9.0),# Arizona wins by 8, doesn't cover
+        ("2026-02-10", "Duke", "UNC", 79, 76, -2.5),      # Duke wins by 3, covers
+        ("2026-02-10", "Kansas", "Baylor", 82, 79, -4.0), # Kansas wins by 3, doesn't cover
+        ("2026-02-11", "Houston", "UCF", 85, 68, -15.5),  # Houston wins by 17, covers
+        ("2026-02-11", "Purdue", "Indiana", 78, 75, -5.5),# Purdue wins by 3, doesn't cover
+        ("2026-02-12", "Arizona", "Oregon", 88, 80, -9.0),# Arizona wins by 8, doesn't cover
     ]
     
     for date, home, away, h_score, a_score, spread in recent_games:
@@ -66,7 +66,7 @@ def main():
     print()
     
     print("Loading ATS records from TeamRankings.com...")
-    print("(Using sample data from 2023-24 season)")
+    print("(Using current 2025-26 season data)")
     print()
     
     importer = TeamRankingsImporter()

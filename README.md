@@ -2,6 +2,18 @@
 
 A comprehensive college basketball prediction system implementing the methodologies from Billy Walters' book **"Gambler: Secrets from a Life at Risk"**.
 
+## ⚠️ IMPORTANT: Use Current 2025-26 Season Data Only
+
+**This system is designed to use CURRENT 2025-26 season data.** All predictions, analyses, and recommendations should be based on up-to-date statistics from the current season. Do not use old data from previous seasons (2023-24, 2024-25, etc.).
+
+**Data Sources for 2025-26 Season:**
+- KenPom.com - Current efficiency and tempo stats
+- TeamRankings.com - Current ATS records and trends
+- BartTorvik.com - Current advanced metrics
+- Sports-Reference.com - Current traditional statistics
+
+---
+
 ## Latest Prediction: Manhattan vs Niagara
 
 **Niagara 75, Manhattan 69** - Niagara -5.8 (Manhattan is the road team)

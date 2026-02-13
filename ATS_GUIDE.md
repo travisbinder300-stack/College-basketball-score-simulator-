@@ -31,7 +31,7 @@ tracker = ATSTracker()
 
 # Add a game result
 tracker.add_game(
-    date="2024-02-15",
+    date="2026-02-15",
     home_team="Duke",
     away_team="UNC",
     home_score=85,
@@ -60,9 +60,9 @@ tracker.display_leaderboard(min_games=5, top_n=10)
 
 ```python
 games = [
-    ("2024-01-15", "Duke", "UNC", 85, 78, -7.5),
-    ("2024-01-18", "Duke", "Virginia", 72, 68, -8.0),
-    ("2024-01-22", "Kentucky", "Duke", 88, 84, -3.5),
+    ("2026-01-15", "Duke", "UNC", 85, 78, -7.5),
+    ("2026-01-18", "Duke", "Virginia", 72, 68, -8.0),
+    ("2026-01-22", "Kentucky", "Duke", 88, 84, -3.5),
 ]
 
 for game_data in games:
@@ -216,8 +216,8 @@ if duke_ats.ats_win_pct > 0.55:
 tracker = ATSTracker()
 
 # Add games as season progresses
-tracker.add_game("2024-11-15", "Duke", "Michigan State", 75, 72, -3.5)
-tracker.add_game("2024-11-18", "Duke", "Arizona", 78, 73, -2.0)
+tracker.add_game("2026-11-15", "Duke", "Michigan State", 75, 72, -3.5)
+tracker.add_game("2026-11-18", "Duke", "Arizona", 78, 73, -2.0)
 # ... continue throughout season
 
 # Weekly analysis

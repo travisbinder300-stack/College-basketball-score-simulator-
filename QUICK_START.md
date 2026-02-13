@@ -1,5 +1,9 @@
 # Billy Walters Framework - Quick Start Guide
 
+## ⚠️ IMPORTANT: Use Current 2025-26 Season Data
+
+**All data used in this system should be from the CURRENT 2025-26 season.** Do not use outdated data from previous seasons. Update team statistics, ATS records, and all metrics regularly throughout the season.
+
 ## What is This?
 
 A complete college basketball prediction system based on Billy Walters' legendary sports betting methodology from his book "Gambler: Secrets from a Life at Risk".
