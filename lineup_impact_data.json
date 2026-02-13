@@ -2,9 +2,9 @@
   "metadata": {
     "source": "NBA Advanced Stats & Lineup Data",
     "data_type": "lineup_impact_data",
-    "generated_at": "2025-11-15T12:00:00Z",
+    "generated_at": "2026-02-13T10:00:00Z",
     "season": "2025-26",
-    "description": "Lineup-dependent performance data including minutes, pace, usage, and hit rates for 2025-26 season"
+    "description": "Current lineup-dependent performance data including minutes, pace, usage, and hit rates for 2025-26 season (Updated February 2026)"
   },
   "lineup_configurations": [
     {
@@ -42,6 +42,24 @@
       "players_out": ["203110"],
       "season": "2025-26",
       "description": "Stephen Curry without Draymond Green"
+    },
+    {
+      "config_id": "DAL_WITH_IRVING",
+      "game_id": "sample_5",
+      "team": "Dallas Mavericks",
+      "players_in": ["1629029", "202681"],
+      "players_out": [],
+      "season": "2025-26",
+      "description": "Luka Doncic with Kyrie Irving"
+    },
+    {
+      "config_id": "DAL_WITHOUT_IRVING",
+      "game_id": "sample_6",
+      "team": "Dallas Mavericks",
+      "players_in": ["1629029"],
+      "players_out": ["202681"],
+      "season": "2025-26",
+      "description": "Luka Doncic without Kyrie Irving"
     }
   ],
   "lineup_impact_stats": [
@@ -236,6 +254,72 @@
           "5.5": 0.67
         }
       }
+    },
+    {
+      "player_id": "1629029",
+      "player_name": "Luka Doncic",
+      "config_id": "DAL_WITH_IRVING",
+      "minutes_per_game": 36.5,
+      "games_played": 48,
+      "pace": 99.5,
+      "usage_rate": 0.348,
+      "performance": {
+        "points_per_game": 32.8,
+        "rebounds_per_game": 9.0,
+        "assists_per_game": 9.2,
+        "field_goal_percentage": 0.482,
+        "three_point_percentage": 0.378,
+        "true_shooting_percentage": 0.612
+      },
+      "hit_rates": {
+        "points": {
+          "30.5": 0.65,
+          "32.5": 0.54,
+          "34.5": 0.44
+        },
+        "rebounds": {
+          "8.5": 0.60,
+          "9.5": 0.48
+        },
+        "assists": {
+          "8.5": 0.69,
+          "9.5": 0.58,
+          "10.5": 0.46
+        }
+      }
+    },
+    {
+      "player_id": "1629029",
+      "player_name": "Luka Doncic",
+      "config_id": "DAL_WITHOUT_IRVING",
+      "minutes_per_game": 38.8,
+      "games_played": 10,
+      "pace": 97.2,
+      "usage_rate": 0.388,
+      "performance": {
+        "points_per_game": 35.8,
+        "rebounds_per_game": 9.5,
+        "assists_per_game": 10.8,
+        "field_goal_percentage": 0.492,
+        "three_point_percentage": 0.388,
+        "true_shooting_percentage": 0.625
+      },
+      "hit_rates": {
+        "points": {
+          "30.5": 0.80,
+          "32.5": 0.70,
+          "34.5": 0.60
+        },
+        "rebounds": {
+          "8.5": 0.70,
+          "9.5": 0.60
+        },
+        "assists": {
+          "8.5": 0.90,
+          "9.5": 0.80,
+          "10.5": 0.60
+        }
+      }
     }
   ],
   "key_player_impacts": [
@@ -285,6 +369,21 @@
         "assists_diff": -1.4
       },
       "recommendation": "Tatum becomes primary option without Brown, significantly higher usage and scoring"
+    },
+    {
+      "affected_player_id": "1629029",
+      "affected_player_name": "Luka Doncic",
+      "key_player_id": "202681",
+      "key_player_name": "Kyrie Irving",
+      "impact_summary": {
+        "minutes_diff": -2.3,
+        "pace_diff": 2.3,
+        "usage_diff": -0.040,
+        "points_diff": -3.0,
+        "rebounds_diff": -0.5,
+        "assists_diff": -1.6
+      },
+      "recommendation": "Luka dominates without Kyrie - elite usage and assists, but better efficiency with Kyrie"
     }
   ],
   "team_pace_metrics": [
@@ -319,6 +418,17 @@
       "pace_by_lineup": {
         "BOS_WITH_BROWN": 97.8,
         "BOS_WITHOUT_BROWN": 95.2
+      }
+    },
+    {
+      "team": "Dallas Mavericks",
+      "season": "2025-26",
+      "overall_pace": 98.8,
+      "home_pace": 99.5,
+      "away_pace": 98.1,
+      "pace_by_lineup": {
+        "DAL_WITH_IRVING": 99.5,
+        "DAL_WITHOUT_IRVING": 97.2
       }
     }
   ]
