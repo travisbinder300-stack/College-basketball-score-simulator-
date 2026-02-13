@@ -8,9 +8,11 @@ This repository contains a complete NBA prop betting system that includes:
 - Data models for NBA players, games, and prop bets
 - Prop betting analyzer with value bet detection
 - Monte Carlo simulation engine for prop outcomes
-- **Shot chart analysis and defensive matchup tracking** ⭐ NEW
-- **Player vs defense ranking with similar player matching** ⭐ NEW
-- **Defender hit rate tracking and zone-specific analysis** ⭐ NEW
+- **Shot chart analysis and defensive matchup tracking** ⭐
+- **Player vs defense ranking with similar player matching** ⭐
+- **Defender hit rate tracking and zone-specific analysis** ⭐
+- **Lineup impact analysis with minutes, pace, and usage tracking** ⭐ NEW
+- **Player performance based on who's in/out of lineup** ⭐ NEW
 - Interfuture data format based on PropMadness.com structure
 - JSON data loader for easy integration
 
@@ -70,7 +72,7 @@ JSON structure based on PropMadness.com format:
   - Find similar players based on play style and shot distribution
   - Historical performance of similar players vs specific defenses
 
-### 6. Enhanced Prop Integration (`prop_matchup_integration.py`) ⭐ NEW
+### 6. Enhanced Prop Integration (`prop_matchup_integration.py`) ⭐
 - **Enhanced Prop Analyzer** - Combines prop analysis with defensive matchups
   - Adjust projections based on shot chart and defensive data
   - Calculate hit probabilities with matchup context
@@ -80,6 +82,34 @@ JSON structure based on PropMadness.com format:
   - Zone-by-zone projections
   - Similar player comparisons
   - Defender-specific adjustments
+
+### 7. Lineup Impact Analysis (`lineup_impact.py`) ⭐ NEW
+- **Lineup Configurations** - Track which players are in/out of lineup
+- **Lineup Impact Stats** - Performance metrics by lineup
+  - Minutes per game by lineup configuration
+  - Pace (possessions per 48 minutes)
+  - Usage rate (% of team possessions)
+  - Points, rebounds, assists per game
+  - Field goal %, 3-point %, true shooting %
+  - **Hit rates** - Prop hit rates by line and lineup
+- **Key Player Impact** - Analyze how player performs with/without teammates
+  - Minutes, pace, and usage differentials
+  - Performance changes (PPG, RPG, APG)
+  - Efficiency changes (FG%, TS%)
+- **Team Pace Metrics** - Team pace by lineup configuration
+  - Overall, home, away pace
+  - Lineup-specific pace adjustments
+
+### 8. Lineup-Aware Prop Analysis (`lineup_prop_integration.py`) ⭐ NEW
+- **Lineup-Aware Prop Analyzer** - Enhance prop analysis with lineup context
+  - Adjust projections based on lineup configuration
+  - Calculate hit probabilities with lineup data
+  - Generate confidence levels based on sample size
+- **Lineup Scenario Comparison** - Compare props in different lineup scenarios
+  - With/without key player analysis
+  - Usage and pace differentials
+  - Edge calculation by lineup
+- **Comprehensive Lineup Reports** - Full lineup impact reports for props
 
 ## Installation
 
@@ -129,7 +159,7 @@ Output:
 - Similar player matching
 - Defender hit rate tracking
 
-### Running Enhanced Prop Analysis ⭐ NEW
+### Running Enhanced Prop Analysis ⭐
 ```bash
 python prop_matchup_integration.py
 ```
@@ -138,6 +168,27 @@ Output:
 - Matchup-adjusted projections
 - Similar player performance comparisons
 - Comprehensive matchup reports
+
+### Running Lineup Impact Analysis ⭐ NEW
+```bash
+python lineup_impact.py
+```
+Output:
+- Lineup configuration tracking
+- Player performance by lineup (minutes, pace, usage)
+- Key player impact analysis (with/without teammates)
+- Prop adjustments based on lineup
+- Hit rates by lineup configuration
+
+### Running Lineup-Aware Prop Analysis ⭐ NEW
+```bash
+python lineup_prop_integration.py
+```
+Output:
+- Prop analysis with lineup context
+- Lineup scenario comparisons
+- Usage and pace differentials
+- Comprehensive lineup reports
 
 ### Using as a Module
 ```python
@@ -246,6 +297,80 @@ comparison = enhanced_analyzer.compare_with_similar_players(
 )
 print(f"Similar Players Found: {comparison['num_similar_players']}")
 print(f"Historical FG%: {comparison['historical_avg_fg_pct']:.1%}")
+```
+
+### Using Lineup Impact Analysis ⭐ NEW
+```python
+from lineup_impact import (
+    LineupImpactAnalyzer, LineupConfiguration,
+    generate_sample_lineup_data
+)
+
+# Load lineup data
+lineup_stats = generate_sample_lineup_data()
+
+# Initialize analyzer
+analyzer = LineupImpactAnalyzer()
+for stats in lineup_stats:
+    analyzer.add_lineup_stats(stats)
+
+# Create lineup configuration
+lineup_with_reaves = LineupConfiguration(
+    game_id="sample_1",
+    team="Los Angeles Lakers",
+    players_in=["2544", "1630559"],  # LeBron, Austin Reaves
+    players_out=[],
+    season="2025-26"
+)
+
+# Calculate prop adjustment based on lineup
+adjustment = analyzer.calculate_prop_adjustment(
+    player_id="2544",  # LeBron
+    lineup_config=lineup_with_reaves,
+    prop_type="points",
+    base_line=25.5
+)
+
+print(f"Adjusted Value: {adjustment['adjusted_value']:.1f}")
+print(f"Hit Rate: {adjustment['hit_rate']:.1%}")
+print(f"Usage Rate: {adjustment['usage_rate']:.1%}")
+print(f"Pace: {adjustment['pace']:.1f}")
+print(f"Minutes per Game: {adjustment['minutes_per_game']:.1f}")
+print(f"Confidence: {adjustment['confidence']:.1%}")
+```
+
+### Using Lineup-Aware Prop Analysis ⭐ NEW
+```python
+from lineup_prop_integration import LineupAwarePropAnalyzer
+
+# Initialize lineup-aware analyzer
+lineup_analyzer = LineupImpactAnalyzer()
+prop_analyzer = LineupAwarePropAnalyzer(lineup_analyzer)
+
+# Analyze prop with lineup context
+analysis = prop_analyzer.analyze_prop_with_lineup(
+    prop=lebron_points_prop,
+    lineup_config=lineup_with_reaves
+)
+
+print(f"Base Value: {analysis['base_value']:.1f}")
+print(f"Adjusted Value: {analysis['adjusted_value']:.1f}")
+print(f"Hit Probability: {analysis['hit_probability']:.1%}")
+print(f"Edge: {analysis['edge']:+.2%}")
+print(f"Recommendation: {analysis['recommendation']}")
+
+# Compare lineup scenarios
+comparison = prop_analyzer.compare_lineup_scenarios(
+    prop=lebron_points_prop,
+    lineup_with_key_player=lineup_with_reaves,
+    lineup_without_key_player=lineup_without_reaves,
+    key_player_name="Austin Reaves"
+)
+
+print(f"\nWith Reaves: {comparison['with_key_player']['adjusted_value']:.1f}")
+print(f"Without Reaves: {comparison['without_key_player']['adjusted_value']:.1f}")
+print(f"Differential: {comparison['differentials']['value_diff']:+.1f}")
+print(f"Recommendation: {comparison['recommendation']}")
 ```
 
 ## Data Structure
@@ -392,6 +517,21 @@ for prop in game_props:
 ✅ **Defender Hit Rate Tracking** - Zone-specific defense metrics  
 ✅ **Matchup-Adjusted Props** - Enhanced projections with defensive context  
 ✅ **Comprehensive Reports** - Detailed matchup breakdowns with recommendations  
+✅ **Lineup Impact Analysis** - Track performance by lineup configuration ⭐ NEW  
+✅ **Minutes/Pace/Usage by Lineup** - Detailed lineup-dependent metrics ⭐ NEW  
+✅ **Key Player Impact** - Analyze with/without teammate effects ⭐ NEW  
+✅ **Hit Rates by Lineup** - Prop hit rates for specific lineup configurations ⭐ NEW  
+✅ **Lineup-Aware Prop Betting** - Adjust prop projections based on lineups ⭐ NEW  
+
+### Lineup Impact Features (2025-26 Season)
+📊 **Lineup Configurations** - Track which players are in/out  
+📊 **Minutes Tracking** - MPG by lineup configuration  
+📊 **Pace Analysis** - Possessions per 48 minutes by lineup  
+📊 **Usage Rates** - % of team possessions by lineup  
+📊 **Performance Splits** - PPG, RPG, APG by lineup  
+📊 **Efficiency Metrics** - FG%, 3P%, TS% by lineup  
+📊 **Hit Rate Data** - Prop hit rates for each lineup scenario  
+📊 **Key Player Effects** - Statistical differentials with/without teammates  
 
 ## Technical Details
 
