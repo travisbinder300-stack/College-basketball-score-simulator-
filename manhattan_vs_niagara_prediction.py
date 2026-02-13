@@ -2,15 +2,102 @@
 Manhattan vs Niagara Game Prediction
 Using Billy Walters Framework for College Basketball
 
-MAAC Conference Matchup Analysis
+MAAC Conference Matchup Analysis with ATS Tracking
 """
 
 from billy_walters_predictor import (
     TeamStats, PowerRatings, GameFactors, 
     PredictionEngine, BankrollManagement
 )
+from dataclasses import dataclass
 from datetime import datetime
 import numpy as np
+
+
+@dataclass
+class ATSRecord:
+    """ATS (Against The Spread) Record"""
+    wins: int
+    losses: int
+    pushes: int
+    home_wins: int
+    home_losses: int
+    away_wins: int
+    away_losses: int
+    fav_wins: int
+    fav_losses: int
+    dog_wins: int
+    dog_losses: int
+    
+    @property
+    def ats_percentage(self) -> float:
+        """Overall ATS win percentage"""
+        total = self.wins + self.losses
+        return (self.wins / total * 100) if total > 0 else 0.0
+    
+    @property
+    def home_percentage(self) -> float:
+        """Home ATS win percentage"""
+        total = self.home_wins + self.home_losses
+        return (self.home_wins / total * 100) if total > 0 else 0.0
+    
+    @property
+    def away_percentage(self) -> float:
+        """Away ATS win percentage"""
+        total = self.away_wins + self.away_losses
+        return (self.away_wins / total * 100) if total > 0 else 0.0
+    
+    @property
+    def favorite_percentage(self) -> float:
+        """Favorite ATS win percentage"""
+        total = self.fav_wins + self.fav_losses
+        return (self.fav_wins / total * 100) if total > 0 else 0.0
+    
+    @property
+    def underdog_percentage(self) -> float:
+        """Underdog ATS win percentage"""
+        total = self.dog_wins + self.dog_losses
+        return (self.dog_wins / total * 100) if total > 0 else 0.0
+
+
+def get_manhattan_ats() -> ATSRecord:
+    """
+    Manhattan Jaspers ATS Record
+    Estimated mid-major profile for 2023-24 season
+    """
+    return ATSRecord(
+        wins=14,
+        losses=11,
+        pushes=1,
+        home_wins=9,
+        home_losses=4,
+        away_wins=5,
+        away_losses=7,
+        fav_wins=8,
+        fav_losses=6,
+        dog_wins=6,
+        dog_losses=5
+    )
+
+
+def get_niagara_ats() -> ATSRecord:
+    """
+    Niagara Purple Eagles ATS Record
+    Estimated mid-major profile for 2023-24 season
+    """
+    return ATSRecord(
+        wins=12,
+        losses=13,
+        pushes=1,
+        home_wins=7,
+        home_losses=6,
+        away_wins=5,
+        away_losses=7,
+        fav_wins=5,
+        fav_losses=8,
+        dog_wins=7,
+        dog_losses=5
+    )
 
 
 def get_manhattan_stats() -> TeamStats:
@@ -103,6 +190,67 @@ def run_prediction():
     print(f"  Recent Form: {'-'.join(niagara_stats.recent_form)} (3-2 in last 5)")
     print(f"  Strength of Schedule: {niagara_stats.strength_of_schedule:.1f}")
     print(f"  ★ POWER RATING: {niagara_rating:.2f}")
+    print()
+    
+    # ATS (Against The Spread) Analysis
+    print("-" * 90)
+    print("ATS (AGAINST THE SPREAD) RECORDS")
+    print("-" * 90)
+    print()
+    
+    manhattan_ats = get_manhattan_ats()
+    niagara_ats = get_niagara_ats()
+    
+    print(f"MANHATTAN JASPERS ATS RECORD")
+    print(f"  Overall: {manhattan_ats.wins}-{manhattan_ats.losses}-{manhattan_ats.pushes} ({manhattan_ats.ats_percentage:.1f}%)")
+    print(f"  Home: {manhattan_ats.home_wins}-{manhattan_ats.home_losses} ({manhattan_ats.home_percentage:.1f}%)")
+    print(f"  Away: {manhattan_ats.away_wins}-{manhattan_ats.away_losses} ({manhattan_ats.away_percentage:.1f}%)")
+    print(f"  As Favorite: {manhattan_ats.fav_wins}-{manhattan_ats.fav_losses} ({manhattan_ats.favorite_percentage:.1f}%)")
+    print(f"  As Underdog: {manhattan_ats.dog_wins}-{manhattan_ats.dog_losses} ({manhattan_ats.underdog_percentage:.1f}%)")
+    
+    # Evaluate Manhattan's ATS strength
+    if manhattan_ats.ats_percentage >= 55:
+        print(f"  ✓ STRONG ATS PERFORMER (Above breakeven)")
+    elif manhattan_ats.ats_percentage >= 50:
+        print(f"  → SOLID ATS PERFORMER (Near breakeven)")
+    else:
+        print(f"  ⚠ BELOW AVERAGE ATS (Under 50%)")
+    
+    print()
+    
+    print(f"NIAGARA PURPLE EAGLES ATS RECORD")
+    print(f"  Overall: {niagara_ats.wins}-{niagara_ats.losses}-{niagara_ats.pushes} ({niagara_ats.ats_percentage:.1f}%)")
+    print(f"  Home: {niagara_ats.home_wins}-{niagara_ats.home_losses} ({niagara_ats.home_percentage:.1f}%)")
+    print(f"  Away: {niagara_ats.away_wins}-{niagara_ats.away_losses} ({niagara_ats.away_percentage:.1f}%)")
+    print(f"  As Favorite: {niagara_ats.fav_wins}-{niagara_ats.fav_losses} ({niagara_ats.favorite_percentage:.1f}%)")
+    print(f"  As Underdog: {niagara_ats.dog_wins}-{niagara_ats.dog_losses} ({niagara_ats.underdog_percentage:.1f}%)")
+    
+    # Evaluate Niagara's ATS strength
+    if niagara_ats.ats_percentage >= 55:
+        print(f"  ✓ STRONG ATS PERFORMER (Above breakeven)")
+    elif niagara_ats.ats_percentage >= 50:
+        print(f"  → SOLID ATS PERFORMER (Near breakeven)")
+    else:
+        print(f"  ⚠ BELOW AVERAGE ATS (Under 50%)")
+    
+    print()
+    
+    # ATS Trends Analysis
+    print("ATS TRENDS FOR THIS MATCHUP:")
+    print(f"  Manhattan at home: {manhattan_ats.home_percentage:.1f}% ATS")
+    print(f"  Niagara on road: {niagara_ats.away_percentage:.1f}% ATS")
+    
+    # Determine ATS edge
+    ats_edge = manhattan_ats.home_percentage - niagara_ats.away_percentage
+    if abs(ats_edge) >= 15:
+        edge_team = "Manhattan" if ats_edge > 0 else "Niagara"
+        print(f"  🔥 STRONG ATS EDGE: {edge_team} ({abs(ats_edge):.1f}% difference)")
+    elif abs(ats_edge) >= 10:
+        edge_team = "Manhattan" if ats_edge > 0 else "Niagara"
+        print(f"  ✓ MODERATE ATS EDGE: {edge_team} ({abs(ats_edge):.1f}% difference)")
+    else:
+        print(f"  → EVEN ATS MATCHUP (within {abs(ats_edge):.1f}%)")
+    
     print()
     
     # Handicapping analysis
@@ -293,6 +441,10 @@ def run_prediction():
         print("  ✓ Controls pace with faster tempo")
     print("  ✓ Familiar venue (Draddy Gymnasium)")
     print("  ✓ No travel fatigue")
+    if manhattan_ats.home_percentage > 55:
+        print(f"  ✓ Strong home ATS record ({manhattan_ats.home_percentage:.1f}%)")
+    if manhattan_ats.fav_wins > manhattan_ats.fav_losses and favorite == "Manhattan":
+        print(f"  ✓ Covers well as favorite ({manhattan_ats.favorite_percentage:.1f}%)")
     
     print()
     print("FACTORS FAVORING NIAGARA:")
@@ -300,6 +452,13 @@ def run_prediction():
         print("  ✓ Superior net efficiency")
     print("  ✓ Better defensive efficiency")
     if niagara_stats.tempo < manhattan_stats.tempo:
+        print("  ✓ Can slow the game to their preferred pace")
+    print("  ✓ Recent form equally strong (3-2)")
+    print("  ✓ Experience in road conference games")
+    if niagara_ats.dog_wins > niagara_ats.dog_losses and underdog == "Niagara":
+        print(f"  ✓ Covers well as underdog ({niagara_ats.underdog_percentage:.1f}%)")
+    if niagara_ats.away_percentage > 50:
+        print(f"  ✓ Solid away ATS record ({niagara_ats.away_percentage:.1f}%)")
         print("  ✓ Can slow the game to their preferred pace")
     print("  ✓ Recent form equally strong (3-2)")
     print("  ✓ Experience in road conference games")
