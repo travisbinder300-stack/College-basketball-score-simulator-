@@ -34,9 +34,10 @@ python manhattan_vs_niagara_prediction.py
 ```
 
 **Key Findings:** 
-- Manhattan's home court advantage (+3.5) and pace control decisive
-- **🔥 Strong ATS Edge: Manhattan 69.2% home vs Niagara 41.7% away (27.6% difference)**
-- ATS trends strongly support the home team pick
+- Niagara's home court advantage (+3.5) decisive
+- **Away Team ATS: Manhattan 2-9-1 away (18.2%) - Home-dependent team**
+- **Niagara 6-8-0 away (42.9%) but playing at home**
+- Manhattan struggles significantly on the road
 
 ---
 
@@ -148,9 +149,55 @@ Analysis includes:
 
 **See [ATS_VS_RANKED_GUIDE.md](ATS_VS_RANKED_GUIDE.md) for complete documentation.**
 
-## Billy Walters' Framework
+### ATS Performance on the Road (Away Teams)
 
-Billy Walters is considered one of the most successful sports bettors in history. His framework, as detailed in his book, focuses on:
+**NEW!** Analyze team performance ATS specifically for away/road games (2025-26 season):
+
+```bash
+python ats_away_analysis.py
+```
+
+**Data Source:** https://www.teamrankings.com/ncb/trends/ats_trends/?sc=is_away
+
+**2025-26 Season Key Findings:**
+- **Best Road Warrior:** Portland St (91.7%, 11-1-0 away)
+- **Road Warriors (85%+):** Georgia Tech, Clemson, San Diego St, Utah, Texas A&M, Nebraska, Florida
+- **Home-Dependent (<35%):** McNeese (11.1%), Manhattan (18.2%)
+
+Analysis includes:
+- ATS performance specifically for away games
+- Road warriors (teams that excel away from home)
+- Home-dependent teams (struggle on the road)
+- Away vs overall performance comparison
+- Betting strategies for road games
+
+**See [ATS_AWAY_GUIDE.md](ATS_AWAY_GUIDE.md) for complete documentation.**
+
+### ATS Performance as Favorites
+
+**NEW!** Analyze team performance ATS when they are betting favorites:
+
+```bash
+python ats_as_favorite_analysis.py
+```
+
+**Data Source:** https://www.teamrankings.com/ncb/trends/ats_trends/?sc=is_fav
+
+**Key Insights:**
+- **Best as Favorite:** Houston (90.0%, 18-2-1 record)
+- **Elite Favorites (85%+):** Purdue, Gonzaga
+- **Weak Favorites (<60%):** UNC (52.6%), Villanova (55.0%)
+
+Analysis includes:
+- ATS performance when teams are favorites
+- Best/worst performers as favorites
+- Performance gap (as favorite vs overall)
+- Public bias and line inflation
+- Betting strategies for favorites
+
+**See [ATS_AS_FAVORITE_GUIDE.md](ATS_AS_FAVORITE_GUIDE.md) for complete documentation.**
+
+## Billy Walters' Framework
 
 1. **Data-Driven Power Ratings** - Building proprietary team strength metrics
 2. **Comprehensive Game Analysis** - Accounting for every factor that affects outcomes
