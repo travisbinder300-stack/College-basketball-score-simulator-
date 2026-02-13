@@ -266,7 +266,8 @@ class LineMovementAnalyzer:
         Fast, significant moves indicate sharp syndicate action
         """
         if time_elapsed_hours == 0:
-            return 0.0
+            # Instant move indicates very strong steam
+            return min(abs(line_movement), 3.0)
         
         # Points moved per hour
         movement_rate = abs(line_movement) / time_elapsed_hours
