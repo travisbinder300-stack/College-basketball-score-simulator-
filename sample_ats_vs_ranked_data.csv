@@ -1,0 +1,15 @@
+# 2025-26 Season - ATS Performance vs Ranked Opponents
+# Data Source: https://www.teamrankings.com/ncb/trends/ats_trends/?sc=vs_ranked
+# Last Updated: 2026-02-13
+# IMPORTANT: Use ONLY current season data (2025-26)
+Team,Conference,Overall_W,Overall_L,Overall_P,VsRanked_W,VsRanked_L,VsRanked_P
+Duke,ACC,18,12,0,9,3,0
+Houston,Big 12,21,8,1,7,3,0
+Purdue,Big Ten,20,9,1,8,3,0
+Kansas,Big 12,19,11,0,6,5,0
+Arizona,Pac-12,19,10,1,5,4,0
+UConn,Big East,17,12,1,6,5,0
+Miami (FL),ACC,15,15,0,6,2,0
+Auburn,SEC,18,15,0,7,3,0
+Marquette,Big East,13,9,0,2,4,0
+Creighton,Big East,16,10,0,4,6,0
