@@ -4,7 +4,7 @@ A comprehensive college basketball prediction system implementing the methodolog
 
 ## Latest Prediction: Manhattan vs Niagara
 
-**Manhattan 75, Niagara 69** - Manhattan -6.2
+**Niagara 75, Manhattan 69** - Niagara -5.8 (Manhattan is the road team)
 
 Comprehensive MAAC conference matchup analysis featuring:
 - Complete team statistics and power ratings
