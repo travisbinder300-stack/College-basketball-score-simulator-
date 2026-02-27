@@ -440,6 +440,7 @@ def format_report(r: dict) -> str:
         f"  Moneyline : {pick_ml}",
         f"  Run Line  : {pick_rl}",
         f"  Over/Under: {pick_ou} {score(r['expected_total'])}",
+        f"  Score     : {away.name} {round(r['projected_score_away'])} - {home.name} {round(r['projected_score_home'])}",
         "=" * 60,
     ]
     return "\n".join(lines)
