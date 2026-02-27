@@ -5,16 +5,23 @@ College Baseball Game Simulator
 Parse a betting-line string and simulate a game outcome.
 Optionally accepts RPI rank and SOS rank for each team to refine the simulation.
 
-Input format (one or two lines, or a single line with "at"):
-  <Team A> ML <ml_odds> <run_line> <rl_odds> [RPI <n> SOS <n>] at \
+Supported input formats
+-----------------------
+Full format (with ML keyword and "at" separator):
+  <Team A> ML <ml_odds> <run_line> <rl_odds> [RPI <n> SOS <n>] at
   <Team B> ML <ml_odds> <run_line> <rl_odds> [RPI <n> SOS <n>]
+
+Short format (spread only, no ML keyword):
+  <Team A> <run_line> <rl_odds> <Team B> <run_line> <rl_odds>
 
 Examples:
   Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148
   Illinois State ML -139 -1.5 +108 RPI 45 SOS 78 at Middle Tennessee ML +104 +1.5 -148 RPI 67 SOS 120
+  UT Arlington +5.5 -136 Arkansas -5.5 +100
 
 Usage:
-  python game_simulator.py "Illinois State ML -139 -1.5 +108 RPI 45 SOS 78 at Middle Tennessee ML +104 +1.5 -148 RPI 67 SOS 120"
+  python game_simulator.py "UT Arlington +5.5 -136 Arkansas -5.5 +100"
+  python game_simulator.py "Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148"
   python game_simulator.py          # interactive prompt
 """
 
@@ -143,21 +150,83 @@ def parse_team_fragment(tokens: list[str], is_home: bool) -> Team:
     )
 
 
+def _is_numeric_token(s: str) -> bool:
+    """Return True if s looks like a signed or unsigned number (e.g. +5.5, -136, 1.5)."""
+    return bool(re.match(r'^[+-]?\d+(\.\d+)?$', s))
+
+
+def parse_spread_matchup(line: str) -> Matchup:
+    """
+    Parse a short spread-only line such as:
+      UT Arlington +5.5 -136 Arkansas -5.5 +100
+
+    Format: <Team A> <run_line> <rl_odds> <Team B> <run_line> <rl_odds>
+    The first team is treated as away, the second as home.
+    The run-line odds are also used as a moneyline proxy for win-probability.
+    """
+    tokens = line.strip().split()
+
+    # Locate the first pair of consecutive numeric tokens — those are
+    # run_line + rl_odds for team A.  Everything before them is the name.
+    split_idx = None
+    for i in range(1, len(tokens) - 1):
+        if _is_numeric_token(tokens[i]) and _is_numeric_token(tokens[i + 1]):
+            split_idx = i
+            break
+
+    if split_idx is None:
+        raise ValueError(
+            "Could not detect spread format. "
+            "Expected: <Team A> <run_line> <odds> <Team B> <run_line> <odds>"
+        )
+
+    away_name = " ".join(tokens[:split_idx])
+    if not away_name:
+        raise ValueError("Could not determine away team name.")
+
+    try:
+        away_run_line = float(tokens[split_idx])
+        away_rl_odds = int(tokens[split_idx + 1])
+    except ValueError as exc:
+        raise ValueError(f"Could not parse away run-line/odds: {exc}") from exc
+
+    rest = tokens[split_idx + 2:]
+    if len(rest) < 3:
+        raise ValueError(
+            "Not enough tokens for home team. "
+            "Expected: <Team B name> <run_line> <odds>"
+        )
+
+    try:
+        home_run_line = float(rest[-2])
+        home_rl_odds = int(rest[-1])
+    except ValueError as exc:
+        raise ValueError(f"Could not parse home run-line/odds: {exc}") from exc
+
+    home_name = " ".join(rest[:-2])
+    if not home_name:
+        raise ValueError("Could not determine home team name.")
+
+    # Use run-line odds as ML proxy for win-probability estimation
+    away = Team(name=away_name, is_home=False, ml_odds=away_rl_odds, run_line=away_run_line, rl_odds=away_rl_odds)
+    home = Team(name=home_name, is_home=True, ml_odds=home_rl_odds, run_line=home_run_line, rl_odds=home_rl_odds)
+    return Matchup(away=away, home=home)
+
+
 def parse_matchup(line: str) -> Matchup:
     """
     Parse a full matchup line such as:
       Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148
 
-    The word "at" separates away from home team.  The "at" must appear between
-    the two ML blocks (after the away side's run-line odds token).
+    If no 'ML' keyword is found, falls back to the short spread-only format:
+      UT Arlington +5.5 -136 Arkansas -5.5 +100
     """
     tokens = line.strip().split()
 
-    # Find the "at" separator that sits between the two team descriptions.
-    # Strategy: find "ML" occurrences first; the "at" we want comes between them.
+    # If no ML keyword present, use the short spread format
     ml_positions = [i for i, t in enumerate(tokens) if t.upper() == "ML"]
     if len(ml_positions) < 2:
-        raise ValueError("Expected two 'ML' keywords (one per team) in the line.")
+        return parse_spread_matchup(line)
 
     first_ml = ml_positions[0]
     second_ml = ml_positions[1]
@@ -454,7 +523,9 @@ def main() -> int:
     if len(sys.argv) > 1:
         line = " ".join(sys.argv[1:])
     else:
-        print("Enter matchup line (e.g.  Team A ML -139 -1.5 +108 at Team B ML +104 +1.5 -148):")
+        print("Enter matchup line:")
+        print("  Full format : Team A ML -139 -1.5 +108 at Team B ML +104 +1.5 -148")
+        print("  Short format: Team A +5.5 -136 Team B -5.5 +100")
         line = input().strip()
 
     if not line:
