@@ -3,15 +3,18 @@
 College Baseball Game Simulator
 ===================================
 Parse a betting-line string and simulate a game outcome.
+Optionally accepts RPI rank and SOS rank for each team to refine the simulation.
 
 Input format (one or two lines, or a single line with "at"):
-  <Team A> ML <ml_odds> <run_line> <rl_odds> at <Team B> ML <ml_odds> <run_line> <rl_odds>
+  <Team A> ML <ml_odds> <run_line> <rl_odds> [RPI <n> SOS <n>] at \
+  <Team B> ML <ml_odds> <run_line> <rl_odds> [RPI <n> SOS <n>]
 
-Example:
+Examples:
   Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148
+  Illinois State ML -139 -1.5 +108 RPI 45 SOS 78 at Middle Tennessee ML +104 +1.5 -148 RPI 67 SOS 120
 
 Usage:
-  python game_simulator.py "Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148"
+  python game_simulator.py "Illinois State ML -139 -1.5 +108 RPI 45 SOS 78 at Middle Tennessee ML +104 +1.5 -148 RPI 67 SOS 120"
   python game_simulator.py          # interactive prompt
 """
 
@@ -32,9 +35,11 @@ from typing import Optional, Tuple
 class Team:
     name: str
     is_home: bool
-    ml_odds: int          # American odds, e.g. -139 or +104
-    run_line: float       # e.g. -1.5 (favourite) or +1.5 (underdog)
-    rl_odds: int          # American odds on the run line
+    ml_odds: int               # American odds, e.g. -139 or +104
+    run_line: float            # e.g. -1.5 (favourite) or +1.5 (underdog)
+    rl_odds: int               # American odds on the run line
+    rpi_rank: Optional[int] = None   # NCAA RPI rank (lower = stronger)
+    sos_rank: Optional[int] = None   # Strength-of-Schedule rank (lower = harder schedule)
 
 
 @dataclass
@@ -79,7 +84,7 @@ def implied_total_from_run_line(run_line: float, base_total: float = 8.5) -> flo
 def parse_team_fragment(tokens: list[str], is_home: bool) -> Team:
     """
     Parse tokens for one team side.  Expected pattern:
-      <name words...> ML <ml_odds> <run_line> <rl_odds>
+      <name words...> ML <ml_odds> <run_line> <rl_odds> [RPI <n>] [SOS <n>]
     """
     # Find "ML" keyword
     try:
@@ -104,12 +109,37 @@ def parse_team_fragment(tokens: list[str], is_home: bool) -> Team:
     except ValueError as exc:
         raise ValueError(f"Could not parse odds from {rest[:3]}: {exc}") from exc
 
+    # Parse optional RPI and SOS tokens
+    rpi_rank: Optional[int] = None
+    sos_rank: Optional[int] = None
+    extra = rest[3:]
+    i = 0
+    while i < len(extra) - 1:
+        key = extra[i].upper()
+        if key == "RPI":
+            try:
+                rpi_rank = int(extra[i + 1])
+                i += 2
+                continue
+            except ValueError:
+                pass
+        elif key == "SOS":
+            try:
+                sos_rank = int(extra[i + 1])
+                i += 2
+                continue
+            except ValueError:
+                pass
+        i += 1
+
     return Team(
         name=name,
         is_home=is_home,
         ml_odds=ml_odds,
         run_line=run_line,
         rl_odds=rl_odds,
+        rpi_rank=rpi_rank,
+        sos_rank=sos_rank,
     )
 
 
@@ -160,6 +190,53 @@ def parse_matchup(line: str) -> Matchup:
 
 HOME_ADVANTAGE_RUNS = 0.3     # typical home-field edge in college baseball (runs)
 MIN_GAME_TOTAL = 1            # floor for simulated total runs to avoid unrealistic values
+MAX_RPI_RANK = 350            # approximate size of the NCAA field
+TEAM_NAME_WIDTH = 28          # column width for team names in the report
+
+
+def _rpi_adjustments(
+    away: "Team", home: "Team", win_prob_away: float, adjusted_margin_away: float
+) -> tuple[float, float, float, float]:
+    """
+    Blend RPI-based win probability and adjust run margin when RPI ranks are available.
+
+    RPI blending
+    ------------
+    - Compute a straight RPI-ratio win probability: lower rank = better team.
+    - Weight that probability against the ML-derived one using the average
+      SOS quality of the two teams (tougher schedule → more trustworthy RPI).
+    - The RPI contribution is capped at 40 % of the final probability.
+
+    Margin adjustment
+    -----------------
+    - A rank difference of 100 translates to ~0.8 run advantage.
+    - Positive value favours the away team (their rank is lower/better).
+
+    Returns
+    -------
+    Tuple of (blended_win_prob_away, adjusted_margin_away, rpi_prob_away, rpi_weight).
+    Raises ValueError if either team has an RPI rank of 0.
+    """
+    if away.rpi_rank == 0 or home.rpi_rank == 0:
+        raise ValueError("RPI rank must be a positive integer (1 or greater).")
+
+    rpi_prob_away = home.rpi_rank / (away.rpi_rank + home.rpi_rank)
+
+    # SOS quality: 0 (weakest schedule) → 1 (hardest schedule)
+    away_sos_q = (MAX_RPI_RANK - (away.sos_rank or MAX_RPI_RANK // 2)) / MAX_RPI_RANK
+    home_sos_q = (MAX_RPI_RANK - (home.sos_rank or MAX_RPI_RANK // 2)) / MAX_RPI_RANK
+    avg_sos_quality = (away_sos_q + home_sos_q) / 2
+
+    # RPI weight: 0.15 (easy schedules) → 0.35 (tough schedules), capped at 0.40
+    rpi_weight = min(0.40, 0.15 + avg_sos_quality * 0.20)
+
+    blended_away = win_prob_away * (1 - rpi_weight) + rpi_prob_away * rpi_weight
+
+    # Margin nudge: (home_rank − away_rank) × 0.008 run/rank
+    rpi_margin_adj = (home.rpi_rank - away.rpi_rank) * 0.008
+    adjusted_margin_away += rpi_margin_adj
+
+    return blended_away, adjusted_margin_away, rpi_prob_away, rpi_weight
 
 
 def simulate_game(
@@ -189,7 +266,7 @@ def simulate_game(
     # --- Win probabilities from moneyline ---
     raw_away = american_to_implied_prob(away.ml_odds)
     raw_home = american_to_implied_prob(home.ml_odds)
-    win_prob_away, win_prob_home = remove_vig(raw_away, raw_home)
+    ml_prob_away, ml_prob_home = remove_vig(raw_away, raw_home)
 
     # --- Expected run margin (away - home) from the run line ---
     # A run line of -1.5 for the away team means they are favored to win by 1.5,
@@ -198,6 +275,18 @@ def simulate_game(
 
     # Apply home-field adjustment: reduce the away team's expected margin.
     adjusted_margin_away = expected_margin_away - HOME_ADVANTAGE_RUNS
+
+    # --- RPI / SOS adjustments (when both teams have RPI rank data) ---
+    rpi_used = away.rpi_rank is not None and home.rpi_rank is not None
+    rpi_weight_used: float = 0.0
+    rpi_prob_away_used: float = 0.0
+    blended_prob_away = ml_prob_away
+    blended_prob_home = ml_prob_home
+    if rpi_used:
+        blended_prob_away, adjusted_margin_away, rpi_prob_away_used, rpi_weight_used = (
+            _rpi_adjustments(away, home, ml_prob_away, adjusted_margin_away)
+        )
+        blended_prob_home = 1.0 - blended_prob_away
 
     # --- Expected total runs ---
     expected_total = implied_total_from_run_line(away.run_line)
@@ -253,8 +342,14 @@ def simulate_game(
     return {
         "away": away,
         "home": home,
-        "ml_win_prob_away": win_prob_away,
-        "ml_win_prob_home": win_prob_home,
+        "ml_win_prob_away": ml_prob_away,
+        "ml_win_prob_home": ml_prob_home,
+        "rpi_used": rpi_used,
+        "rpi_prob_away": rpi_prob_away_used,
+        "rpi_prob_home": 1.0 - rpi_prob_away_used,
+        "rpi_weight": rpi_weight_used,
+        "blended_win_prob_away": blended_prob_away,
+        "blended_win_prob_home": blended_prob_home,
         "sim_win_pct_away": sim_away_win_pct,
         "sim_win_pct_home": sim_home_win_pct,
         "projected_score_away": proj_away,
@@ -300,26 +395,46 @@ def format_report(r: dict) -> str:
         f"  {'Home:':8s} {home.name}",
         "-" * 60,
         "  ODDS INPUT",
-        f"  {away.name:<28s}  ML {away.ml_odds:+d}  "
+        f"  {away.name:<{TEAM_NAME_WIDTH}s}  ML {away.ml_odds:+d}  "
         f"RL {away.run_line:+.1f} ({away.rl_odds:+d})",
-        f"  {home.name:<28s}  ML {home.ml_odds:+d}  "
+        f"  {home.name:<{TEAM_NAME_WIDTH}s}  ML {home.ml_odds:+d}  "
         f"RL {home.run_line:+.1f} ({home.rl_odds:+d})",
         "-" * 60,
         "  MONEYLINE IMPLIED WIN PROBABILITY (de-vigged)",
-        f"  {away.name:<28s}  {pct(r['ml_win_prob_away'])}",
-        f"  {home.name:<28s}  {pct(r['ml_win_prob_home'])}",
+        f"  {away.name:<{TEAM_NAME_WIDTH}s}  {pct(r['ml_win_prob_away'])}",
+        f"  {home.name:<{TEAM_NAME_WIDTH}s}  {pct(r['ml_win_prob_home'])}",
+    ]
+
+    # --- Optional RPI / SOS section ---
+    if r["rpi_used"]:
+        rpi_w = r["rpi_weight"]
+        lines += [
+            "-" * 60,
+            "  RPI / SOS DATA",
+            f"  {away.name:<{TEAM_NAME_WIDTH}s}  RPI {away.rpi_rank}  SOS {away.sos_rank if away.sos_rank is not None else '--'}",
+            f"  {home.name:<{TEAM_NAME_WIDTH}s}  RPI {home.rpi_rank}  SOS {home.sos_rank if home.sos_rank is not None else '--'}",
+            f"  RPI-based win probability        "
+            f"{away.name} {pct(r['rpi_prob_away'])}  |  "
+            f"{home.name} {pct(r['rpi_prob_home'])}",
+            f"  SOS-weighted RPI blend           {rpi_w * 100:.0f}% RPI + {(1 - rpi_w) * 100:.0f}% ML",
+            f"  Blended win probability          "
+            f"{away.name} {pct(r['blended_win_prob_away'])}  |  "
+            f"{home.name} {pct(r['blended_win_prob_home'])}",
+        ]
+
+    lines += [
         "-" * 60,
         f"  SIMULATION  ({r['num_simulations']:,} runs)",
-        f"  {'Win %':<28s}  {away.name} {pct(r['sim_win_pct_away'])}  |  "
+        f"  {'Win %':<{TEAM_NAME_WIDTH}s}  {away.name} {pct(r['sim_win_pct_away'])}  |  "
         f"{home.name} {pct(r['sim_win_pct_home'])}",
-        f"  {'Run Line cover %':<28s}  {away.name} {pct(r['away_cover_pct'])}  |  "
+        f"  {'Run Line cover %':<{TEAM_NAME_WIDTH}s}  {away.name} {pct(r['away_cover_pct'])}  |  "
         f"{home.name} {pct(r['home_cover_pct'])}",
-        f"  {'Over/Under %':<28s}  OVER {pct(r['over_pct'])}  |  UNDER {pct(r['under_pct'])}",
+        f"  {'Over/Under %':<{TEAM_NAME_WIDTH}s}  OVER {pct(r['over_pct'])}  |  UNDER {pct(r['under_pct'])}",
         "-" * 60,
         "  PROJECTED SCORE (runs)",
-        f"  {away.name:<28s}  {score(r['projected_score_away'])}",
-        f"  {home.name:<28s}  {score(r['projected_score_home'])}",
-        f"  {'Projected total runs':<28s}  {score(r['projected_total'])}",
+        f"  {away.name:<{TEAM_NAME_WIDTH}s}  {score(r['projected_score_away'])}",
+        f"  {home.name:<{TEAM_NAME_WIDTH}s}  {score(r['projected_score_home'])}",
+        f"  {'Projected total runs':<{TEAM_NAME_WIDTH}s}  {score(r['projected_total'])}",
         "-" * 60,
         "  PICKS",
         f"  Moneyline : {pick_ml}",
