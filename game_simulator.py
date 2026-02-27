@@ -1,0 +1,360 @@
+#!/usr/bin/env python3
+"""
+College Baseball Game Simulator
+===================================
+Parse a betting-line string and simulate a game outcome.
+
+Input format (one or two lines, or a single line with "at"):
+  <Team A> ML <ml_odds> <run_line> <rl_odds> at <Team B> ML <ml_odds> <run_line> <rl_odds>
+
+Example:
+  Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148
+
+Usage:
+  python game_simulator.py "Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148"
+  python game_simulator.py          # interactive prompt
+"""
+
+from __future__ import annotations
+
+import random
+import re
+import sys
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+
+# ---------------------------------------------------------------------------
+# Data model
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Team:
+    name: str
+    is_home: bool
+    ml_odds: int          # American odds, e.g. -139 or +104
+    run_line: float       # e.g. -1.5 (favourite) or +1.5 (underdog)
+    rl_odds: int          # American odds on the run line
+
+
+@dataclass
+class Matchup:
+    away: Team
+    home: Team
+
+
+# ---------------------------------------------------------------------------
+# Odds helpers
+# ---------------------------------------------------------------------------
+
+def american_to_implied_prob(odds: int) -> float:
+    """Convert American moneyline odds to implied win probability (0-1)."""
+    if odds < 0:
+        return (-odds) / (-odds + 100)
+    else:
+        return 100 / (odds + 100)
+
+
+def remove_vig(prob_a: float, prob_b: float) -> Tuple[float, float]:
+    """Remove the bookmaker's vig so probabilities sum to 1."""
+    total = prob_a + prob_b
+    return prob_a / total, prob_b / total
+
+
+def implied_total_from_run_line(run_line: float, base_total: float = 8.5) -> float:
+    """
+    Estimate an expected run total based on the run line.
+    A larger absolute run line implies a slightly higher-scoring game;
+    we nudge the expected total slightly.
+    """
+    return base_total + abs(run_line) * 0.2
+
+
+# ---------------------------------------------------------------------------
+# Parsing
+# ---------------------------------------------------------------------------
+
+# Matches tokens like: -139  +108  -1.5  +1.5  0
+
+def parse_team_fragment(tokens: list[str], is_home: bool) -> Team:
+    """
+    Parse tokens for one team side.  Expected pattern:
+      <name words...> ML <ml_odds> <run_line> <rl_odds>
+    """
+    # Find "ML" keyword
+    try:
+        ml_idx = next(i for i, t in enumerate(tokens) if t.upper() == "ML")
+    except StopIteration:
+        raise ValueError(f"Could not find 'ML' keyword in: {' '.join(tokens)}")
+
+    name = " ".join(tokens[:ml_idx]).strip()
+    if not name:
+        raise ValueError(f"Could not determine team name from: {' '.join(tokens)}")
+
+    rest = tokens[ml_idx + 1:]
+    if len(rest) < 3:
+        raise ValueError(
+            f"Expected <ml_odds> <run_line> <rl_odds> after ML, got: {rest}"
+        )
+
+    try:
+        ml_odds = int(rest[0])
+        run_line = float(rest[1])
+        rl_odds = int(rest[2])
+    except ValueError as exc:
+        raise ValueError(f"Could not parse odds from {rest[:3]}: {exc}") from exc
+
+    return Team(
+        name=name,
+        is_home=is_home,
+        ml_odds=ml_odds,
+        run_line=run_line,
+        rl_odds=rl_odds,
+    )
+
+
+def parse_matchup(line: str) -> Matchup:
+    """
+    Parse a full matchup line such as:
+      Illinois State ML -139 -1.5 +108 at Middle Tennessee ML +104 +1.5 -148
+
+    The word "at" separates away from home team.  The "at" must appear between
+    the two ML blocks (after the away side's run-line odds token).
+    """
+    tokens = line.strip().split()
+
+    # Find the "at" separator that sits between the two team descriptions.
+    # Strategy: find "ML" occurrences first; the "at" we want comes between them.
+    ml_positions = [i for i, t in enumerate(tokens) if t.upper() == "ML"]
+    if len(ml_positions) < 2:
+        raise ValueError("Expected two 'ML' keywords (one per team) in the line.")
+
+    first_ml = ml_positions[0]
+    second_ml = ml_positions[1]
+
+    # Find "at" between the two ML markers
+    at_pos = None
+    for i in range(first_ml + 1, second_ml):
+        if tokens[i].lower() == "at":
+            at_pos = i
+            break
+
+    if at_pos is None:
+        raise ValueError(
+            "Could not find 'at' separator between the two team entries.\n"
+            "Make sure your line looks like:\n"
+            "  <Away> ML <odds> <run_line> <rl_odds> at <Home> ML <odds> <run_line> <rl_odds>"
+        )
+
+    away_tokens = tokens[:at_pos]
+    home_tokens = tokens[at_pos + 1:]
+
+    away = parse_team_fragment(away_tokens, is_home=False)
+    home = parse_team_fragment(home_tokens, is_home=True)
+    return Matchup(away=away, home=home)
+
+
+# ---------------------------------------------------------------------------
+# Simulation
+# ---------------------------------------------------------------------------
+
+HOME_ADVANTAGE_RUNS = 0.3     # typical home-field edge in college baseball (runs)
+MIN_GAME_TOTAL = 1            # floor for simulated total runs to avoid unrealistic values
+
+
+def simulate_game(
+    matchup: Matchup,
+    num_simulations: int = 100_000,
+    seed: Optional[int] = None,
+) -> dict:
+    """
+    Run Monte Carlo simulations of the matchup and return summary statistics.
+
+    Model:
+    - Derive each team's win probability from the moneyline (de-vigged).
+    - Apply home-field adjustment to the expected run margin.
+    - Estimate expected total runs from the run line.
+    - Draw each game's margin from a normal distribution whose mean is the
+      expected run margin and whose std-dev is calibrated to college baseball
+      (~3.0 runs).
+    - Draw each game's total from a normal distribution centred on the
+      expected total (~2.5-run std-dev).
+    - Compute projected scores from margin + total.
+    """
+    rng = random.Random(seed)
+
+    away = matchup.away
+    home = matchup.home
+
+    # --- Win probabilities from moneyline ---
+    raw_away = american_to_implied_prob(away.ml_odds)
+    raw_home = american_to_implied_prob(home.ml_odds)
+    win_prob_away, win_prob_home = remove_vig(raw_away, raw_home)
+
+    # --- Expected run margin (away - home) from the run line ---
+    # A run line of -1.5 for the away team means they are favored to win by 1.5,
+    # so the expected margin (away - home) = -away.run_line = +1.5.
+    expected_margin_away = -away.run_line
+
+    # Apply home-field adjustment: reduce the away team's expected margin.
+    adjusted_margin_away = expected_margin_away - HOME_ADVANTAGE_RUNS
+
+    # --- Expected total runs ---
+    expected_total = implied_total_from_run_line(away.run_line)
+
+    # --- Simulation parameters ---
+    MARGIN_STD = 3.0    # college baseball run margin std-dev
+    TOTAL_STD = 2.5     # college baseball total runs std-dev
+
+    away_wins = 0
+    home_wins = 0
+    away_covers = 0
+    home_covers = 0
+    total_over = 0
+    total_under = 0
+    margins: list[float] = []
+    totals: list[float] = []
+
+    for _ in range(num_simulations):
+        margin = rng.gauss(adjusted_margin_away, MARGIN_STD)   # away - home
+        total = max(MIN_GAME_TOTAL, rng.gauss(expected_total, TOTAL_STD))
+
+        away_score = (total + margin) / 2
+        home_score = (total - margin) / 2
+
+        if away_score > home_score:
+            away_wins += 1
+        else:
+            home_wins += 1
+
+        # Away covers run line when actual margin beats their run line:
+        # e.g. run_line = -1.5 → away covers when margin > 1.5
+        if margin > -away.run_line:
+            away_covers += 1
+        else:
+            home_covers += 1
+
+        if total > expected_total:
+            total_over += 1
+        else:
+            total_under += 1
+
+        margins.append(margin)
+        totals.append(total)
+
+    sim_away_win_pct = away_wins / num_simulations
+    sim_home_win_pct = home_wins / num_simulations
+    avg_margin = sum(margins) / num_simulations
+    avg_total = sum(totals) / num_simulations
+    proj_away = (avg_total + avg_margin) / 2
+    proj_home = (avg_total - avg_margin) / 2
+    away_cover_pct = away_covers / num_simulations
+
+    return {
+        "away": away,
+        "home": home,
+        "ml_win_prob_away": win_prob_away,
+        "ml_win_prob_home": win_prob_home,
+        "sim_win_pct_away": sim_away_win_pct,
+        "sim_win_pct_home": sim_home_win_pct,
+        "projected_score_away": proj_away,
+        "projected_score_home": proj_home,
+        "projected_margin_away": avg_margin,
+        "projected_total": avg_total,
+        "expected_total": expected_total,
+        "away_cover_pct": away_cover_pct,
+        "home_cover_pct": 1 - away_cover_pct,
+        "over_pct": total_over / num_simulations,
+        "under_pct": total_under / num_simulations,
+        "num_simulations": num_simulations,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+
+def format_report(r: dict) -> str:
+    away: Team = r["away"]
+    home: Team = r["home"]
+
+    def pct(v: float) -> str:
+        return f"{v * 100:.1f}%"
+
+    def score(v: float) -> str:
+        return f"{v:.1f}"
+
+    pick_ml = away.name if r["sim_win_pct_away"] > 0.50 else home.name
+    pick_rl = (
+        f"{away.name} {away.run_line:+.1f}"
+        if r["away_cover_pct"] > 0.50
+        else f"{home.name} {home.run_line:+.1f}"
+    )
+    pick_ou = "OVER" if r["over_pct"] > 0.50 else "UNDER"
+
+    lines = [
+        "=" * 60,
+        "  COLLEGE BASEBALL GAME SIMULATION",
+        "=" * 60,
+        f"  {'Away:':8s} {away.name}",
+        f"  {'Home:':8s} {home.name}",
+        "-" * 60,
+        "  ODDS INPUT",
+        f"  {away.name:<28s}  ML {away.ml_odds:+d}  "
+        f"RL {away.run_line:+.1f} ({away.rl_odds:+d})",
+        f"  {home.name:<28s}  ML {home.ml_odds:+d}  "
+        f"RL {home.run_line:+.1f} ({home.rl_odds:+d})",
+        "-" * 60,
+        "  MONEYLINE IMPLIED WIN PROBABILITY (de-vigged)",
+        f"  {away.name:<28s}  {pct(r['ml_win_prob_away'])}",
+        f"  {home.name:<28s}  {pct(r['ml_win_prob_home'])}",
+        "-" * 60,
+        f"  SIMULATION  ({r['num_simulations']:,} runs)",
+        f"  {'Win %':<28s}  {away.name} {pct(r['sim_win_pct_away'])}  |  "
+        f"{home.name} {pct(r['sim_win_pct_home'])}",
+        f"  {'Run Line cover %':<28s}  {away.name} {pct(r['away_cover_pct'])}  |  "
+        f"{home.name} {pct(r['home_cover_pct'])}",
+        f"  {'Over/Under %':<28s}  OVER {pct(r['over_pct'])}  |  UNDER {pct(r['under_pct'])}",
+        "-" * 60,
+        "  PROJECTED SCORE (runs)",
+        f"  {away.name:<28s}  {score(r['projected_score_away'])}",
+        f"  {home.name:<28s}  {score(r['projected_score_home'])}",
+        f"  {'Projected total runs':<28s}  {score(r['projected_total'])}",
+        "-" * 60,
+        "  PICKS",
+        f"  Moneyline : {pick_ml}",
+        f"  Run Line  : {pick_rl}",
+        f"  Over/Under: {pick_ou} {score(r['expected_total'])}",
+        "=" * 60,
+    ]
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main() -> int:
+    if len(sys.argv) > 1:
+        line = " ".join(sys.argv[1:])
+    else:
+        print("Enter matchup line (e.g.  Team A ML -139 -1.5 +108 at Team B ML +104 +1.5 -148):")
+        line = input().strip()
+
+    if not line:
+        print("No input provided.", file=sys.stderr)
+        return 1
+
+    try:
+        matchup = parse_matchup(line)
+    except ValueError as exc:
+        print(f"Parse error: {exc}", file=sys.stderr)
+        return 1
+
+    results = simulate_game(matchup, num_simulations=100_000, seed=42)
+    print(format_report(results))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
