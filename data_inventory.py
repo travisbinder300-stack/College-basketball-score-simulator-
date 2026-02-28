@@ -209,6 +209,67 @@ def _dp_summary(path: str) -> List[str]:
 
 
 # ---------------------------------------------------------------------------
+# DPG dataset summary  (dpg_data.csv)
+# ---------------------------------------------------------------------------
+
+def _dpg_summary(path: str) -> List[str]:
+    """Return lines describing the double plays per game dataset."""
+    rows: List[Tuple[str, int, int]] = []   # team, g, dp
+    with open(path, newline="", encoding="utf-8") as fh:
+        reader = csv.reader(fh)
+        next(reader, None)   # skip header
+        for line in reader:
+            if len(line) < 4:
+                continue
+            try:
+                team = line[1].strip()
+                g    = int(line[2].strip())
+                dp   = int(line[3].strip())
+                rows.append((team, g, dp))
+            except ValueError:
+                continue
+
+    if not rows:
+        return [
+            f"  File            : dpg_data.csv",
+            f"  Columns         : Rank, Team, G (games), DP (double plays)  [PG = DP ÷ G computed]",
+            f"  Records         : 0 teams  (file is empty — add rows manually)",
+        ]
+
+    total_teams  = len(rows)
+    total_dp     = sum(r[2] for r in rows)
+    avg_dp       = total_dp / total_teams
+    avg_g        = sum(r[1] for r in rows) / total_teams
+    teams_with_g = sum(1 for r in rows if r[1] > 0)
+    avg_pg       = (
+        sum(r[2] / r[1] for r in rows if r[1] > 0) / teams_with_g
+        if teams_with_g else 0.0
+    )
+
+    by_pg  = sorted(rows, key=lambda r: r[2] / r[1] if r[1] > 0 else 0, reverse=True)
+    leader  = by_pg[0]
+    trailer = by_pg[-1]
+
+    lines = [
+        f"  File            : dpg_data.csv",
+        f"  Columns         : Rank, Team, G (games), DP (double plays)  [PG = DP ÷ G computed]",
+        f"  Records         : {total_teams} teams",
+        f"  Total DP        : {total_dp:,}",
+        f"  Avg DP/team     : {avg_dp:.1f}",
+        f"  Avg games/team  : {avg_g:.1f}",
+        f"  Avg PG (rate)   : {avg_pg:.2f}",
+        _sep(),
+        f"  PG leader       : {leader[0]}  —  {leader[2]/leader[1]:.2f} PG  ({leader[2]} DP, {leader[1]} G)"
+        if leader[1] > 0 else
+        f"  PG leader       : {leader[0]}  —  {leader[2]} DP",
+        f"  PG trailer      : {trailer[0]}  —  {trailer[2]/trailer[1]:.2f} PG  ({trailer[2]} DP, {trailer[1]} G)"
+        if trailer[1] > 0 else
+        f"  PG trailer      : {trailer[0]}  —  {trailer[2]} DP",
+    ]
+    return lines
+
+
+# ---------------------------------------------------------------------------
 # Tools inventory
 # ---------------------------------------------------------------------------
 
@@ -249,6 +310,14 @@ TOOLS = [
         "python dp_stats_table.py",
     ),
     (
+        "dpg_stats_table.py",
+        "Double Plays Per Game (PG) stats table",
+        "Loads dpg_data.csv; prints ranked table by PG (DP ÷ G) with competition "
+        "ranking and per-game analysis.  Add rows to dpg_data.csv (Rank,Team,G,DP) "
+        "then run this script.",
+        "python dpg_stats_table.py",
+    ),
+    (
         "data_inventory.py",
         "Data inventory (this script)",
         "Prints a complete summary of all datasets and tools in the system.",
@@ -285,9 +354,10 @@ def main() -> int:
     print()
 
     datasets = [
-        ("ba_data.csv",  "Batting Average",   _ba_summary),
-        ("bb_data.csv",  "Base on Balls",      _bb_summary),
-        ("dp_data.csv",  "Double Plays",       _dp_summary),
+        ("ba_data.csv",  "Batting Average",        _ba_summary),
+        ("bb_data.csv",  "Base on Balls",           _bb_summary),
+        ("dp_data.csv",  "Double Plays",            _dp_summary),
+        ("dpg_data.csv", "Double Plays Per Game",   _dpg_summary),
     ]
 
     found_any = False

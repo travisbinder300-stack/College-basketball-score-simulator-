@@ -2,15 +2,14 @@
 """
 College Baseball – Double Play (DP) Stats Table
 ================================================
-Print a ranked table of teams sorted by double plays per game (DP/G).
+Print a ranked table of teams sorted by total double plays (DP) turned.
 
 Columns
 -------
-  Rank  – DP/G rank (1 = highest DP/G rate); ties share a rank and show '-'
+  Rank  – DP rank (1 = most double plays turned)
   Team  – team name
   G     – games played
   DP    – total double plays turned
-  DP/G  – double plays per game (DP ÷ G); values below 1.00 omit the leading zero
 
 Usage
 -----
@@ -38,22 +37,6 @@ class DPRow:
     team: str
     g: int
     dp: int
-
-    def dp_g_str(self) -> str:
-        """Return DP/G ratio formatted to 2 decimal places.
-        Values below 1.00 are displayed without a leading zero (e.g. '.89').
-        """
-        if self.g <= 0:
-            return "-"
-        val = self.dp / self.g
-        formatted = f"{val:.2f}"
-        if formatted.startswith("0."):
-            return formatted[1:]   # drop leading zero: "0.89" → ".89"
-        return formatted
-
-    def dp_g_rate(self) -> float:
-        """DP/G ratio rounded to 2 decimal places; 0.0 when G is zero."""
-        return round(self.dp / self.g, 2) if self.g > 0 else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -85,31 +68,6 @@ SAMPLE_DATA: List[DPRow] = [
 
 
 # ---------------------------------------------------------------------------
-# Sorting and ranking helper
-# ---------------------------------------------------------------------------
-
-def _sort_and_rank_by_dpg(rows: List[DPRow]) -> None:
-    """Sort rows by DP/G ratio descending (then team name ascending for ties)
-    and assign competition-style ranks: the first team in a tied group gets the
-    sequential position number; tied partners get '-'.
-    """
-    rows.sort(
-        key=lambda r: (-r.dp_g_rate() if r.g > 0 else float("inf"), r.team)
-    )
-    if not rows:
-        return
-    prev_dpg = rows[0].dp_g_rate()
-    rows[0].rank = "1"
-    for i in range(1, len(rows)):
-        dpg = rows[i].dp_g_rate()
-        if dpg == prev_dpg:
-            rows[i].rank = "-"
-        else:
-            rows[i].rank = str(i + 1)
-            prev_dpg = dpg
-
-
-# ---------------------------------------------------------------------------
 # CSV loader
 # ---------------------------------------------------------------------------
 
@@ -118,7 +76,7 @@ def load_csv(path: str) -> List[DPRow]:
     Load DP stats from a CSV file.
     Accepted column order (case-insensitive header OR headerless):
       Rank, Team, G, DP
-    Rows are sorted by DP/G ratio descending and re-ranked automatically.
+    Rows are sorted by DP descending and re-ranked automatically.
     """
     rows: List[DPRow] = []
     with open(path, newline="", encoding="utf-8") as fh:
@@ -140,8 +98,10 @@ def load_csv(path: str) -> List[DPRow]:
             except ValueError:
                 continue
 
-    # Re-sort by DP/G descending, then alphabetically by team for ties; re-rank
-    _sort_and_rank_by_dpg(rows)
+    # Re-sort by DP descending and re-rank
+    rows.sort(key=lambda r: r.dp, reverse=True)
+    for idx, row in enumerate(rows, start=1):
+        row.rank = str(idx)
     return rows
 
 
@@ -149,12 +109,12 @@ def load_csv(path: str) -> List[DPRow]:
 # Formatting
 # ---------------------------------------------------------------------------
 
-HEADERS = ["Rank", "Team", "G", "DP", "DP/G"]
+HEADERS = ["Rank", "Team", "G", "DP"]
 
 
 def format_table(rows: List[DPRow]) -> str:
     """Return a neatly aligned table string for the given DP rows."""
-    data = [[r.rank, r.team, str(r.g), str(r.dp), r.dp_g_str()] for r in rows]
+    data = [[r.rank, r.team, str(r.g), str(r.dp)] for r in rows]
 
     # Compute column widths
     widths = [len(h) for h in HEADERS]
@@ -282,8 +242,10 @@ def prompt_rows() -> List[DPRow]:
         rows.append(DPRow(rank="-", team=team, g=g, dp=dp))
         print()
 
-    # Sort by DP/G descending and assign competition ranks
-    _sort_and_rank_by_dpg(rows)
+    # Sort by DP descending and assign ranks
+    rows.sort(key=lambda r: r.dp, reverse=True)
+    for idx, row in enumerate(rows, start=1):
+        row.rank = str(idx)
     return rows
 
 
@@ -298,8 +260,7 @@ def main() -> int:
     arg: Optional[str] = sys.argv[1] if len(sys.argv) > 1 else None
 
     if arg == "--sample":
-        rows: List[DPRow] = list(SAMPLE_DATA)
-        _sort_and_rank_by_dpg(rows)
+        rows: List[DPRow] = SAMPLE_DATA
     elif arg:
         try:
             rows = load_csv(arg)
