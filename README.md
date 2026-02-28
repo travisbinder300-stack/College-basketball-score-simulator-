@@ -18,14 +18,15 @@ Columns: `rank, team, games, BB`
 
 ## Scripts
 
+- `data_inventory.py` — **prints a complete summary of all datasets and tools in the system** (`python data_inventory.py`)
 - `bb_stats_table.py` — prints a ranked BB (Base on Balls) stats table with analysis
-- `ba_stats_table.py` — prints a ranked BA (Batting Average) stats table with analysis
-- `game_simulator.py` — simulates game scores
-- `rpi_table_printer.py` — prints RPI table
+- `ba_stats_table.py` — prints a ranked BA (Batting Average) stats table with reliability analysis
+- `game_simulator.py` — simulates game scores (supports ML odds, run lines, RPI, SOS)
+- `rpi_table_printer.py` — prints RPI table from raw text input
 
 ## Batting Average Data
 
-`ba_data.csv` contains batting average (BA) statistics. Teams are added manually one at a time.
+`ba_data.csv` contains batting average (BA) statistics for all 300 NCAA Division I teams (complete dataset).
 
 Columns: `Rank, Team, G, AB, H, BA`
 
@@ -37,4 +38,14 @@ Columns: `Rank, Team, G, AB, H, BA`
 | AB | At-bats |
 | H | Hits |
 | BA | Batting average (H / AB) |
+
+| Stat | Value |
+|------|-------|
+| Teams | 300 |
+| BA leader | Georgia Tech — .414 (138 H / 333 AB, 9 G) |
+| BA trailer | Coppin St. — .147 (15 H / 102 AB, 4 G) |
+| Overall BA | .270 |
+| Reliability | `Rel% = AB / (AB + 350) × 100` — higher means more trustworthy BA |
+
+> Run `python data_inventory.py` to see current leader/trailer and full stats.
 
