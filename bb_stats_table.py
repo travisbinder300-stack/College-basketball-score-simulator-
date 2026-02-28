@@ -13,7 +13,8 @@ Columns
 
 Usage
 -----
-  python bb_stats_table.py              # prints built-in sample data
+  python bb_stats_table.py              # interactive: enter teams manually
+  python bb_stats_table.py --sample     # prints built-in sample data
   python bb_stats_table.py data.csv     # loads Rank,Teams,G,BB CSV (header optional)
 """
 
@@ -203,20 +204,73 @@ def analyze(rows: List[BBRow]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Interactive manual entry
+# ---------------------------------------------------------------------------
+
+def prompt_rows() -> List[BBRow]:
+    """
+    Interactively ask the user to enter BB stats row by row.
+    Press Enter with a blank team name (or Ctrl-C) to finish entry.
+    Rows are sorted by BB descending and ranked automatically.
+    """
+    print("Enter BB stats (leave Team blank to finish):")
+    rows: List[BBRow] = []
+    while True:
+        try:
+            team = input("  Team name  : ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if not team:
+            break
+        while True:
+            try:
+                g_str = input("  Games (G)  : ").strip()
+                g = int(g_str)
+                if g <= 0:
+                    raise ValueError
+                break
+            except ValueError:
+                print("  Please enter a positive integer for G.")
+        while True:
+            try:
+                bb_str = input("  Base on Balls (BB): ").strip()
+                bb = int(bb_str)
+                if bb < 0:
+                    raise ValueError
+                break
+            except ValueError:
+                print("  Please enter a non-negative integer for BB.")
+        rows.append(BBRow(rank=0, team=team, g=g, bb=bb))
+        print()
+
+    # Sort by BB descending and assign ranks
+    rows.sort(key=lambda r: r.bb, reverse=True)
+    for idx, row in enumerate(rows, start=1):
+        row.rank = idx
+    return rows
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main() -> int:
-    path: Optional[str] = sys.argv[1] if len(sys.argv) > 1 else None
+    arg: Optional[str] = sys.argv[1] if len(sys.argv) > 1 else None
 
-    if path:
+    if arg == "--sample":
+        rows: List[BBRow] = SAMPLE_DATA
+    elif arg:
         try:
-            rows = load_csv(path)
+            rows = load_csv(arg)
         except (OSError, ValueError) as exc:
-            print(f"Error loading '{path}': {exc}", file=sys.stderr)
+            print(f"Error loading '{arg}': {exc}", file=sys.stderr)
             return 1
     else:
-        rows = SAMPLE_DATA
+        rows = prompt_rows()
+        if not rows:
+            print("No data entered. Exiting.")
+            return 0
 
     print(format_table(rows))
     print()
