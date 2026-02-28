@@ -27,11 +27,11 @@ Usage:
 
 from __future__ import annotations
 
-import random
+import math
 import re
 import sys
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ def american_to_implied_prob(odds: int) -> float:
         return 100 / (odds + 100)
 
 
-def remove_vig(prob_a: float, prob_b: float) -> Tuple[float, float]:
+def remove_vig(prob_a: float, prob_b: float) -> tuple[float, float]:
     """Remove the bookmaker's vig so probabilities sum to 1."""
     total = prob_a + prob_b
     return prob_a / total, prob_b / total
@@ -258,9 +258,18 @@ def parse_matchup(line: str) -> Matchup:
 # ---------------------------------------------------------------------------
 
 HOME_ADVANTAGE_RUNS = 0.3     # typical home-field edge in college baseball (runs)
-MIN_GAME_TOTAL = 1            # floor for simulated total runs to avoid unrealistic values
+MARGIN_STD = 3.0              # college baseball run-margin std-dev (~3 runs/game)
 MAX_RPI_RANK = 350            # approximate size of the NCAA field
 TEAM_NAME_WIDTH = 28          # column width for team names in the report
+
+
+def _normal_cdf(x: float) -> float:
+    """Standard normal CDF: Φ(x) = P(Z ≤ x).
+
+    Derivation: erfc(z) = 2·Φ(−z·√2), so Φ(x) = erfc(−x/√2) / 2.
+    Uses math.erfc for numerical accuracy near the tails.
+    """
+    return 0.5 * math.erfc(-x / math.sqrt(2))
 
 
 def _rpi_adjustments(
@@ -308,27 +317,22 @@ def _rpi_adjustments(
     return blended_away, adjusted_margin_away, rpi_prob_away, rpi_weight
 
 
-def simulate_game(
-    matchup: Matchup,
-    num_simulations: int = 100_000,
-    seed: Optional[int] = None,
-) -> dict:
+def calculate_game(matchup: Matchup) -> dict:
     """
-    Run Monte Carlo simulations of the matchup and return summary statistics.
+    Compute game probabilities and projected scores using pure closed-form math.
 
-    Model:
-    - Derive each team's win probability from the moneyline (de-vigged).
-    - Apply home-field adjustment to the expected run margin.
-    - Estimate expected total runs from the run line.
-    - Draw each game's margin from a normal distribution whose mean is the
-      expected run margin and whose std-dev is calibrated to college baseball
-      (~3.0 runs).
-    - Draw each game's total from a normal distribution centred on the
-      expected total (~2.5-run std-dev).
-    - Compute projected scores from margin + total.
+    Method
+    ------
+    - Convert American odds to de-vigged win probabilities.
+    - Derive expected run margin from the run line; apply home-field adjustment.
+    - Blend in RPI/SOS data when available (unchanged from previous model).
+    - Model the run margin as M ~ N(μ, MARGIN_STD²).
+    - Win probability  = Φ(μ / σ)                   [P(M > 0)]
+    - Cover probability = Φ((μ − threshold) / σ)     [P(M > −run_line)]
+    - Over/Under is 50/50 (expected total IS the line by construction).
+    - Projected scores are derived directly from μ and the expected total.
+    No random sampling is used.
     """
-    rng = random.Random(seed)
-
     away = matchup.away
     home = matchup.home
 
@@ -337,12 +341,9 @@ def simulate_game(
     raw_home = american_to_implied_prob(home.ml_odds)
     ml_prob_away, ml_prob_home = remove_vig(raw_away, raw_home)
 
-    # --- Expected run margin (away - home) from the run line ---
-    # A run line of -1.5 for the away team means they are favored to win by 1.5,
-    # so the expected margin (away - home) = -away.run_line = +1.5.
+    # --- Expected run margin (away − home) from the run line ---
+    # run_line = -1.5 for the favourite means expected margin = +1.5 for away
     expected_margin_away = -away.run_line
-
-    # Apply home-field adjustment: reduce the away team's expected margin.
     adjusted_margin_away = expected_margin_away - HOME_ADVANTAGE_RUNS
 
     # --- RPI / SOS adjustments (when both teams have RPI rank data) ---
@@ -360,53 +361,27 @@ def simulate_game(
     # --- Expected total runs ---
     expected_total = implied_total_from_run_line(away.run_line)
 
-    # --- Simulation parameters ---
-    MARGIN_STD = 3.0    # college baseball run margin std-dev
-    TOTAL_STD = 2.5     # college baseball total runs std-dev
+    # --- Pure-math win probability ---
+    # M ~ N(adjusted_margin_away, MARGIN_STD²)
+    # P(away wins) = P(M > 0) = Φ(μ / σ)
+    math_win_prob_away = _normal_cdf(adjusted_margin_away / MARGIN_STD)
+    math_win_prob_home = 1.0 - math_win_prob_away
 
-    away_wins = 0
-    home_wins = 0
-    away_covers = 0
-    home_covers = 0
-    total_over = 0
-    total_under = 0
-    margins: list[float] = []
-    totals: list[float] = []
+    # --- Pure-math cover probability ---
+    # Away covers when M > −away.run_line  (e.g. run_line = -1.5 → threshold = +1.5)
+    cover_threshold = -away.run_line
+    away_cover_pct = _normal_cdf((adjusted_margin_away - cover_threshold) / MARGIN_STD)
+    home_cover_pct = 1.0 - away_cover_pct
 
-    for _ in range(num_simulations):
-        margin = rng.gauss(adjusted_margin_away, MARGIN_STD)   # away - home
-        total = max(MIN_GAME_TOTAL, rng.gauss(expected_total, TOTAL_STD))
+    # --- Over / Under ---
+    # Our O/U line is defined as the expected total itself, so P(total > line) = Φ(0) = 50%.
+    # A separate O/U line input would allow asymmetric probabilities; absent one, 50/50 is exact.
+    over_pct = 0.5
+    under_pct = 0.5
 
-        away_score = (total + margin) / 2
-        home_score = (total - margin) / 2
-
-        if away_score > home_score:
-            away_wins += 1
-        else:
-            home_wins += 1
-
-        # Away covers run line when actual margin beats their run line:
-        # e.g. run_line = -1.5 → away covers when margin > 1.5
-        if margin > -away.run_line:
-            away_covers += 1
-        else:
-            home_covers += 1
-
-        if total > expected_total:
-            total_over += 1
-        else:
-            total_under += 1
-
-        margins.append(margin)
-        totals.append(total)
-
-    sim_away_win_pct = away_wins / num_simulations
-    sim_home_win_pct = home_wins / num_simulations
-    avg_margin = sum(margins) / num_simulations
-    avg_total = sum(totals) / num_simulations
-    proj_away = (avg_total + avg_margin) / 2
-    proj_home = (avg_total - avg_margin) / 2
-    away_cover_pct = away_covers / num_simulations
+    # --- Projected scores ---
+    proj_away = (expected_total + adjusted_margin_away) / 2
+    proj_home = (expected_total - adjusted_margin_away) / 2
 
     return {
         "away": away,
@@ -419,18 +394,17 @@ def simulate_game(
         "rpi_weight": rpi_weight_used,
         "blended_win_prob_away": blended_prob_away,
         "blended_win_prob_home": blended_prob_home,
-        "sim_win_pct_away": sim_away_win_pct,
-        "sim_win_pct_home": sim_home_win_pct,
+        "math_win_prob_away": math_win_prob_away,
+        "math_win_prob_home": math_win_prob_home,
         "projected_score_away": proj_away,
         "projected_score_home": proj_home,
-        "projected_margin_away": avg_margin,
-        "projected_total": avg_total,
+        "projected_margin_away": adjusted_margin_away,
+        "projected_total": expected_total,
         "expected_total": expected_total,
         "away_cover_pct": away_cover_pct,
-        "home_cover_pct": 1 - away_cover_pct,
-        "over_pct": total_over / num_simulations,
-        "under_pct": total_under / num_simulations,
-        "num_simulations": num_simulations,
+        "home_cover_pct": home_cover_pct,
+        "over_pct": over_pct,
+        "under_pct": under_pct,
     }
 
 
@@ -448,7 +422,7 @@ def format_report(r: dict) -> str:
     def score(v: float) -> str:
         return f"{v:.1f}"
 
-    pick_ml = away.name if r["sim_win_pct_away"] > 0.50 else home.name
+    pick_ml = away.name if r["math_win_prob_away"] > 0.50 else home.name
     pick_rl = (
         f"{away.name} {away.run_line:+.1f}"
         if r["away_cover_pct"] > 0.50
@@ -493,9 +467,9 @@ def format_report(r: dict) -> str:
 
     lines += [
         "-" * 60,
-        f"  SIMULATION  ({r['num_simulations']:,} runs)",
-        f"  {'Win %':<{TEAM_NAME_WIDTH}s}  {away.name} {pct(r['sim_win_pct_away'])}  |  "
-        f"{home.name} {pct(r['sim_win_pct_home'])}",
+        "  MATH ANALYSIS",
+        f"  {'Win %':<{TEAM_NAME_WIDTH}s}  {away.name} {pct(r['math_win_prob_away'])}  |  "
+        f"{home.name} {pct(r['math_win_prob_home'])}",
         f"  {'Run Line cover %':<{TEAM_NAME_WIDTH}s}  {away.name} {pct(r['away_cover_pct'])}  |  "
         f"{home.name} {pct(r['home_cover_pct'])}",
         f"  {'Over/Under %':<{TEAM_NAME_WIDTH}s}  OVER {pct(r['over_pct'])}  |  UNDER {pct(r['under_pct'])}",
@@ -538,7 +512,7 @@ def main() -> int:
         print(f"Parse error: {exc}", file=sys.stderr)
         return 1
 
-    results = simulate_game(matchup, num_simulations=100_000, seed=42)
+    results = calculate_game(matchup)
     print(format_report(results))
     return 0
 
