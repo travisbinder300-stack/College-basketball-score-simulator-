@@ -21,6 +21,7 @@ Columns: `rank, team, games, BB`
 - `data_inventory.py` — **prints a complete summary of all datasets and tools in the system** (`python data_inventory.py`)
 - `bb_stats_table.py` — prints a ranked BB (Base on Balls) stats table with analysis
 - `ba_stats_table.py` — prints a ranked BA (Batting Average) stats table with reliability analysis
+- `dp_stats_table.py` — prints a ranked DP (Double Play) stats table with analysis
 - `game_simulator.py` — simulates game scores (supports ML odds, run lines, RPI, SOS)
 - `rpi_table_printer.py` — prints RPI table from raw text input
 
@@ -48,4 +49,25 @@ Columns: `Rank, Team, G, AB, H, BA`
 | Reliability | `Rel% = AB / (AB + 350) × 100` — higher means more trustworthy BA |
 
 > Run `python data_inventory.py` to see current leader/trailer and full stats.
+
+## Double Play Data
+
+`dp_data.csv` contains double play (DP) statistics. Teams are added manually one at a time.
+
+Columns: `Rank, Team, G, DP`
+
+| Column | Description |
+|--------|-------------|
+| Rank | DP rank (1 = most double plays turned) |
+| Team | Team name |
+| G | Games played |
+| DP | Total double plays turned |
+
+Add a row:
+```
+echo "1,Texas A&M,10,18" >> dp_data.csv
+python dp_stats_table.py
+```
+
+> Run `python dp_stats_table.py --sample` to see a preview with built-in sample data.
 

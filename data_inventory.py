@@ -151,6 +151,63 @@ def _bb_summary(path: str) -> List[str]:
 
 
 # ---------------------------------------------------------------------------
+# DP dataset summary  (dp_data.csv)
+# ---------------------------------------------------------------------------
+
+def _dp_summary(path: str) -> List[str]:
+    """Return lines describing the double play dataset."""
+    rows: List[Tuple[str, int, int]] = []   # team, g, dp
+    with open(path, newline="", encoding="utf-8") as fh:
+        reader = csv.reader(fh)
+        next(reader, None)   # skip header
+        for line in reader:
+            if len(line) < 4:
+                continue
+            try:
+                team = line[1].strip()
+                g    = int(line[2].strip())
+                dp   = int(line[3].strip())
+                rows.append((team, g, dp))
+            except ValueError:
+                continue
+
+    if not rows:
+        return [
+            f"  File            : dp_data.csv",
+            f"  Columns         : Rank, Team, G (games), DP (double plays)",
+            f"  Records         : 0 teams  (file is empty — add rows manually)",
+        ]
+
+    total_teams = len(rows)
+    total_dp    = sum(r[2] for r in rows)
+    avg_dp      = total_dp / total_teams
+    avg_g       = sum(r[1] for r in rows) / total_teams
+    avg_dp_per_g = sum(r[2] / r[1] for r in rows if r[1] > 0) / total_teams
+
+    by_dp = sorted(rows, key=lambda r: r[2], reverse=True)
+    leader  = by_dp[0]
+    trailer = by_dp[-1]
+
+    lines = [
+        f"  File            : dp_data.csv",
+        f"  Columns         : Rank, Team, G (games), DP (double plays)",
+        f"  Records         : {total_teams} teams",
+        f"  Total DP        : {total_dp:,}",
+        f"  Avg DP/team     : {avg_dp:.1f}",
+        f"  Avg games/team  : {avg_g:.1f}",
+        f"  Avg DP/G (rate) : {avg_dp_per_g:.2f}",
+        _sep(),
+        f"  DP leader       : {leader[0]}  —  {leader[2]} DP in {leader[1]} G  "
+        f"({leader[2]/leader[1]:.2f} DP/G)" if leader[1] > 0 else
+        f"  DP leader       : {leader[0]}  —  {leader[2]} DP",
+        f"  DP trailer      : {trailer[0]}  —  {trailer[2]} DP in {trailer[1]} G  "
+        f"({trailer[2]/trailer[1]:.2f} DP/G)" if trailer[1] > 0 else
+        f"  DP trailer      : {trailer[0]}  —  {trailer[2]} DP",
+    ]
+    return lines
+
+
+# ---------------------------------------------------------------------------
 # Tools inventory
 # ---------------------------------------------------------------------------
 
@@ -182,6 +239,13 @@ TOOLS = [
         "Reads raw RPI text (from stdin or a file), parses it, and prints "
         "an aligned table with delta/riser/faller analysis.",
         "python rpi_table_printer.py < raw_rpi.txt",
+    ),
+    (
+        "dp_stats_table.py",
+        "Double Play (DP) stats table",
+        "Loads dp_data.csv; prints ranked DP table with DP/G rate analysis. "
+        "Add rows to dp_data.csv manually (Rank,Team,G,DP) then run this script.",
+        "python dp_stats_table.py",
     ),
     (
         "data_inventory.py",
@@ -222,6 +286,7 @@ def main() -> int:
     datasets = [
         ("ba_data.csv",  "Batting Average",   _ba_summary),
         ("bb_data.csv",  "Base on Balls",      _bb_summary),
+        ("dp_data.csv",  "Double Plays",       _dp_summary),
     ]
 
     found_any = False
