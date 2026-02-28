@@ -1,0 +1,300 @@
+Rank,Team,G,DP
+1,Jackson St.,9,12
+2,Baylor,8,11
+-,Central Ark.,9,11
+-,Florida,10,11
+-,Gardner-Webb,9,11
+-,High Point,9,11
+-,Louisiana Tech,9,11
+8,Fla. Atlantic,8,10
+-,Georgia St.,9,10
+-,Maine,9,10
+-,Tarleton St.,8,10
+-,Wright St.,7,10
+13,Army West Point,6,9
+-,Cal St. Fullerton,8,9
+-,California Baptist,9,9
+-,Charlotte,8,9
+-,Duke,10,9
+-,LMU (CA),9,9
+-,Louisville,8,9
+-,North Carolina,10,9
+-,Southeast Mo. St.,9,9
+-,UAB,9,9
+-,UIW,9,9
+-,UT Arlington,8,9
+-,Vanderbilt,9,9
+26,Arizona St.,9,8
+-,Austin Peay,8,8
+-,Butler,8,8
+-,Canisius,6,8
+-,Creighton,6,8
+-,East Carolina,9,8
+-,Illinois St.,8,8
+-,Indiana,8,8
+-,Jacksonville,9,8
+-,Jacksonville St.,9,8
+-,Long Beach St.,8,8
+-,New Mexico St.,8,8
+-,New Orleans,9,8
+-,SIUE,8,8
+-,South Carolina,9,8
+-,Southeastern La.,8,8
+-,UNC Greensboro,9,8
+43,Akron,9,7
+-,Arkansas St.,9,7
+-,Coastal Carolina,8,7
+-,Delaware,9,7
+-,Eastern Ill.,7,7
+-,Houston Christian,9,7
+-,Longwood,8,7
+-,Memphis,8,7
+-,Nebraska,7,7
+-,Nicholls,10,7
+-,Oakland,7,7
+-,Oral Roberts,8,7
+-,Rice,9,7
+-,Saint Mary's (CA),7,7
+-,Tennessee Tech,9,7
+-,Texas,8,7
+-,Texas St.,8,7
+-,Troy,8,7
+-,ULM,10,7
+-,USC Upstate,10,7
+-,UTRGV,8,7
+-,Utah Tech,8,7
+65,Alabama,9,6
+-,Ark.-Pine Bluff,10,6
+-,Bethune-Cookman,8,6
+-,Bowling Green,7,6
+-,CSU Bakersfield,9,6
+-,Col. of Charleston,9,6
+-,DBU,8,6
+-,Dayton,7,6
+-,Fresno St.,7,6
+-,George Washington,7,6
+-,Georgia,8,6
+-,Grand Canyon,9,6
+-,Hawaii,8,6
+-,Kennesaw St.,7,6
+-,Liberty,7,6
+-,Michigan,7,6
+-,Middle Tenn.,8,6
+-,Missouri St.,8,6
+-,North Ala.,9,6
+-,Oregon,8,6
+-,Pepperdine,7,6
+-,Pittsburgh,7,6
+-,Portland,7,6
+-,San Jose St.,7,6
+-,Santa Clara,8,6
+-,Seattle U,8,6
+-,St. John's (NY),7,6
+-,UAlbany,4,6
+-,UC Irvine,9,6
+-,UCF,7,6
+-,Valparaiso,7,6
+-,Western Mich.,8,6
+-,Youngstown St.,7,6
+98,A&M-Corpus Christi,9,5
+-,Air Force,7,5
+-,Alabama A&M,8,5
+-,App State,8,5
+-,Arizona,8,5
+-,Bradley,7,5
+-,CSUN,8,5
+-,Campbell,8,5
+-,Central Mich.,7,5
+-,Eastern Ky.,8,5
+-,Fordham,7,5
+-,Gonzaga,7,5
+-,Houston,8,5
+-,Iowa,8,5
+-,Kansas St.,9,5
+-,La Salle,7,5
+-,Lamar University,9,5
+-,Lindenwood,8,5
+-,Lipscomb,7,5
+-,McNeese,8,5
+-,Mississippi St.,9,5
+-,Monmouth,6,5
+-,Mount St. Mary's,7,5
+-,NC State,8,5
+-,NJIT,6,5
+-,North Florida,9,5
+-,Northern Colo.,8,5
+-,Northern Ky.,8,5
+-,Northwestern,7,5
+-,Ohio,8,5
+-,Oklahoma,9,5
+-,Ole Miss,9,5
+-,Pacific,8,5
+-,Penn St.,6,5
+-,Prairie View,7,5
+-,Presbyterian,9,5
+-,Purdue,7,5
+-,Queens (NC),8,5
+-,Radford,7,5
+-,Rider,3,5
+-,Rutgers,7,5
+-,Sacred Heart,6,5
+-,Sam Houston,8,5
+-,San Diego,8,5
+-,San Francisco,7,5
+-,South Dakota St.,8,5
+-,Southern Ill.,7,5
+-,St. Thomas (MN),7,5
+-,Stetson,9,5
+-,Towson,6,5
+-,UC Davis,8,5
+-,UC San Diego,7,5
+-,UCLA,8,5
+-,UMass Lowell,6,5
+-,UNLV,9,5
+-,UT Martin,8,5
+-,VMI,8,5
+-,Virginia,8,5
+-,Virginia Tech,8,5
+-,Wagner,6,5
+-,Wake Forest,8,5
+-,West Virginia,7,5
+-,Xavier,8,5
+165,Abilene Christian,8,4
+-,Alabama St.,8,4
+-,Alcorn,8,4
+-,Arkansas,9,4
+-,Belmont,8,4
+-,Clemson,8,4
+-,ETSU,8,4
+-,Elon,8,4
+-,Evansville,7,4
+-,FIU,10,4
+-,Florida A&M,8,4
+-,Ga. Southern,8,4
+-,Georgia Tech,9,4
+-,Kentucky,8,4
+-,LIU,7,4
+-,Little Rock,8,4
+-,Louisiana,9,4
+-,Maryland,8,4
+-,Nevada,6,4
+-,New Mexico,8,4
+-,North Dakota St.,8,4
+-,Oklahoma St.,8,4
+-,Sacramento St.,8,4
+-,Saint Louis,9,4
+-,Samford,8,4
+-,Southern Ind.,9,4
+-,Stonehill,7,4
+-,Stony Brook,7,4
+-,TCU,8,4
+-,Tulane,9,4
+-,UC Riverside,8,4
+-,Utah Valley,7,4
+-,Washington,8,4
+-,Western Caro.,8,4
+-,Wichita St.,9,4
+-,William & Mary,6,4
+-,Binghamton,6,3
+-,Boston College,7,3
+-,Brown,3,3
+-,Bucknell,7,3
+-,Cincinnati,9,3
+-,Dartmouth,3,3
+-,Delaware St.,7,3
+-,FGCU,9,3
+-,George Mason,7,3
+-,Georgetown,8,3
+-,Harvard,3,3
+-,Holy Cross,7,3
+-,Illinois,8,3
+-,Kansas,8,3
+-,Kent St.,8,3
+-,Lehigh,6,3
+-,Manhattan,7,3
+-,Mercer,9,3
+-,Merrimack,4,3
+-,Michigan St.,6,3
+-,Morehead St.,8,3
+-,Murray St.,8,3
+-,Navy,7,3
+-,Niagara,6,3
+-,Norfolk St.,7,3
+-,Northwestern St.,9,3
+-,Oregon St.,7,3
+-,Princeton,3,3
+-,Quinnipiac,6,3
+-,Rhode Island,7,3
+-,Richmond,9,3
+-,SFA,10,3
+-,Saint Peter's,4,3
+-,San Diego St.,8,3
+-,Siena,6,3
+-,South Fla.,9,3
+-,Texas A&M,8,3
+-,The Citadel,6,3
+-,Toledo,7,3
+-,UConn,8,3
+-,UIC,7,3
+-,UNC Asheville,8,3
+-,UNCW,9,3
+-,UTSA,8,3
+-,Utah,6,3
+-,Villanova,5,3
+-,Winthrop,8,3
+-,Wofford,8,3
+249,Auburn,8,2
+-,Bellarmine,8,2
+-,Cal Poly,7,2
+-,California,8,2
+-,Charleston So.,8,2
+-,Coppin St.,4,2
+-,Davidson,7,2
+-,Eastern Mich.,8,2
+-,Fairfield,5,2
+-,Grambling,8,2
+-,Indiana St.,9,2
+-,LSU,9,2
+-,Marist,6,2
+-,Marshall,7,2
+-,Milwaukee,7,2
+-,Minnesota,7,2
+-,Missouri,9,2
+-,NIU,7,2
+-,Ohio St.,7,2
+-,Old Dominion,8,2
+-,Omaha,6,2
+-,Saint Joseph's,7,2
+-,South Alabama,9,2
+-,Southern Miss.,8,2
+-,Southern U.,8,2
+-,Stanford,8,2
+-,Tennessee,8,2
+-,Texas Southern,6,2
+-,Texas Tech,8,2
+-,VCU,8,2
+-,Western Ill.,7,2
+-,Western Ky.,9,2
+-,Yale,3,2
+282,Bryant,6,1
+-,Cornell,4,1
+-,FDU,3,1
+-,James Madison,7,1
+-,Lafayette,4,1
+-,Miami (FL),10,1
+-,Mississippi Val.,6,1
+-,N.C. A&T,8,1
+-,Northeastern,5,1
+-,Notre Dame,6,1
+-,Seton Hall,5,1
+-,Southern California,7,1
+-,St. Bonaventure,7,1
+-,UC Santa Barbara,7,1
+-,UMBC,3,1
+-,UMES,6,1
+298,Columbia,3,0
+-,Hofstra,3,0
+-,Iona,3,0
+-,Massachusetts,3,0
+-,Miami (OH),8,0
+-,Penn,3,0

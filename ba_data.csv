@@ -1,0 +1,301 @@
+Rank,Team,G,AB,H,BA
+1,Georgia Tech,9,333,138,.414
+2,New Mexico,8,268,103,.384
+3,Miami (FL),10,369,138,.374
+4,Iowa,8,291,108,.371
+5,NC State,8,274,100,.365
+6,Saint Mary's (CA),7,250,91,.364
+7,Florida,10,336,121,.360
+8,Texas A&M,8,272,97,.357
+9,Mississippi St.,9,289,103,.356
+10,UTSA,8,276,98,.355
+11,LSU,9,307,109,.355
+12,Vanderbilt,9,282,100,.355
+13,Dayton,7,235,82,.349
+14,Jacksonville,9,282,98,.348
+15,Arizona St.,9,303,105,.347
+16,Virginia,8,286,99,.346
+17,ULM,10,305,105,.344
+18,UNLV,9,311,107,.344
+19,FGCU,9,324,111,.343
+20,Texas,8,253,86,.340
+21,Rutgers,7,261,88,.337
+22,Georgia,8,268,90,.336
+23,Missouri,9,287,96,.334
+24,Clemson,8,253,84,.332
+25,VMI,8,232,77,.332
+26,Ole Miss,9,281,93,.331
+27,Louisiana Tech,9,288,95,.330
+28,Texas Tech,8,273,90,.330
+29,Lipscomb,7,236,77,.326
+30,Old Dominion,8,271,88,.325
+31,Oklahoma,9,269,87,.323
+32,Southern Ind.,9,321,103,.321
+33,Pittsburgh,7,228,73,.320
+34,A&M-Corpus Christi,9,297,95,.320
+35,Kentucky,8,285,91,.319
+36,Nebraska,7,254,81,.319
+37,Brown,3,110,35,.318
+38,Massachusetts,3,107,34,.318
+39,South Fla.,9,297,94,.316
+40,USC Upstate,10,356,112,.315
+41,DBU,8,261,82,.314
+42,Oregon,8,271,85,.314
+43,Louisville,8,284,89,.313
+44,Davidson,7,243,76,.313
+45,Valparaiso,7,240,75,.312
+46,Murray St.,8,269,84,.312
+47,ETSU,8,282,88,.312
+-,Gardner-Webb,9,282,88,.312
+49,Tarleton St.,8,263,82,.312
+50,SFA,10,324,101,.312
+51,Auburn,8,270,84,.311
+52,UT Martin,8,293,91,.311
+53,Minnesota,7,236,73,.309
+54,Cincinnati,9,312,96,.308
+-,Middle Tenn.,8,260,80,.308
+56,Illinois St.,8,270,83,.307
+57,West Virginia,7,252,77,.306
+58,South Carolina,9,308,94,.305
+59,Rider,3,115,35,.304
+-,Yale,3,92,28,.304
+61,Central Mich.,7,240,73,.304
+62,Utah Tech,8,273,83,.304
+63,Manhattan,7,260,79,.304
+64,Mercer,9,287,87,.303
+65,James Madison,7,219,66,.301
+66,Towson,6,213,64,.300
+67,Wofford,8,228,68,.298
+68,Georgetown,8,245,73,.298
+69,Santa Clara,8,272,81,.298
+70,Little Rock,8,269,80,.297
+71,Oklahoma St.,8,267,79,.296
+72,Georgia St.,9,308,91,.295
+73,San Diego,8,268,79,.295
+74,Miami (OH),8,259,76,.293
+75,UCLA,8,273,80,.293
+76,Harvard,3,99,29,.293
+77,Wichita St.,8,239,70,.293
+78,UIW,9,253,74,.292
+79,Tennessee,8,250,73,.292
+80,Troy,8,272,79,.290
+81,Morehead St.,8,279,81,.290
+82,North Carolina,10,304,88,.289
+83,Illinois,8,298,86,.289
+84,Florida St.,6,201,58,.289
+-,Texas Southern,6,201,58,.289
+86,South Alabama,9,302,87,.288
+87,Southern Miss.,8,268,77,.287
+88,Missouri St.,8,289,83,.287
+89,UNCW,9,279,80,.287
+90,New Orleans,9,322,92,.286
+91,Western Caro.,8,256,73,.285
+92,Marshall,7,249,71,.285
+93,App State,8,250,71,.284
+94,Cal Poly,7,243,69,.284
+95,East Carolina,9,289,82,.284
+96,Jackson St.,9,279,79,.283
+97,Texas St.,8,258,73,.283
+98,Purdue,7,234,66,.282
+99,Winthrop,8,259,73,.282
+100,Houston,8,256,72,.281
+-,FIU,10,353,99,.280
+102,Belmont,8,264,74,.280
+103,North Florida,9,289,81,.280
+104,Grambling,8,257,72,.280
+105,Western Ky.,9,293,82,.280
+106,Fresno St.,7,243,68,.280
+107,Kansas St.,9,286,80,.280
+108,Toledo,7,236,66,.280
+109,Longwood,8,272,76,.279
+110,Virginia Tech,8,258,72,.279
+111,La Salle,7,230,64,.278
+112,Western Mich.,8,266,74,.278
+113,Northwestern,7,241,67,.278
+114,Charlotte,8,252,70,.278
+115,Navy,7,220,61,.277
+-,Notre Dame,6,220,61,.277
+117,Eastern Ky.,8,272,75,.276
+118,Ohio,8,276,76,.275
+119,Elon,8,269,74,.275
+120,Memphis,8,277,76,.274
+121,Columbia,3,113,31,.274
+122,Southeast Mo. St.,9,285,78,.274
+123,California Baptist,9,311,85,.273
+124,Arkansas,9,304,83,.273
+125,Duke,10,301,82,.272
+126,Baylor,8,246,67,.272
+127,Utah,6,206,56,.272
+128,Creighton,6,199,54,.271
+129,Central Ark.,9,321,87,.271
+130,Prairie View,7,200,54,.270
+131,Western Ill.,7,226,61,.270
+132,Michigan,7,238,64,.269
+133,South Dakota St.,8,283,76,.269
+134,Eastern Ill.,7,220,59,.268
+135,Stetson,9,291,78,.268
+136,William & Mary,6,198,53,.268
+137,Houston Christian,9,284,76,.268
+138,Indiana,8,273,73,.267
+139,Alabama St.,8,270,72,.267
+140,High Point,9,289,77,.266
+-,Tulane,9,289,77,.266
+142,Bethune-Cookman,8,259,69,.266
+143,Butler,8,301,80,.266
+144,Quinnipiac,6,193,51,.264
+145,Kennesaw St.,7,231,61,.264
+146,Abilene Christian,8,254,67,.264
+147,Lamar University,9,301,79,.262
+148,Dartmouth,3,103,27,.262
+149,Boston College,7,229,60,.262
+150,Kansas,8,275,72,.262
+151,Wake Forest,8,264,69,.261
+152,Charleston So.,8,253,66,.261
+-,North Ala.,9,276,72,.261
+-,UC Santa Barbara,7,230,60,.261
+155,Akron,9,284,74,.261
+156,FDU,3,100,26,.260
+157,Bellarmine,8,277,72,.260
+158,Seton Hall,5,177,46,.260
+159,Arkansas St.,9,304,79,.260
+160,Coastal Carolina,8,254,66,.260
+161,Nicholls,10,328,85,.259
+162,Northwestern St.,9,332,86,.259
+163,UMES,6,170,44,.259
+164,New Mexico St.,8,263,68,.259
+165,Merrimack,4,147,38,.259
+166,Northern Ky.,8,260,67,.258
+167,Alabama,9,268,69,.257
+168,UCF,7,214,55,.257
+169,Maryland,8,296,76,.257
+170,San Diego St.,8,265,68,.257
+171,Omaha,6,199,51,.256
+172,Lehigh,6,203,52,.256
+173,California,8,227,58,.256
+174,McNeese,8,282,72,.255
+175,Oral Roberts,8,232,59,.254
+176,The Citadel,6,185,47,.254
+177,Campbell,8,248,63,.254
+178,UC Riverside,8,252,64,.254
+179,Monmouth,6,197,50,.254
+180,UConn,8,272,69,.254
+181,Seattle U,8,277,70,.253
+182,Norfolk St.,7,214,54,.252
+183,Xavier,8,282,71,.252
+184,Northern Colo.,8,251,63,.251
+-,UNC Asheville,8,251,63,.251
+186,Pacific,8,275,69,.251
+187,BYU,8,283,71,.251
+188,UAB,9,295,74,.251
+189,Long Beach St.,8,248,62,.250
+190,UT Arlington,8,293,73,.249
+191,Col. of Charleston,9,281,70,.249
+192,CSUN,8,249,62,.249
+193,Ball St.,7,242,60,.248
+194,Radford,7,230,57,.248
+195,LIU,7,222,55,.248
+196,St. Bonaventure,7,218,54,.248
+197,CSU Bakersfield,9,303,75,.248
+-,UMBC,3,101,25,.248
+199,Nevada,6,190,47,.247
+-,Penn St.,6,190,47,.247
+-,Oakland,7,231,57,.247
+202,Sam Houston,8,264,65,.246
+203,SIUE,8,260,64,.246
+-,Southern California,7,195,48,.246
+205,VCU,8,236,58,.246
+206,NIU,7,249,61,.245
+-,Washington,8,249,61,.245
+208,Utah Valley,7,245,60,.245
+209,Ohio St.,7,225,55,.244
+210,Air Force,7,242,59,.244
+211,Presbyterian,9,284,69,.243
+-,Tennessee Tech,9,284,69,.243
+213,George Washington,7,232,56,.241
+214,Wagner,6,199,48,.241
+215,Ga. Southern,8,266,64,.241
+216,Lindenwood,8,275,66,.240
+217,Indiana St.,9,296,71,.240
+218,Louisiana,9,313,75,.240
+219,San Francisco,7,235,56,.238
+220,Southern Ill.,7,189,45,.238
+221,San Jose St.,7,240,57,.238
+222,Stony Brook,7,219,52,.237
+223,Hawaii,8,253,60,.237
+224,St. John's (NY),7,224,53,.237
+225,Stanford,8,258,61,.236
+226,Gonzaga,7,250,59,.236
+227,UTRGV,8,259,61,.236
+228,Grand Canyon,9,277,65,.235
+229,Oregon St.,7,226,53,.235
+230,Kent St.,8,265,62,.234
+231,George Mason,7,231,54,.234
+232,Richmond,9,262,61,.233
+233,Austin Peay,8,258,60,.233
+-,Milwaukee,7,215,50,.233
+235,Jacksonville St.,9,284,66,.232
+236,Hofstra,3,99,23,.232
+237,Fla. Atlantic,8,259,60,.232
+238,Southeastern La.,8,269,62,.230
+239,UNC Greensboro,9,278,64,.230
+240,Bradley,7,226,52,.230
+241,Army West Point,6,201,46,.229
+242,Samford,8,236,54,.229
+243,N.C. A&T,8,258,59,.229
+244,Iona,3,101,23,.228
+245,St. Thomas (MN),7,229,52,.227
+246,Niagara,6,199,45,.226
+247,Fordham,7,208,47,.226
+248,Arizona,8,280,63,.225
+249,Villanova,5,171,38,.222
+250,TCU,8,239,53,.222
+251,Sacramento St.,8,280,62,.221
+252,North Dakota St.,8,271,60,.221
+253,Holy Cross,7,244,54,.221
+254,Bowling Green,7,218,48,.220
+255,Southern U.,8,209,46,.220
+256,Wright St.,7,219,48,.219
+257,Bucknell,7,233,51,.219
+258,Maine,9,288,63,.219
+259,Bryant,6,193,42,.218
+260,Alabama A&M,8,216,47,.218
+261,Rice,9,285,62,.218
+262,Cal St. Fullerton,8,276,60,.217
+263,Marist,6,180,39,.217
+264,Saint Joseph's,7,236,51,.216
+265,Northeastern,5,144,31,.215
+266,Queens (NC),8,237,51,.215
+267,Washington St.,7,228,49,.215
+268,Mississippi Val.,6,177,38,.215
+269,Saint Louis,9,280,60,.214
+270,Delaware,9,295,63,.214
+271,UIC,7,231,49,.212
+272,Mount St. Mary's,7,213,45,.211
+273,Ark.-Pine Bluff,10,300,63,.210
+274,UC Irvine,9,286,60,.210
+275,Rhode Island,7,202,42,.208
+276,Binghamton,6,185,38,.205
+277,Pepperdine,7,234,48,.205
+278,Lafayette,4,122,25,.205
+279,NJIT,6,201,41,.204
+-,UMass Lowell,6,201,41,.204
+281,UC San Diego,7,224,45,.201
+282,Michigan St.,6,190,38,.200
+-,Portland,7,220,44,.200
+-,UAlbany,4,120,24,.200
+285,UC Davis,8,216,43,.199
+286,Delaware St.,7,191,38,.199
+287,Cornell,4,136,27,.199
+288,Evansville,7,218,43,.197
+289,Canisius,6,178,35,.197
+290,Stonehill,7,209,41,.196
+291,LMU (CA),9,270,52,.193
+292,Fairfield,5,164,31,.189
+293,Saint Peter's,4,105,19,.181
+294,Siena,6,162,29,.179
+295,Liberty,7,207,37,.179
+296,Florida A&M,8,238,42,.176
+-,Sacred Heart,6,187,33,.176
+298,Alcorn,8,226,38,.168
+299,Eastern Mich.,8,248,40,.161
+300,Coppin St.,4,102,15,.147
