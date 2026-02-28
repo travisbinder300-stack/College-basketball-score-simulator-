@@ -1,2 +1,2 @@
-# College-basketball-score-simulator-
-Basketball-simulator 
+# College-baseball-score-simulator-
+Baseball-simulator 
