@@ -1,5 +1,8 @@
-# College-baseball-score-simulator-
-Baseball-simulator
+# College Baseball Score Simulator
+
+> ⚾ **This is a college BASEBALL simulator — not basketball.**
+> All data, statistics, and simulations in this repository are for college baseball only.
+> Do not add basketball content here.
 
 ## Data
 
