@@ -13,7 +13,7 @@ Columns
 
 Usage
 -----
-  python bb_stats_table.py              # interactive: enter teams manually
+  python bb_stats_table.py              # loads bb_data.csv if present, else interactive
   python bb_stats_table.py --sample     # prints built-in sample data
   python bb_stats_table.py data.csv     # loads Rank,Teams,G,BB CSV (header optional)
 """
@@ -21,6 +21,7 @@ Usage
 from __future__ import annotations
 
 import csv
+import os
 import sys
 from dataclasses import dataclass
 from typing import List, Optional
@@ -280,6 +281,9 @@ def prompt_rows() -> List[BBRow]:
 # Main
 # ---------------------------------------------------------------------------
 
+DEFAULT_CSV = "bb_data.csv"
+
+
 def main() -> int:
     arg: Optional[str] = sys.argv[1] if len(sys.argv) > 1 else None
 
@@ -290,6 +294,12 @@ def main() -> int:
             rows = load_csv(arg)
         except (OSError, ValueError) as exc:
             print(f"Error loading '{arg}': {exc}", file=sys.stderr)
+            return 1
+    elif os.path.isfile(DEFAULT_CSV):
+        try:
+            rows = load_csv(DEFAULT_CSV)
+        except (OSError, ValueError) as exc:
+            print(f"Error loading '{DEFAULT_CSV}': {exc}", file=sys.stderr)
             return 1
     else:
         rows = prompt_rows()
