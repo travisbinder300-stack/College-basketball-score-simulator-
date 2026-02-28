@@ -32,7 +32,7 @@ from typing import List, Optional
 
 @dataclass
 class BBRow:
-    rank: int
+    rank: str
     team: str
     g: int
     bb: int
@@ -43,31 +43,56 @@ class BBRow:
 # ---------------------------------------------------------------------------
 
 SAMPLE_DATA: List[BBRow] = [
-    BBRow(rank=1,  team="Louisiana",            g=56, bb=367),
-    BBRow(rank=2,  team="Texas",                g=60, bb=358),
-    BBRow(rank=3,  team="Auburn",               g=59, bb=341),
-    BBRow(rank=4,  team="Tennessee",            g=63, bb=334),
-    BBRow(rank=5,  team="Miami (FL)",           g=57, bb=326),
-    BBRow(rank=6,  team="Oregon State",         g=55, bb=318),
-    BBRow(rank=7,  team="Virginia",             g=58, bb=309),
-    BBRow(rank=8,  team="Vanderbilt",           g=61, bb=301),
-    BBRow(rank=9,  team="Arkansas",             g=62, bb=295),
-    BBRow(rank=10, team="LSU",                  g=64, bb=289),
-    BBRow(rank=11, team="Ole Miss",             g=57, bb=282),
-    BBRow(rank=12, team="Florida",              g=59, bb=276),
-    BBRow(rank=13, team="Stanford",             g=54, bb=271),
-    BBRow(rank=14, team="TCU",                  g=58, bb=265),
-    BBRow(rank=15, team="North Carolina",       g=56, bb=259),
-    BBRow(rank=16, team="Dallas Baptist",       g=55, bb=253),
-    BBRow(rank=17, team="Louisville",           g=57, bb=247),
-    BBRow(rank=18, team="Georgia Tech",         g=56, bb=241),
-    BBRow(rank=19, team="Southern Miss",        g=58, bb=235),
-    BBRow(rank=20, team="Arizona",              g=53, bb=229),
-    BBRow(rank=21, team="NC State",             g=55, bb=223),
-    BBRow(rank=22, team="South Carolina",       g=57, bb=217),
-    BBRow(rank=23, team="Indiana",              g=52, bb=211),
-    BBRow(rank=24, team="Coastal Carolina",     g=55, bb=205),
-    BBRow(rank=25, team="East Carolina",        g=56, bb=199),
+    BBRow(rank="1",  team="Georgia Tech",      g=9,  bb=79),
+    BBRow(rank="2",  team="Oklahoma",          g=9,  bb=78),
+    BBRow(rank="3",  team="SFA",               g=10, bb=73),
+    BBRow(rank="4",  team="Miami (FL)",        g=10, bb=71),
+    BBRow(rank="-",  team="Miami (OH)",        g=8,  bb=71),
+    BBRow(rank="6",  team="New Mexico",        g=8,  bb=70),
+    BBRow(rank="7",  team="UIW",               g=9,  bb=68),
+    BBRow(rank="8",  team="Virginia",          g=8,  bb=67),
+    BBRow(rank="9",  team="Pittsburgh",        g=7,  bb=66),
+    BBRow(rank="10", team="Texas Tech",        g=8,  bb=65),
+    BBRow(rank="11", team="LSU",               g=9,  bb=64),
+    BBRow(rank="-",  team="Mercer",            g=9,  bb=64),
+    BBRow(rank="-",  team="Ole Miss",          g=9,  bb=64),
+    BBRow(rank="14", team="Wake Forest",       g=8,  bb=62),
+    BBRow(rank="15", team="Longwood",          g=8,  bb=60),
+    BBRow(rank="-",  team="Vanderbilt",        g=9,  bb=60),
+    BBRow(rank="-",  team="Virginia Tech",     g=8,  bb=60),
+    BBRow(rank="18", team="Missouri",          g=9,  bb=59),
+    BBRow(rank="19", team="VMI",               g=8,  bb=58),
+    BBRow(rank="20", team="Alabama",           g=9,  bb=57),
+    BBRow(rank="-",  team="FIU",               g=10, bb=57),
+    BBRow(rank="-",  team="Wofford",           g=8,  bb=57),
+    BBRow(rank="23", team="Duke",              g=10, bb=56),
+    BBRow(rank="-",  team="Georgia St.",       g=9,  bb=56),
+    BBRow(rank="-",  team="Grambling",         g=8,  bb=56),
+    BBRow(rank="-",  team="Texas A&M",         g=8,  bb=56),
+    BBRow(rank="27", team="High Point",        g=9,  bb=55),
+    BBRow(rank="-",  team="Mississippi St.",   g=9,  bb=55),
+    BBRow(rank="-",  team="UNLV",              g=9,  bb=55),
+    BBRow(rank="30", team="Baylor",            g=8,  bb=54),
+    BBRow(rank="-",  team="Charleston So.",    g=8,  bb=54),
+    BBRow(rank="32", team="ETSU",              g=8,  bb=53),
+    BBRow(rank="-",  team="Georgia",           g=8,  bb=53),
+    BBRow(rank="-",  team="Long Beach St.",    g=8,  bb=53),
+    BBRow(rank="35", team="Kansas",            g=8,  bb=52),
+    BBRow(rank="-",  team="New Orleans",       g=9,  bb=52),
+    BBRow(rank="37", team="Jackson St.",       g=9,  bb=51),
+    BBRow(rank="-",  team="La Salle",          g=7,  bb=51),
+    BBRow(rank="-",  team="USC Upstate",       g=10, bb=51),
+    BBRow(rank="-",  team="Western Ky.",       g=9,  bb=51),
+    BBRow(rank="41", team="Austin Peay",       g=8,  bb=50),
+    BBRow(rank="-",  team="Georgetown",        g=8,  bb=50),
+    BBRow(rank="-",  team="Jacksonville",      g=9,  bb=50),
+    BBRow(rank="-",  team="Kansas St.",        g=9,  bb=50),
+    BBRow(rank="-",  team="Texas",             g=8,  bb=50),
+    BBRow(rank="-",  team="Tulane",            g=9,  bb=50),
+    BBRow(rank="-",  team="UNCW",              g=9,  bb=50),
+    BBRow(rank="-",  team="UTSA",              g=8,  bb=50),
+    BBRow(rank="49", team="Charlotte",         g=8,  bb=49),
+    BBRow(rank="-",  team="Cincinnati",        g=9,  bb=49),
 ]
 
 
@@ -94,7 +119,7 @@ def load_csv(path: str) -> List[BBRow]:
             if len(line) < 4:
                 continue
             try:
-                rank = int(line[0].strip())
+                rank = line[0].strip()          # keep as string; supports "-" ties
                 team = line[1].strip()
                 g    = int(line[2].strip())
                 bb   = int(line[3].strip())
@@ -105,7 +130,7 @@ def load_csv(path: str) -> List[BBRow]:
     # Re-sort by BB descending and re-rank
     rows.sort(key=lambda r: r.bb, reverse=True)
     for idx, row in enumerate(rows, start=1):
-        row.rank = idx
+        row.rank = str(idx)
     return rows
 
 
@@ -118,7 +143,7 @@ HEADERS = ["Rank", "Teams", "G", "BB"]
 
 def format_table(rows: List[BBRow]) -> str:
     """Return a neatly aligned table string for the given BB rows."""
-    data = [[str(r.rank), r.team, str(r.g), str(r.bb)] for r in rows]
+    data = [[r.rank, r.team, str(r.g), str(r.bb)] for r in rows]
 
     # Compute column widths
     widths = [len(h) for h in HEADERS]
@@ -241,13 +266,13 @@ def prompt_rows() -> List[BBRow]:
                 break
             except ValueError:
                 print("  Please enter a non-negative integer for BB.")
-        rows.append(BBRow(rank=0, team=team, g=g, bb=bb))
+        rows.append(BBRow(rank="-", team=team, g=g, bb=bb))
         print()
 
     # Sort by BB descending and assign ranks
     rows.sort(key=lambda r: r.bb, reverse=True)
     for idx, row in enumerate(rows, start=1):
-        row.rank = idx
+        row.rank = str(idx)
     return rows
 
 
