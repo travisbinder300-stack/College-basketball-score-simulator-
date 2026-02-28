@@ -15,7 +15,23 @@ Columns: `rank, team, games, BB`
 
 ## Scripts
 
-- `bb_stats_table.py` — prints a ranked BB stats table with analysis
+- `bb_stats_table.py` — prints a ranked BB (Base on Balls) stats table with analysis
+- `ba_stats_table.py` — prints a ranked BA (Batting Average) stats table with analysis
 - `game_simulator.py` — simulates game scores
 - `rpi_table_printer.py` — prints RPI table
+
+## Batting Average Data
+
+`ba_data.csv` contains batting average (BA) statistics. Teams are added manually one at a time.
+
+Columns: `Rank, Team, G, AB, H, BA`
+
+| Column | Description |
+|--------|-------------|
+| Rank | BA rank (1 = highest average) |
+| Team | Team name |
+| G | Games played |
+| AB | At-bats |
+| H | Hits |
+| BA | Batting average (H / AB) |
 
