@@ -28,6 +28,7 @@ Usage:
 from __future__ import annotations
 
 import math
+import random
 import re
 import sys
 from dataclasses import dataclass
@@ -259,8 +260,71 @@ def parse_matchup(line: str) -> Matchup:
 
 HOME_ADVANTAGE_RUNS = 0.3     # typical home-field edge in college baseball (runs)
 MARGIN_STD = 3.0              # college baseball run-margin std-dev (~3 runs/game)
+TOTAL_STD = 2.5               # college baseball total-runs std-dev
+MIN_GAME_TOTAL = 1            # floor for simulated total runs
+NUM_SIMULATIONS = 10_000      # number of Monte Carlo trials per game
 MAX_RPI_RANK = 350            # approximate size of the NCAA field
 TEAM_NAME_WIDTH = 28          # column width for team names in the report
+
+
+def _run_monte_carlo(
+    adjusted_margin_away: float,
+    expected_total: float,
+    run_line: float,
+    seed: Optional[int] = None,
+) -> dict:
+    """
+    Simulate NUM_SIMULATIONS games by drawing margin and total from normal distributions.
+
+    Parameters
+    ----------
+    adjusted_margin_away : expected (away − home) run margin after all adjustments
+    expected_total       : expected combined runs; also used as the O/U line threshold
+    run_line             : away team's run line (e.g. -1.5 means away favoured by 1.5)
+    seed                 : optional RNG seed for reproducibility (None = OS random)
+
+    Returns
+    -------
+    Dict with sim_win_pct_away/home, sim_away_cover_pct/home_cover_pct,
+    sim_over_pct/under_pct, sim_projected_score_away/home, sim_projected_total.
+    """
+    rng = random.Random(seed)
+    away_wins = 0
+    away_covers = 0
+    total_over = 0
+    margins: list[float] = []
+    totals: list[float] = []
+
+    for _ in range(NUM_SIMULATIONS):
+        margin = rng.gauss(adjusted_margin_away, MARGIN_STD)
+        total = max(MIN_GAME_TOTAL, rng.gauss(expected_total, TOTAL_STD))
+
+        if margin > 0:
+            away_wins += 1
+        # Away covers when margin beats the negation of their line:
+        # run_line = -1.5 (favourite) → threshold = +1.5 → covers when margin > 1.5
+        if margin > -run_line:
+            away_covers += 1
+        # O/U line is defined as expected_total; total_over counts games above that line
+        if total > expected_total:
+            total_over += 1
+
+        margins.append(margin)
+        totals.append(total)
+
+    avg_margin = sum(margins) / NUM_SIMULATIONS
+    avg_total = sum(totals) / NUM_SIMULATIONS
+    return {
+        "sim_win_pct_away": away_wins / NUM_SIMULATIONS,
+        "sim_win_pct_home": 1.0 - away_wins / NUM_SIMULATIONS,
+        "sim_away_cover_pct": away_covers / NUM_SIMULATIONS,
+        "sim_home_cover_pct": 1.0 - away_covers / NUM_SIMULATIONS,
+        "sim_over_pct": total_over / NUM_SIMULATIONS,
+        "sim_under_pct": 1.0 - total_over / NUM_SIMULATIONS,
+        "sim_projected_score_away": (avg_total + avg_margin) / 2,
+        "sim_projected_score_home": (avg_total - avg_margin) / 2,
+        "sim_projected_total": avg_total,
+    }
 
 
 def _normal_cdf(x: float) -> float:
@@ -383,6 +447,9 @@ def calculate_game(matchup: Matchup) -> dict:
     proj_away = (expected_total + adjusted_margin_away) / 2
     proj_home = (expected_total - adjusted_margin_away) / 2
 
+    # --- Monte Carlo simulation (10,000 trials) ---
+    sim = _run_monte_carlo(adjusted_margin_away, expected_total, away.run_line)
+
     return {
         "away": away,
         "home": home,
@@ -405,6 +472,7 @@ def calculate_game(matchup: Matchup) -> dict:
         "home_cover_pct": home_cover_pct,
         "over_pct": over_pct,
         "under_pct": under_pct,
+        **sim,
     }
 
 
@@ -474,10 +542,17 @@ def format_report(r: dict) -> str:
         f"{home.name} {pct(r['home_cover_pct'])}",
         f"  {'Over/Under %':<{TEAM_NAME_WIDTH}s}  OVER {pct(r['over_pct'])}  |  UNDER {pct(r['under_pct'])}",
         "-" * 60,
+        f"  SIMULATION  ({NUM_SIMULATIONS:,} runs)",
+        f"  {'Win %':<{TEAM_NAME_WIDTH}s}  {away.name} {pct(r['sim_win_pct_away'])}  |  "
+        f"{home.name} {pct(r['sim_win_pct_home'])}",
+        f"  {'Run Line cover %':<{TEAM_NAME_WIDTH}s}  {away.name} {pct(r['sim_away_cover_pct'])}  |  "
+        f"{home.name} {pct(r['sim_home_cover_pct'])}",
+        f"  {'Over/Under %':<{TEAM_NAME_WIDTH}s}  OVER {pct(r['sim_over_pct'])}  |  UNDER {pct(r['sim_under_pct'])}",
+        "-" * 60,
         "  PROJECTED SCORE (runs)",
-        f"  {away.name:<{TEAM_NAME_WIDTH}s}  {score(r['projected_score_away'])}",
-        f"  {home.name:<{TEAM_NAME_WIDTH}s}  {score(r['projected_score_home'])}",
-        f"  {'Projected total runs':<{TEAM_NAME_WIDTH}s}  {score(r['projected_total'])}",
+        f"  {away.name:<{TEAM_NAME_WIDTH}s}  math {score(r['projected_score_away'])}  |  sim {score(r['sim_projected_score_away'])}",
+        f"  {home.name:<{TEAM_NAME_WIDTH}s}  math {score(r['projected_score_home'])}  |  sim {score(r['sim_projected_score_home'])}",
+        f"  {'Projected total runs':<{TEAM_NAME_WIDTH}s}  math {score(r['projected_total'])}  |  sim {score(r['sim_projected_total'])}",
         "-" * 60,
         "  PICKS",
         f"  Moneyline : {pick_ml}",
