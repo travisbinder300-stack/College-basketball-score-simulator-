@@ -82,7 +82,7 @@ def load_csv(path: str) -> List[DPRow]:
     with open(path, newline="", encoding="utf-8") as fh:
         sample = fh.read(1024)
         fh.seek(0)
-        has_header = not sample.strip()[0].isdigit()
+        has_header = bool(sample.strip()) and not sample.strip()[0].isdigit()
         reader = csv.reader(fh)
         if has_header:
             next(reader, None)          # skip header line
@@ -159,7 +159,8 @@ def analyze(rows: List[DPRow]) -> str:
     total_dp    = sum(r.dp for r in rows)
     avg_dp      = total_dp / total_teams
     avg_g       = sum(r.g for r in rows) / total_teams
-    avg_dp_per_g = sum(r.dp / r.g for r in rows if r.g > 0) / total_teams
+    teams_with_g = sum(1 for r in rows if r.g > 0)
+    avg_dp_per_g = sum(r.dp / r.g for r in rows if r.g > 0) / teams_with_g if teams_with_g else 0.0
 
     leader  = rows[0]
     trailer = rows[-1]

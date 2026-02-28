@@ -182,7 +182,8 @@ def _dp_summary(path: str) -> List[str]:
     total_dp    = sum(r[2] for r in rows)
     avg_dp      = total_dp / total_teams
     avg_g       = sum(r[1] for r in rows) / total_teams
-    avg_dp_per_g = sum(r[2] / r[1] for r in rows if r[1] > 0) / total_teams
+    teams_with_g = sum(1 for r in rows if r[1] > 0)
+    avg_dp_per_g = sum(r[2] / r[1] for r in rows if r[1] > 0) / teams_with_g if teams_with_g else 0.0
 
     by_dp = sorted(rows, key=lambda r: r[2], reverse=True)
     leader  = by_dp[0]
