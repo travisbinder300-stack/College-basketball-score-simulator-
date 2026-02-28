@@ -2,7 +2,8 @@
 """
 College Baseball – Batting Average (BA) Stats Table
 ====================================================
-Print a ranked table of teams sorted by batting average.
+Print a ranked table of teams sorted by batting average, and a
+reliability analysis that answers "which team's BA can we trust most?"
 
 Columns
 -------
@@ -12,6 +13,10 @@ Columns
   AB    – at-bats
   H     – hits
   BA    – batting average (H / AB, displayed as .000)
+  Rel%  – reliability score: AB / (AB + 350) × 100
+          Higher = more at-bats sampled = more trustworthy BA estimate.
+          The constant 350 is the standard regression-to-mean value
+          for college/MLB batting averages (Cronbach-alpha studies).
 
 Usage
 -----
@@ -27,6 +32,15 @@ import os
 import sys
 from dataclasses import dataclass
 from typing import List, Optional
+
+
+# ---------------------------------------------------------------------------
+# Reliability constant
+# ---------------------------------------------------------------------------
+
+# Regression-to-mean constant for batting average.  At AB == _RELIABILITY_K
+# a team's observed BA is weighted 50/50 with the league mean.
+_RELIABILITY_K: int = 350
 
 
 # ---------------------------------------------------------------------------
@@ -47,6 +61,23 @@ class BARow:
 
     def ba_str(self) -> str:
         return f"{self.ba:.3f}"
+
+    @property
+    def reliability(self) -> float:
+        """
+        Statistical reliability of the batting average estimate.
+        Formula: AB / (AB + 350) × 100
+        The constant 350 is the standard regression-to-mean denominator
+        for batting average used in sabermetrics.  At AB=350 a team's
+        observed BA is weighted 50/50 with the league mean; above 350
+        the sample dominates.  Returns a percentage (0–100).
+        """
+        if self.ab <= 0:
+            return 0.0
+        return self.ab / (self.ab + _RELIABILITY_K) * 100.0
+
+    def reliability_str(self) -> str:
+        return f"{self.reliability:.1f}%"
 
 
 # ---------------------------------------------------------------------------
@@ -107,12 +138,15 @@ def load_csv(path: str) -> List[BARow]:
 # Formatting
 # ---------------------------------------------------------------------------
 
-HEADERS = ["Rank", "Team", "G", "AB", "H", "BA"]
+HEADERS = ["Rank", "Team", "G", "AB", "H", "BA", "Rel%"]
 
 
 def format_table(rows: List[BARow]) -> str:
     """Return a neatly aligned table string for the given BA rows."""
-    data = [[r.rank, r.team, str(r.g), str(r.ab), str(r.h), r.ba_str()] for r in rows]
+    data = [
+        [r.rank, r.team, str(r.g), str(r.ab), str(r.h), r.ba_str(), r.reliability_str()]
+        for r in rows
+    ]
 
     # Compute column widths
     widths = [len(h) for h in HEADERS]
@@ -187,6 +221,34 @@ def analyze(rows: List[BARow]) -> str:
     lines += ["", "  Bottom 5 by BA:"]
     for r in bot5:
         lines.append(f"    {r.rank:>3}.  {r.team:<22s}  {r.ba_str()}  ({r.h} H / {r.ab} AB, {r.g} G)")
+
+    # ------------------------------------------------------------------
+    # Reliability ranking
+    # ------------------------------------------------------------------
+    by_reliability = sorted(rows, key=lambda r: r.reliability, reverse=True)
+    most_reliable   = by_reliability[:5]
+    least_reliable  = by_reliability[-5:]
+    avg_reliability = sum(r.reliability for r in rows) / total_teams
+
+    lines += [
+        "",
+        "RELIABILITY ANALYSIS",
+        "  (Rel% = AB / (AB + 350) × 100 — higher means more trustworthy BA)",
+        f"  Avg reliability across all teams : {avg_reliability:.1f}%",
+        "",
+        "  Most reliable (largest sample):",
+    ]
+    for i, r in enumerate(most_reliable, start=1):
+        lines.append(
+            f"    {i}.  {r.team:<22s}  Rel%={r.reliability_str():>5}  "
+            f"BA={r.ba_str()}  ({r.ab} AB, {r.g} G)"
+        )
+    lines += ["", "  Least reliable (smallest sample):"]
+    for i, r in enumerate(least_reliable, start=1):
+        lines.append(
+            f"    {i}.  {r.team:<22s}  Rel%={r.reliability_str():>5}  "
+            f"BA={r.ba_str()}  ({r.ab} AB, {r.g} G)"
+        )
 
     return "\n".join(lines)
 
