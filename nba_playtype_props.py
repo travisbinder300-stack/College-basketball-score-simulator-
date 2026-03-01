@@ -1845,6 +1845,87 @@ def find_transition_beneficiaries(
     return results
 
 
+def match_all_transition_matchups(
+    offensive_stats: Optional[List["OffensiveTransitionStats"]] = None,
+    defensive_rankings: Optional[Dict[str, "TransitionDefensiveStats"]] = None,
+    top_n: int = 50,
+    max_def_percentile: float = 40.0,
+    min_off_percentile: float = 0.0,
+) -> List[Dict]:
+    """
+    Cross-reference all offensive transition players with all defensive teams
+    to identify the highest-edge matchups.
+
+    For every (player, opponent) pair where the player's own team differs from
+    the opponent and the opponent's transition defensive percentile is at most
+    *max_def_percentile*, compute::
+
+        edge = player PPP − opponent defensive PPP allowed
+
+    The *top_n* pairs with the largest edge are returned, sorted by edge
+    descending (ties broken by the player's offensive percentile, also
+    descending).
+
+    Parameters
+    ----------
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full 196-player dataset.
+    defensive_rankings:
+        Pre-built ``{team: TransitionDefensiveStats}`` mapping; defaults to the
+        full 30-team dataset.
+    top_n:
+        Maximum number of matchup records to return (default 50).
+    max_def_percentile:
+        Upper bound on the opponent's transition defensive percentile.
+        A low percentile means a weak transition defense, so setting this to
+        40 (default) restricts results to the bottom 40 % of defenses.
+        Pass ``100.0`` to include all teams.
+    min_off_percentile:
+        Lower bound on the player's offensive transition percentile (default 0).
+
+    Returns
+    -------
+    list of dict, each containing:
+      - ``"player"``         : player name
+      - ``"team"``           : player's team abbreviation
+      - ``"off_percentile"`` : player's offensive transition percentile
+      - ``"ppp"``            : player's transition PPP
+      - ``"freq_pct"``       : player's transition frequency %
+      - ``"opponent"``       : opponent team abbreviation
+      - ``"def_ppp"``        : opponent's transition defensive PPP allowed
+      - ``"def_percentile"`` : opponent's transition defensive percentile
+      - ``"edge"``           : player PPP − opponent defensive PPP (higher = better)
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_transition_stats()
+    if defensive_rankings is None:
+        defensive_rankings = build_transition_defensive_rankings()
+
+    results: List[Dict] = []
+    for player in offensive_stats:
+        if player.percentile < min_off_percentile:
+            continue
+        for def_team, d in defensive_rankings.items():
+            if def_team == player.team:
+                continue
+            if d.percentile > max_def_percentile:
+                continue
+            results.append({
+                "player":         player.player,
+                "team":           player.team,
+                "off_percentile": player.percentile,
+                "ppp":            player.ppp,
+                "freq_pct":       player.freq_pct,
+                "opponent":       def_team,
+                "def_ppp":        d.ppp,
+                "def_percentile": d.percentile,
+                "edge":           round(player.ppp - d.ppp, 3),
+            })
+
+    results.sort(key=lambda r: (r["edge"], r["off_percentile"]), reverse=True)
+    return results[:top_n]
+
+
 # ---------------------------------------------------------------------------
 # Similarity engine
 # ---------------------------------------------------------------------------
