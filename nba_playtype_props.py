@@ -97,6 +97,27 @@ class DefensiveIsolationStats:
 
 
 @dataclass
+class TransitionDefensiveStats:
+    """Defensive transition stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed in transition
+    freq_pct: float     # frequency % of transition possessions allowed
+    ppp: float          # points per possession allowed in transition
+    pts: float          # points per game allowed in transition
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better transition defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -361,6 +382,92 @@ def rank_teams_by_isolation_defense(
     """
     if rankings is None:
         rankings = build_defensive_isolation_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def build_transition_defensive_rankings() -> Dict[str, "TransitionDefensiveStats"]:
+    """
+    Return defensive transition stats for all 30 NBA teams (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger transition defense (limiting both the frequency and efficiency of
+    opponent transition possessions).
+    """
+    raw = [
+        # (team_abbr, full_name, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("MIA", "Miami Heat",               57, 29.5, 24.9, 1.08, 31.7, 11.6, 22.9, 50.7, 57.6, 12.7, 12.2, 11.4, 2.7, 48.8,   3.4),
+        ("CHI", "Chicago Bulls",            58, 26.5, 23.3, 1.14, 30.3, 11.2, 21.0, 53.2, 61.4, 12.2, 11.8, 11.2, 3.2, 50.8,  65.5),
+        ("ATL", "Atlanta Hawks",            59, 25.6, 22.3, 1.14, 29.0, 10.8, 20.6, 52.3, 60.5, 11.7, 10.8, 10.9, 3.1, 50.3,  55.2),
+        ("TOR", "Toronto Raptors",          57, 25.5, 22.6, 1.13, 28.8, 10.8, 20.1, 53.5, 60.3, 12.4, 10.9, 11.0, 2.1, 52.0,  41.4),
+        ("DAL", "Dallas Mavericks",         55, 23.1, 20.1, 1.19, 27.5, 10.2, 18.1, 56.4, 62.4, 15.8,  9.8, 15.1, 4.0, 55.2,  96.6),
+        ("SAS", "San Antonio Spurs",        54, 24.5, 21.6, 1.13, 27.7,  9.8, 18.6, 52.7, 60.3, 15.1, 12.0, 14.2, 3.3, 51.2,  48.3),
+        ("NOP", "New Orleans Pelicans",     58, 22.5, 19.5, 1.12, 25.2,  9.6, 17.8, 53.6, 59.8, 12.2, 11.4, 11.5, 3.0, 51.2,  34.5),
+        ("MIN", "Minnesota Timberwolves",   57, 21.9, 19.1, 1.15, 25.2,  9.6, 16.4, 58.4, 65.2, 13.5, 15.0, 12.5, 3.6, 52.9,  75.9),
+        ("UTA", "Utah Jazz",                58, 21.5, 18.3, 1.14, 24.5,  9.2, 16.6, 55.7, 62.3, 12.7, 13.2, 11.8, 3.0, 52.6,  69.0),
+        ("MEM", "Memphis Grizzlies",        55, 23.9, 20.6, 1.08, 25.8,  9.7, 18.6, 52.1, 59.2, 11.3, 13.5, 10.7, 2.6, 48.5,   6.9),
+        ("DET", "Detroit Pistons",          55, 22.2, 19.2, 1.16, 25.8,  9.8, 17.0, 57.7, 63.1, 14.8, 12.0, 13.8, 3.4, 54.5,  79.3),
+        ("CLE", "Cleveland Cavaliers",      58, 21.3, 18.5, 1.14, 24.1,  9.1, 17.2, 52.7, 60.4, 10.9, 10.4, 10.1, 2.4, 51.0,  58.6),
+        ("IND", "Indiana Pacers",           57, 22.0, 19.3, 1.10, 24.2,  8.9, 17.0, 52.1, 59.4, 13.3, 12.0, 12.2, 2.5, 50.2,  24.1),
+        ("NYK", "New York Knicks",          55, 21.1, 18.7, 1.19, 25.1,  9.3, 17.2, 54.2, 63.0, 11.1, 10.2, 10.6, 2.8, 52.1,  93.1),
+        ("ORL", "Orlando Magic",            53, 22.3, 19.6, 1.15, 25.6,  9.3, 17.4, 53.5, 59.7, 15.0,  9.9, 14.3, 3.0, 52.8,  72.4),
+        ("POR", "Portland Trail Blazers",   58, 21.1, 17.9, 1.11, 23.4,  8.4, 15.9, 52.8, 60.8, 13.5, 14.2, 12.1, 3.0, 49.9,  27.6),
+        ("PHI", "Philadelphia 76ers",       56, 20.7, 18.0, 1.13, 23.5,  8.7, 16.3, 53.6, 60.3, 12.8, 11.2, 11.9, 2.5, 52.0,  51.7),
+        ("HOU", "Houston Rockets",          56, 18.9, 16.5, 1.14, 21.6,  8.1, 14.2, 57.2, 64.0, 13.3, 15.0, 12.2, 3.2, 52.4,  62.1),
+        ("SAC", "Sacramento Kings",         58, 18.8, 16.6, 1.10, 20.7,  8.0, 14.1, 56.4, 60.7, 13.5, 13.7, 12.8, 2.2, 53.2,  20.7),
+        ("OKC", "Oklahoma City Thunder",    56, 17.9, 16.0, 1.20, 21.4,  7.8, 14.4, 54.0, 61.6, 13.9,  9.1, 12.7, 3.6, 53.6, 100.0),
+        ("WAS", "Washington Wizards",       55, 21.4, 18.6, 1.02, 21.8,  8.1, 17.1, 47.3, 55.4, 10.1, 12.8,  9.7, 2.8, 44.4,   0.0),
+        ("GSW", "Golden State Warriors",    57, 19.0, 16.7, 1.11, 21.0,  7.8, 14.8, 52.7, 61.7,  9.5, 14.4,  8.7, 2.0, 48.5,  31.0),
+        ("DEN", "Denver Nuggets",           58, 17.3, 15.6, 1.18, 20.5,  7.4, 13.4, 54.8, 62.5, 14.4, 11.1, 11.8, 3.1, 53.3,  89.7),
+        ("LAL", "Los Angeles Lakers",       55, 19.1, 17.4, 1.13, 21.5,  8.1, 14.2, 57.4, 63.2, 14.2, 14.6, 13.3, 3.1, 53.0,  44.8),
+        ("BOS", "Boston Celtics",           57, 17.1, 15.5, 1.18, 20.1,  7.5, 14.1, 53.2, 62.5, 10.2,  9.8,  8.8, 2.7, 51.3,  86.2),
+        ("PHX", "Phoenix Suns",             56, 18.1, 16.1, 1.13, 20.4,  7.5, 14.3, 52.5, 61.8, 10.3, 12.7,  9.8, 2.0, 49.5,  37.9),
+        ("CHA", "Charlotte Hornets",        58, 17.9, 15.7, 1.08, 19.4,  7.1, 13.6, 52.1, 60.4, 11.6, 14.5, 10.8, 1.9, 49.1,  13.8),
+        ("MIL", "Milwaukee Bucks",          55, 17.7, 16.3, 1.08, 19.2,  6.9, 13.4, 51.8, 59.4, 14.2, 12.9, 13.3, 2.8, 49.4,  10.3),
+        ("BKN", "Brooklyn Nets",            56, 17.2, 15.6, 1.09, 18.8,  7.0, 13.2, 52.9, 60.6, 12.8, 13.7, 12.2, 3.1, 49.1,  17.2),
+        ("LAC", "LA Clippers",              55, 16.2, 15.1, 1.17, 18.9,  6.9, 12.3, 55.8, 63.5, 13.6, 13.7, 12.4, 3.5, 52.2,  82.8),
+    ]
+
+    rankings: Dict[str, TransitionDefensiveStats] = {}
+    for row in raw:
+        (abbr, _name, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = TransitionDefensiveStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_transition_defense(
+    rankings: Optional[Dict[str, "TransitionDefensiveStats"]] = None,
+) -> List["TransitionDefensiveStats"]:
+    """
+    Return all teams sorted from best to worst transition defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_transition_defensive_rankings()
     return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
 
 
