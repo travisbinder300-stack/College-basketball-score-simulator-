@@ -44,6 +44,7 @@ from nba_playtype_props import (
     build_offensive_transition_stats,
     rank_players_by_offensive_transition,
     find_transition_scorers,
+    find_transition_beneficiaries,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -1158,15 +1159,15 @@ class TestOffensiveTransitionStats(unittest.TestCase):
         for s in self.stats:
             self.assertIsInstance(s, OffensiveTransitionStats)
 
-    def test_best_percentile_payton_pritchard(self):
-        """Payton Pritchard should have the highest percentile (93.9)."""
-        pritchard = next(s for s in self.stats if s.player == "Payton Pritchard")
-        self.assertAlmostEqual(pritchard.percentile, 93.9)
+    def test_best_percentile_james_harden(self):
+        """James Harden should have the highest percentile (97.6)."""
+        harden = next(s for s in self.stats if s.player == "James Harden")
+        self.assertAlmostEqual(harden.percentile, 97.6)
 
-    def test_worst_percentile_russell_westbrook(self):
-        """Russell Westbrook should have the lowest percentile (35.5)."""
-        westbrook = next(s for s in self.stats if s.player == "Russell Westbrook")
-        self.assertAlmostEqual(westbrook.percentile, 35.5)
+    def test_worst_percentile_jerami_grant(self):
+        """Jerami Grant should have the lowest percentile (9.4)."""
+        grant = next(s for s in self.stats if s.player == "Jerami Grant")
+        self.assertAlmostEqual(grant.percentile, 9.4)
 
     def test_ppp_values_are_positive(self):
         for s in self.stats:
@@ -1184,9 +1185,9 @@ class TestOffensiveTransitionStats(unittest.TestCase):
 
     def test_known_player_fields(self):
         harden = next(s for s in self.stats if s.player == "James Harden")
-        self.assertEqual(harden.team, "LAC")
-        self.assertAlmostEqual(harden.freq_pct, 42.1)
-        self.assertAlmostEqual(harden.ppp, 1.06)
+        self.assertEqual(harden.team, "CLE")
+        self.assertAlmostEqual(harden.freq_pct, 26.8)
+        self.assertAlmostEqual(harden.ppp, 1.39)
 
     def test_all_players_have_teams(self):
         for s in self.stats:
@@ -1205,21 +1206,21 @@ class TestRankPlayersByOffensiveTransition(unittest.TestCase):
         self.assertEqual(percentiles, sorted(percentiles, reverse=True))
 
     def test_first_player_has_highest_percentile(self):
-        """Payton Pritchard (93.9) or Norman Powell (91.8) should be near top."""
+        """James Harden (97.6) should be at or near the top."""
         self.assertGreaterEqual(self.ranked[0].percentile, 91.0)
 
     def test_last_player_has_lowest_percentile(self):
-        """Russell Westbrook (35.5) should be last."""
-        self.assertAlmostEqual(self.ranked[-1].percentile, 35.5)
+        """Jerami Grant (9.4) should be last."""
+        self.assertAlmostEqual(self.ranked[-1].percentile, 9.4)
 
     def test_accepts_custom_list(self):
         subset = [
             s for s in build_offensive_transition_stats()
-            if s.player in ("Payton Pritchard", "Russell Westbrook")
+            if s.player in ("James Harden", "Jerami Grant")
         ]
         ranked_subset = rank_players_by_offensive_transition(subset)
         self.assertEqual(len(ranked_subset), 2)
-        self.assertEqual(ranked_subset[0].player, "Payton Pritchard")
+        self.assertEqual(ranked_subset[0].player, "James Harden")
 
 
 class TestFindTransitionScorers(unittest.TestCase):
@@ -1278,7 +1279,7 @@ class TestFindTransitionScorers(unittest.TestCase):
         self.assertEqual(result, [])
 
     def test_harden_appears_at_top_by_freq(self):
-        """James Harden leads all players with 42.1% transition freq."""
+        """James Harden leads all players with 26.8% transition freq."""
         result = find_transition_scorers(self.stats, min_freq_pct=10.0, min_ppp=1.00)
         self.assertEqual(result[0]["player"], "James Harden")
 
@@ -1286,6 +1287,100 @@ class TestFindTransitionScorers(unittest.TestCase):
         broad = find_transition_scorers(self.stats, min_freq_pct=10.0, min_ppp=0.80)
         narrow = find_transition_scorers(self.stats, min_freq_pct=20.0, min_ppp=1.00)
         self.assertGreaterEqual(len(broad), len(narrow))
+
+
+class TestFindTransitionBeneficiaries(unittest.TestCase):
+    """Tests for find_transition_beneficiaries()."""
+
+    def setUp(self):
+        self.stats = build_offensive_transition_stats()
+        self.def_rankings = build_transition_defensive_rankings()
+
+    def test_returns_list(self):
+        result = find_transition_beneficiaries(self.stats, "WAS", self.def_rankings)
+        self.assertIsInstance(result, list)
+
+    def test_empty_for_unknown_team(self):
+        result = find_transition_beneficiaries(self.stats, "UNKNOWN", self.def_rankings)
+        self.assertEqual(result, [])
+
+    def test_empty_for_strong_defense(self):
+        """OKC has the best transition defense (percentile=100.0) → above default threshold."""
+        result = find_transition_beneficiaries(self.stats, "OKC", self.def_rankings)
+        self.assertEqual(result, [])
+
+    def test_all_results_meet_freq_threshold(self):
+        min_freq = 10.0
+        result = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings, min_freq_pct=min_freq
+        )
+        for entry in result:
+            self.assertGreaterEqual(entry["freq_pct"], min_freq)
+
+    def test_all_results_meet_ppp_threshold(self):
+        min_ppp = 1.05
+        result = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings, min_ppp=min_ppp
+        )
+        for entry in result:
+            self.assertGreaterEqual(entry["ppp"], min_ppp)
+
+    def test_opponent_def_fields_populated(self):
+        result = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings, min_freq_pct=0.0, min_ppp=0.0
+        )
+        for entry in result:
+            self.assertAlmostEqual(entry["def_ppp"], self.def_rankings["WAS"].ppp)
+            self.assertAlmostEqual(
+                entry["def_percentile"], self.def_rankings["WAS"].percentile
+            )
+
+    def test_sorted_by_freq_pct_descending(self):
+        result = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings, min_freq_pct=0.0, min_ppp=0.0
+        )
+        freqs = [e["freq_pct"] for e in result]
+        self.assertEqual(freqs, sorted(freqs, reverse=True))
+
+    def test_result_keys(self):
+        result = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings, min_freq_pct=0.0, min_ppp=0.0
+        )
+        if result:
+            expected_keys = {
+                "player", "team", "freq_pct", "ppp", "pts",
+                "percentile", "def_ppp", "def_percentile", "edge",
+            }
+            self.assertEqual(set(result[0].keys()), expected_keys)
+
+    def test_edge_equals_player_ppp_minus_def_ppp(self):
+        result = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings, min_freq_pct=0.0, min_ppp=0.0
+        )
+        def_ppp = self.def_rankings["WAS"].ppp
+        for entry in result:
+            self.assertAlmostEqual(entry["edge"], round(entry["ppp"] - def_ppp, 3))
+
+    def test_harden_appears_at_top_against_weak_defense(self):
+        """James Harden (freq=26.8) should lead vs WAS (weak defense)."""
+        result = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings, min_freq_pct=10.0, min_ppp=1.00
+        )
+        self.assertTrue(len(result) > 0)
+        self.assertEqual(result[0]["player"], "James Harden")
+
+    def test_custom_max_def_percentile(self):
+        """Raising max_def_percentile to 100 opens all teams; -1 closes all."""
+        result_open = find_transition_beneficiaries(
+            self.stats, "OKC", self.def_rankings,
+            min_freq_pct=0.0, min_ppp=0.0, max_def_percentile=100.0
+        )
+        result_closed = find_transition_beneficiaries(
+            self.stats, "WAS", self.def_rankings,
+            min_freq_pct=0.0, min_ppp=0.0, max_def_percentile=-1.0
+        )
+        self.assertGreater(len(result_open), 0)
+        self.assertEqual(result_closed, [])
 
 
 if __name__ == "__main__":
