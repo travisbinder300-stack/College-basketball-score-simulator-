@@ -51,6 +51,7 @@ from nba_playtype_props import (
     _matchup_multiplier,
     project_props,
     analyze_matchup,
+    predict_transition_matchup,
 )
 
 
@@ -1462,6 +1463,145 @@ class TestMatchAllTransitionMatchups(unittest.TestCase):
         )
         for entry in result_high:
             self.assertGreaterEqual(entry["off_percentile"], 80.0)
+
+
+class TestPredictTransitionMatchup(unittest.TestCase):
+    """Tests for predict_transition_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_transition_stats()
+        self.def_rankings = build_transition_defensive_rankings()
+
+    # ------------------------------------------------------------------
+    # Basic return structure
+    # ------------------------------------------------------------------
+
+    def test_returns_dict_for_valid_inputs(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsInstance(result, dict)
+
+    def test_required_keys_present(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        expected_keys = {
+            "player", "team", "gp", "freq_pct", "ppp", "pts",
+            "off_percentile", "opponent", "def_ppp", "def_freq_pct",
+            "def_percentile", "edge", "verdict",
+        }
+        self.assertEqual(set(result.keys()), expected_keys)
+
+    # ------------------------------------------------------------------
+    # Josh Hart vs SAS — the primary requested matchup
+    # ------------------------------------------------------------------
+
+    def test_hart_vs_sas_player_fields(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["player"], "Josh Hart")
+        self.assertEqual(result["team"], "NYK")
+        self.assertAlmostEqual(result["ppp"], 1.5)
+        self.assertAlmostEqual(result["off_percentile"], 99.6)
+
+    def test_hart_vs_sas_opponent_fields(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["opponent"], "SAS")
+        self.assertAlmostEqual(result["def_ppp"], 1.13)
+
+    def test_hart_vs_sas_edge(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        expected_edge = round(1.5 - 1.13, 3)
+        self.assertAlmostEqual(result["edge"], expected_edge)
+
+    def test_hart_vs_sas_verdict_favorable(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    # ------------------------------------------------------------------
+    # Verdict thresholds
+    # ------------------------------------------------------------------
+
+    def test_verdict_tough_when_edge_below_minus_threshold(self):
+        # Build a synthetic player with low PPP and a high-PPP-allowed defense
+        player = OffensiveTransitionStats(
+            player="Test Player", team="AAA", gp=50,
+            poss=5.0, freq_pct=20.0, ppp=0.80, pts=5.0,
+            fgm=1.0, fga=2.0, fg_pct=50.0, efg_pct=50.0,
+            ft_freq_pct=10.0, tov_freq_pct=5.0, sf_freq_pct=5.0,
+            and_one_freq_pct=0.0, score_freq_pct=50.0, percentile=20.0,
+        )
+        result = predict_transition_matchup(
+            "Test Player", "OKC",
+            [player], self.def_rankings,
+        )
+        # OKC allows only 1.20 PPP and has percentile=100 — player edge = 0.80-1.20 = -0.40
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        player = OffensiveTransitionStats(
+            player="Neutral Guy", team="BBB", gp=50,
+            poss=5.0, freq_pct=15.0, ppp=1.14, pts=5.0,
+            fgm=1.0, fga=2.0, fg_pct=50.0, efg_pct=50.0,
+            ft_freq_pct=10.0, tov_freq_pct=5.0, sf_freq_pct=5.0,
+            and_one_freq_pct=0.0, score_freq_pct=50.0, percentile=50.0,
+        )
+        # SAS allows 1.13 PPP; edge = 1.14 - 1.13 = 0.01 → NEUTRAL
+        result = predict_transition_matchup(
+            "Neutral Guy", "SAS", [player], self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    # ------------------------------------------------------------------
+    # Not-found cases
+    # ------------------------------------------------------------------
+
+    def test_returns_none_for_unknown_player(self):
+        result = predict_transition_matchup(
+            "Nobody Famous", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_team(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "ZZZ", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    # ------------------------------------------------------------------
+    # Case-insensitive player name lookup
+    # ------------------------------------------------------------------
+
+    def test_case_insensitive_player_name(self):
+        result_lower = predict_transition_matchup(
+            "josh hart", "SAS", self.off_stats, self.def_rankings
+        )
+        result_upper = predict_transition_matchup(
+            "JOSH HART", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result_lower)
+        self.assertIsNotNone(result_upper)
+        self.assertEqual(result_lower["player"], result_upper["player"])
+
+    # ------------------------------------------------------------------
+    # Edge formula
+    # ------------------------------------------------------------------
+
+    def test_edge_equals_ppp_minus_def_ppp(self):
+        result = predict_transition_matchup(
+            "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["ppp"] - result["def_ppp"], 3)
+        )
 
 
 if __name__ == "__main__":

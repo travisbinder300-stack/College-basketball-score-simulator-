@@ -1949,6 +1949,95 @@ def match_all_transition_matchups(
     return results[:top_n]
 
 
+def predict_transition_matchup(
+    player_name: str,
+    opponent_team: str,
+    offensive_stats: Optional[List["OffensiveTransitionStats"]] = None,
+    defensive_rankings: Optional[Dict[str, "TransitionDefensiveStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head transition matchup prediction for *player_name*
+    against *opponent_team*'s transition defense.
+
+    Unlike :func:`find_transition_beneficiaries`, this function performs a
+    direct lookup with **no frequency or PPP thresholds**, making it suitable
+    for on-demand matchup queries regardless of sample size.
+
+    Parameters
+    ----------
+    player_name:
+        Exact player name as it appears in the offensive transition dataset
+        (e.g. ``"Josh Hart"``).
+    opponent_team:
+        Three-letter team abbreviation for the defending team (e.g. ``"SAS"``).
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_rankings:
+        Pre-built ``{team: TransitionDefensiveStats}`` mapping; defaults to
+        the full 30-team dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or team cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"player"``         : player name
+        - ``"team"``           : player's team abbreviation
+        - ``"gp"``             : games played
+        - ``"freq_pct"``       : player's transition frequency %
+        - ``"ppp"``            : player's transition PPP
+        - ``"pts"``            : player's transition points per game
+        - ``"off_percentile"`` : player's offensive transition percentile
+        - ``"opponent"``       : opponent team abbreviation
+        - ``"def_ppp"``        : opponent's transition PPP allowed
+        - ``"def_freq_pct"``   : opponent's transition frequency allowed %
+        - ``"def_percentile"`` : opponent's transition defensive percentile
+        - ``"edge"``           : player PPP − opponent defensive PPP
+        - ``"verdict"``        : short human-readable label (``"FAVORABLE"``,
+                                 ``"NEUTRAL"``, or ``"TOUGH"``)
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_transition_stats()
+    if defensive_rankings is None:
+        defensive_rankings = build_transition_defensive_rankings()
+
+    player_stat = next(
+        (s for s in offensive_stats if s.player.lower() == player_name.lower()),
+        None,
+    )
+    if player_stat is None:
+        return None
+
+    def_stat = defensive_rankings.get(opponent_team.upper())
+    if def_stat is None:
+        return None
+
+    edge = round(player_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.15:
+        verdict = "FAVORABLE"
+    elif edge <= -0.15:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "player":         player_stat.player,
+        "team":           player_stat.team,
+        "gp":             player_stat.gp,
+        "freq_pct":       player_stat.freq_pct,
+        "ppp":            player_stat.ppp,
+        "pts":            player_stat.pts,
+        "off_percentile": player_stat.percentile,
+        "opponent":       def_stat.team,
+        "def_ppp":        def_stat.ppp,
+        "def_freq_pct":   def_stat.freq_pct,
+        "def_percentile": def_stat.percentile,
+        "edge":           edge,
+        "verdict":        verdict,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Similarity engine
 # ---------------------------------------------------------------------------
@@ -2192,6 +2281,34 @@ def _print_transition_matchups(
     print(f"{'=' * 72}\n")
 
 
+def _print_transition_matchup_prediction(prediction: Optional[Dict]) -> None:
+    """Pretty-print the result of :func:`predict_transition_matchup`."""
+    if prediction is None:
+        print("\n[predict_transition_matchup] Player or team not found.\n")
+        return
+    p = prediction
+    print(f"\n{'=' * 60}")
+    print(f"  Transition Matchup Prediction")
+    print(f"{'=' * 60}")
+    print(f"  Player  : {p['player']} ({p['team']})  —  {p['gp']} GP")
+    print(f"  Opponent: {p['opponent']} transition defense")
+    print(f"")
+    print(f"  Offensive Transition (player)")
+    print(f"    Frequency  : {p['freq_pct']:.1f}%")
+    print(f"    PPP        : {p['ppp']:.2f}")
+    print(f"    Pts/game   : {p['pts']:.1f}")
+    print(f"    Percentile : {p['off_percentile']:.1f}")
+    print(f"")
+    print(f"  Defensive Transition ({p['opponent']})")
+    print(f"    Freq allowed: {p['def_freq_pct']:.1f}%")
+    print(f"    PPP allowed : {p['def_ppp']:.2f}")
+    print(f"    Percentile  : {p['def_percentile']:.1f}  (higher = stronger defense)")
+    print(f"")
+    print(f"  Edge (player PPP − def PPP): {p['edge']:+.3f}")
+    print(f"  Verdict: {p['verdict']}")
+    print(f"{'=' * 60}\n")
+
+
 def main() -> None:
     players = build_sample_players()
     defenses = build_sample_defenses()
@@ -2222,6 +2339,10 @@ def main() -> None:
     # Transition matchups: top offensive players vs weak transition defenses
     matchups = match_all_transition_matchups(top_n=25, max_def_percentile=40.0)
     _print_transition_matchups(matchups)
+
+    # Targeted prediction: Josh Hart (NYK) offensive transition vs SAS defense
+    hart_sas = predict_transition_matchup("Josh Hart", "SAS")
+    _print_transition_matchup_prediction(hart_sas)
 
 
 if __name__ == "__main__":
