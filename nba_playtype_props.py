@@ -530,6 +530,41 @@ class PropRecommendation:
     matchup_notes: str = ""
 
 
+@dataclass
+class DefensiveScheme:
+    """Models a team's defensive scheme for a specific game.
+
+    When a defense applies a **blitz** (double-team) to a star ball-handler,
+    secondary spot-up shooters receive a higher volume of open looks.  This
+    dataclass captures that scenario so downstream analysis can adjust
+    secondary player projections accordingly.
+
+    Attributes
+    ----------
+    opponent_team:
+        Three-letter abbreviation of the *defending* team, e.g. ``"DEN"``.
+    blitz_target:
+        Name of the offensive star the defense is blitzing,
+        e.g. ``"Anthony Edwards"``.
+    blitz_spot_up_boost:
+        Additional spot-up frequency boost (0.0–1.0) for secondary players
+        when the blitz pulls the defense away.  A value of ``0.15`` means
+        secondary players see 15 percentage-points more spot-up possessions
+        than their season-average share.
+    blitz_points_boost:
+        Flat extra points-per-game expectation for secondary spot-up shooters
+        given the open-look volume created by the blitz.  E.g. ``3.0`` adds
+        three expected points above the normal matchup projection.
+    notes:
+        Optional free-text description of the scheme.
+    """
+    opponent_team: str
+    blitz_target: str
+    blitz_spot_up_boost: float = 0.15
+    blitz_points_boost: float = 3.0
+    notes: str = ""
+
+
 # ---------------------------------------------------------------------------
 # Sample data helpers
 # ---------------------------------------------------------------------------
@@ -657,6 +692,17 @@ def build_sample_players() -> List[PlayerProfile]:
                 "pnr_ball_handler": {"frequency": 0.18, "ppp": 0.95, "percentile": 55},
                 "cut":              {"frequency": 0.10, "ppp": 1.10, "percentile": 62},
                 "misc":             {"frequency": 0.10, "ppp": 0.88, "percentile": 44},
+            },
+        ),
+        _make_player_profile(
+            "Anthony Edwards", "SG", "MIN",
+            avg_points=25.9, avg_assists=5.1, avg_rebounds=5.4,
+            play_type_data={
+                "isolation":        {"frequency": 0.35, "ppp": 1.09, "percentile": 84},
+                "pnr_ball_handler": {"frequency": 0.28, "ppp": 1.01, "percentile": 70},
+                "spot_up":          {"frequency": 0.14, "ppp": 1.08, "percentile": 72},
+                "off_screen":       {"frequency": 0.10, "ppp": 1.04, "percentile": 66},
+                "misc":             {"frequency": 0.13, "ppp": 0.90, "percentile": 48},
             },
         ),
     ]
@@ -5558,6 +5604,91 @@ def analyze_matchup(
     }
 
 
+def apply_blitz_boost(
+    secondary_player: PlayerProfile,
+    scheme: "DefensiveScheme",
+    base_projection: float,
+) -> Dict:
+    """
+    Compute an adjusted points projection for *secondary_player* when the
+    opposing defense is blitzing a star teammate.
+
+    When a defense sends a double-team at the star ball-handler (the
+    *blitz_target* in *scheme*), help defenders vacate their assignments.
+    A secondary spot-up shooter like DiVincenzo therefore receives a higher
+    volume of open catch-and-shoot looks, directly boosting expected scoring.
+
+    Parameters
+    ----------
+    secondary_player:
+        The player who benefits from the blitz (the secondary scorer).
+    scheme:
+        A :class:`DefensiveScheme` describing which star is being blitzed
+        and the estimated frequency/scoring boost for secondary players.
+    base_projection:
+        The normal (non-scheme-adjusted) points projection for the player.
+
+    Returns
+    -------
+    dict with keys:
+        - ``"base_projection"``   : the projection before scheme adjustment
+        - ``"scheme_projection"`` : adjusted projection after blitz boost
+        - ``"blitz_boost"``       : extra points added by the blitz scheme
+        - ``"blitz_target"``      : name of the star being blitzed
+        - ``"spot_up_frequency"`` : player's season spot-up frequency
+        - ``"is_spot_up_scorer"`` : True if spot_up is in the top-2 play types
+        - ``"scheme_notes"``      : human-readable explanation string
+    """
+    # Baseline spot-up frequency (40 %) represents a primary spot-up shooter
+    # (e.g. DiVincenzo). The boost scales linearly relative to this baseline.
+    _BASELINE_SPOT_UP_FREQUENCY = 0.40
+    # Non-spot-up-dominant players receive 30 % of the full blitz benefit —
+    # they occasionally find open looks but it is not their primary role.
+    _NON_SPOT_UP_SCALING_FACTOR = 0.30
+
+    spot_up_freq = secondary_player.play_types.get("spot_up")
+    spot_up_frequency = spot_up_freq.frequency if spot_up_freq is not None else 0.0
+
+    dom_types = secondary_player.dominant_play_types(top_n=2)
+    is_spot_up_scorer = "spot_up" in dom_types
+
+    # Only spot-up-oriented players benefit meaningfully from a blitz
+    if is_spot_up_scorer:
+        blitz_boost = round(
+            scheme.blitz_points_boost * (spot_up_frequency / _BASELINE_SPOT_UP_FREQUENCY), 1
+        )
+    else:
+        # Players whose game isn't spot-up-driven get a smaller benefit
+        blitz_boost = round(
+            scheme.blitz_points_boost * _NON_SPOT_UP_SCALING_FACTOR * spot_up_frequency, 1
+        )
+
+    scheme_projection = round(base_projection + blitz_boost, 1)
+
+    if is_spot_up_scorer:
+        scheme_notes = (
+            f"When {scheme.opponent_team} blitzes {scheme.blitz_target}, "
+            f"{secondary_player.name}'s spot-up frequency ({spot_up_frequency:.0%}) "
+            f"creates extra open looks — estimated +{blitz_boost} pts above base projection."
+        )
+    else:
+        scheme_notes = (
+            f"When {scheme.opponent_team} blitzes {scheme.blitz_target}, "
+            f"{secondary_player.name} sees limited benefit (low spot-up frequency "
+            f"{spot_up_frequency:.0%}) — estimated +{blitz_boost} pts above base projection."
+        )
+
+    return {
+        "base_projection":   base_projection,
+        "scheme_projection": scheme_projection,
+        "blitz_boost":       blitz_boost,
+        "blitz_target":      scheme.blitz_target,
+        "spot_up_frequency": spot_up_frequency,
+        "is_spot_up_scorer": is_spot_up_scorer,
+        "scheme_notes":      scheme_notes,
+    }
+
+
 def explain_prop_result(
     player_name: str,
     prop_type: str,
@@ -5566,6 +5697,7 @@ def explain_prop_result(
     players: Optional[List[PlayerProfile]] = None,
     defenses: Optional[List[DefensiveMatchup]] = None,
     actual: Optional[float] = None,
+    scheme: Optional["DefensiveScheme"] = None,
 ) -> Optional[Dict]:
     """
     Explain why a player prop is projected OVER or UNDER *line* against
@@ -5574,6 +5706,11 @@ def explain_prop_result(
     Optionally, if the actual recorded stat (*actual*) is provided, the
     function also reports whether the actual result matched or contradicted
     the projection.
+
+    When *scheme* is provided (a :class:`DefensiveScheme` describing a blitz
+    on a star teammate), the function also computes a scheme-adjusted points
+    projection for perimeter/spot-up players who benefit from the extra open
+    looks created when the defense sends a second defender at the star.
 
     Parameters
     ----------
@@ -5591,26 +5728,35 @@ def explain_prop_result(
         Pre-built defense list; defaults to :func:`build_sample_defenses`.
     actual:
         The actual stat recorded in the game (post-game reconciliation).
+    scheme:
+        Optional :class:`DefensiveScheme`.  When provided (and
+        ``prop_type == "points"``), the result will include
+        scheme-adjusted projection keys and reasons explaining the blitz.
 
     Returns
     -------
     dict or None
         ``None`` when the player or defense cannot be found.  Otherwise:
 
-        - ``"player"``         : player name
-        - ``"prop_type"``      : e.g. ``"rebounds"``
-        - ``"season_avg"``     : player's season average for the prop
-        - ``"line"``           : bookmaker line
-        - ``"projection"``     : model projection
-        - ``"verdict"``        : ``"OVER"``, ``"UNDER"``, or ``"PUSH"``
-        - ``"edge"``           : projection − line
-        - ``"confidence"``     : ``"HIGH"``, ``"MEDIUM"``, or ``"LOW"``
-        - ``"multiplier"``     : matchup multiplier (>1 = favorable, <1 = tough)
+        - ``"player"``              : player name
+        - ``"prop_type"``           : e.g. ``"rebounds"``
+        - ``"season_avg"``          : player's season average for the prop
+        - ``"line"``                : bookmaker line
+        - ``"projection"``          : model projection (base, no scheme)
+        - ``"scheme_projection"``   : scheme-adjusted projection (only when
+                                      *scheme* is provided and prop is "points",
+                                      else same as ``projection``)
+        - ``"verdict"``             : ``"OVER"``/``"UNDER"``/``"PUSH"`` vs line
+                                      (uses scheme_projection when available)
+        - ``"edge"``                : scheme_projection − line
+        - ``"confidence"``          : ``"HIGH"``, ``"MEDIUM"``, or ``"LOW"``
+        - ``"multiplier"``          : matchup multiplier (>1 = favorable, <1 = tough)
         - ``"dominant_play_types"`` : top-2 play types by frequency
-        - ``"reasons"``        : list of human-readable explanation strings
-        - ``"actual"``         : the actual stat if provided, else ``None``
-        - ``"actual_verdict"`` : ``"OVER"``/``"UNDER"``/``"PUSH"`` vs line
-                                 (only when *actual* is provided, else ``None``)
+        - ``"reasons"``             : list of human-readable explanation strings
+        - ``"actual"``              : the actual stat if provided, else ``None``
+        - ``"actual_verdict"``      : ``"OVER"``/``"UNDER"``/``"PUSH"`` vs line
+                                      (only when *actual* is provided, else ``None``)
+        - ``"scheme"``              : the :class:`DefensiveScheme` used, or ``None``
     """
     if players is None:
         players = build_sample_players()
@@ -5715,21 +5861,45 @@ def explain_prop_result(
                     f"available to perimeter players."
                 )
 
-    # 4. Determine projection verdict, then include in summary reason
-    if rec.edge > 0:
+    # 4. Defensive-scheme / blitz boost (points only)
+    blitz_info: Optional[Dict] = None
+    if scheme is not None and prop_type == "points":
+        blitz_info = apply_blitz_boost(player, scheme, rec.projection)
+        reasons.append(
+            f"Defensive scheme — {scheme.opponent_team} blitzes "
+            f"{scheme.blitz_target}: {blitz_info['scheme_notes']}"
+        )
+
+    # 5. Determine final projection and verdict
+    # Use scheme-adjusted projection for points when a blitz scheme is provided
+    if blitz_info is not None:
+        final_projection = blitz_info["scheme_projection"]
+    else:
+        final_projection = rec.projection
+
+    final_edge = round(final_projection - line, 1)
+    if final_edge > 0:
         proj_verdict = "OVER"
-    elif rec.edge < 0:
+    elif final_edge < 0:
         proj_verdict = "UNDER"
     else:
         proj_verdict = "PUSH"
 
+    abs_edge = abs(final_edge)
+    if abs_edge >= 2.5:
+        final_confidence = "HIGH"
+    elif abs_edge >= 1.0:
+        final_confidence = "MEDIUM"
+    else:
+        final_confidence = "LOW"
+
     reasons.append(
-        f"Model projection: {rec.projection} {prop_type} "
-        f"(line {line}) → {proj_verdict}  "
-        f"[confidence: {rec.confidence}]."
+        f"{'Scheme-adjusted projection' if blitz_info else 'Model projection'}: "
+        f"{final_projection} {prop_type} (line {line}) → {proj_verdict}  "
+        f"[confidence: {final_confidence}]."
     )
 
-    # 5. Actual result reconciliation
+    # 6. Actual result reconciliation
     actual_verdict: Optional[str] = None
     if actual is not None:
         actual_edge = round(actual - line, 2)
@@ -5756,14 +5926,16 @@ def explain_prop_result(
         "season_avg":          season_avg,
         "line":                line,
         "projection":          rec.projection,
+        "scheme_projection":   final_projection,
         "verdict":             proj_verdict,
-        "edge":                rec.edge,
-        "confidence":          rec.confidence,
+        "edge":                final_edge,
+        "confidence":          final_confidence,
         "multiplier":          round(multiplier, 4),
         "dominant_play_types": dom_types,
         "reasons":             reasons,
         "actual":              actual,
         "actual_verdict":      actual_verdict,
+        "scheme":              scheme,
     }
 
 

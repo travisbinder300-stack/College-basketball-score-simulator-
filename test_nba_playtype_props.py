@@ -104,6 +104,8 @@ from nba_playtype_props import (
     project_props,
     analyze_matchup,
     explain_prop_result,
+    apply_blitz_boost,
+    DefensiveScheme,
     predict_transition_matchup,
 )
 
@@ -5355,6 +5357,255 @@ class TestExplainPropResult(unittest.TestCase):
         )
         self.assertIsInstance(result["dominant_play_types"], list)
         self.assertGreater(len(result["dominant_play_types"]), 0)
+
+    def test_scheme_key_is_none_when_no_scheme(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsNone(result["scheme"])
+
+    def test_scheme_projection_equals_projection_when_no_scheme(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertEqual(result["projection"], result["scheme_projection"])
+
+
+# ===========================================================================
+# DefensiveScheme tests
+# ===========================================================================
+
+class TestDefensiveScheme(unittest.TestCase):
+    """Tests for the DefensiveScheme dataclass."""
+
+    def test_defaults(self):
+        s = DefensiveScheme(opponent_team="DEN", blitz_target="Anthony Edwards")
+        self.assertEqual(s.opponent_team, "DEN")
+        self.assertEqual(s.blitz_target, "Anthony Edwards")
+        self.assertAlmostEqual(s.blitz_spot_up_boost, 0.15)
+        self.assertAlmostEqual(s.blitz_points_boost, 3.0)
+        self.assertEqual(s.notes, "")
+
+    def test_custom_values(self):
+        s = DefensiveScheme(
+            opponent_team="BOS",
+            blitz_target="Jayson Tatum",
+            blitz_spot_up_boost=0.20,
+            blitz_points_boost=4.0,
+            notes="Boston blitzes Tatum in the post.",
+        )
+        self.assertAlmostEqual(s.blitz_spot_up_boost, 0.20)
+        self.assertAlmostEqual(s.blitz_points_boost, 4.0)
+        self.assertIn("Tatum", s.notes)
+
+
+# ===========================================================================
+# apply_blitz_boost tests
+# ===========================================================================
+
+class TestApplyBlitzBoost(unittest.TestCase):
+    """Tests for apply_blitz_boost()."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.divincenzo = next(
+            p for p in self.players if p.name == "Donte DiVincenzo"
+        )
+        self.jokic = next(
+            p for p in self.players if p.name == "Nikola Jokic"
+        )
+        self.scheme = DefensiveScheme(
+            opponent_team="DEN",
+            blitz_target="Anthony Edwards",
+            blitz_points_boost=3.0,
+        )
+
+    def test_returns_dict(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertIsInstance(result, dict)
+
+    def test_required_keys(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        for key in (
+            "base_projection", "scheme_projection", "blitz_boost",
+            "blitz_target", "spot_up_frequency", "is_spot_up_scorer",
+            "scheme_notes",
+        ):
+            self.assertIn(key, result)
+
+    def test_spot_up_scorer_gets_full_boost(self):
+        """DiVincenzo is a spot-up scorer (40% spot-up) — full boost."""
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertTrue(result["is_spot_up_scorer"])
+        self.assertAlmostEqual(result["blitz_boost"], 3.0)
+        self.assertAlmostEqual(result["scheme_projection"], 18.0)
+
+    def test_scheme_projection_greater_than_base(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertGreater(result["scheme_projection"], result["base_projection"])
+
+    def test_base_projection_preserved(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 14.5)
+        self.assertAlmostEqual(result["base_projection"], 14.5)
+
+    def test_blitz_target_in_result(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertEqual(result["blitz_target"], "Anthony Edwards")
+
+    def test_spot_up_frequency_matches_player_profile(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertAlmostEqual(result["spot_up_frequency"], 0.40)
+
+    def test_non_spot_up_player_gets_smaller_boost(self):
+        """Jokic is not a spot-up-dominant scorer — smaller benefit."""
+        result_jokic = apply_blitz_boost(self.jokic, self.scheme, 26.0)
+        result_div = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertFalse(result_jokic["is_spot_up_scorer"])
+        self.assertLess(result_jokic["blitz_boost"], result_div["blitz_boost"])
+
+    def test_scheme_notes_contains_player_name(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertIn("Donte DiVincenzo", result["scheme_notes"])
+
+    def test_scheme_notes_contains_blitz_target(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertIn("Anthony Edwards", result["scheme_notes"])
+
+    def test_scheme_notes_contains_team(self):
+        result = apply_blitz_boost(self.divincenzo, self.scheme, 15.0)
+        self.assertIn("DEN", result["scheme_notes"])
+
+    def test_zero_spot_up_frequency_gives_minimal_boost(self):
+        """Jokic (spot_up freq=0.12, non-dominant) boost = 3.0 * 0.30 * 0.12 = 0.1."""
+        jokic = next(p for p in self.players if p.name == "Nikola Jokic")
+        result = apply_blitz_boost(jokic, self.scheme, 26.0)
+        # Expected: 3.0 * NON_SPOT_UP_SCALING_FACTOR(0.30) * spot_up_freq(0.12) = 0.108 → 0.1
+        self.assertAlmostEqual(result["blitz_boost"], round(3.0 * 0.30 * 0.12, 1))
+
+
+# ===========================================================================
+# explain_prop_result — blitz scheme extension tests
+# ===========================================================================
+
+class TestExplainPropResultWithScheme(unittest.TestCase):
+    """Tests for explain_prop_result() with the blitz scheme extension."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.defenses = build_sample_defenses()
+        self.den_blitz = DefensiveScheme(
+            opponent_team="DEN",
+            blitz_target="Anthony Edwards",
+            blitz_spot_up_boost=0.15,
+            blitz_points_boost=3.0,
+        )
+
+    def test_points_over_with_blitz_scheme(self):
+        """DiVincenzo points prop should project OVER when DEN blitzes Edwards."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["verdict"], "OVER")
+
+    def test_scheme_projection_greater_than_base(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        self.assertGreater(result["scheme_projection"], result["projection"])
+
+    def test_scheme_stored_in_result(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        self.assertIs(result["scheme"], self.den_blitz)
+
+    def test_blitz_reason_in_reasons(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        combined = " ".join(result["reasons"])
+        self.assertIn("Anthony Edwards", combined)
+        self.assertIn("blitz", combined.lower())
+
+    def test_edge_uses_scheme_projection(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        expected_edge = round(result["scheme_projection"] - 15.5, 1)
+        self.assertAlmostEqual(result["edge"], expected_edge)
+
+    def test_scheme_not_applied_to_rebounds(self):
+        """Blitz scheme should not affect a rebounds prop."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        # scheme_projection must equal base projection for non-points prop
+        self.assertEqual(result["projection"], result["scheme_projection"])
+
+    def test_rebounds_still_under_with_scheme(self):
+        """Rebounds UNDER verdict should be unaffected by blitz scheme."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        self.assertEqual(result["verdict"], "UNDER")
+
+    def test_no_scheme_gives_same_result_as_before(self):
+        """Passing scheme=None must give identical result to omitting it."""
+        r1 = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        r2 = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+            scheme=None,
+        )
+        self.assertEqual(r1["verdict"], r2["verdict"])
+        self.assertEqual(r1["projection"], r2["projection"])
+        self.assertEqual(r1["scheme_projection"], r2["scheme_projection"])
+
+    def test_anthony_edwards_in_sample_players(self):
+        """Anthony Edwards must exist in the default player pool."""
+        players = build_sample_players()
+        names = [p.name for p in players]
+        self.assertIn("Anthony Edwards", names)
+
+    def test_anthony_edwards_is_isolation_heavy(self):
+        players = build_sample_players()
+        edwards = next(p for p in players if p.name == "Anthony Edwards")
+        dom = edwards.dominant_play_types(top_n=1)
+        self.assertEqual(dom[0], "isolation")
+
+    def test_anthony_edwards_team_is_min(self):
+        players = build_sample_players()
+        edwards = next(p for p in players if p.name == "Anthony Edwards")
+        self.assertEqual(edwards.team, "MIN")
+
+    def test_scheme_points_over_confidence_elevated(self):
+        """With blitz, the edge should be large enough for MEDIUM or HIGH."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        self.assertIn(result["confidence"], ("MEDIUM", "HIGH"))
 
 
 if __name__ == "__main__":
