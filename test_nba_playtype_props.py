@@ -10,6 +10,7 @@ from nba_playtype_props import (
     DefensiveIsolationStats,
     TransitionDefensiveStats,
     DefensivePnrBallHandlerStats,
+    DefensivePnrManStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -18,6 +19,8 @@ from nba_playtype_props import (
     rank_teams_by_transition_defense,
     build_pnr_ball_handler_defensive_rankings,
     rank_teams_by_pnr_ball_handler_defense,
+    build_pnr_man_defensive_rankings,
+    rank_teams_by_pnr_man_defense,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -448,6 +451,77 @@ class TestRankTeamsByPnrBallHandlerDefense(unittest.TestCase):
         ranked_subset = rank_teams_by_pnr_ball_handler_defense(subset)
         self.assertEqual(len(ranked_subset), 2)
         self.assertEqual(ranked_subset[0].team, "DET")
+
+
+class TestPnrManDefensiveRankings(unittest.TestCase):
+    def setUp(self):
+        self.rankings = build_pnr_man_defensive_rankings()
+
+    def test_all_thirty_teams_present(self):
+        self.assertEqual(len(self.rankings), 30)
+
+    def test_known_team_abbrevs_present(self):
+        for abbr in ("HOU", "MEM", "SAS", "DEN", "LAL", "WAS"):
+            self.assertIn(abbr, self.rankings)
+
+    def test_stats_dataclass_fields(self):
+        hou = self.rankings["HOU"]
+        self.assertIsInstance(hou, DefensivePnrManStats)
+        self.assertEqual(hou.team, "HOU")
+        self.assertAlmostEqual(hou.ppp, 0.96)
+        self.assertAlmostEqual(hou.percentile, 100.0)
+
+    def test_best_pnr_man_defense_highest_percentile(self):
+        """Houston Rockets should have the highest percentile (100)."""
+        hou = self.rankings["HOU"]
+        self.assertAlmostEqual(hou.percentile, 100.0)
+
+    def test_worst_pnr_man_defense_lowest_percentile(self):
+        """Los Angeles Lakers should have the lowest percentile (0.0)."""
+        lal = self.rankings["LAL"]
+        self.assertAlmostEqual(lal.percentile, 0.0)
+
+    def test_washington_wizards_missing_fields_default_to_sentinel(self):
+        """Washington Wizards row was truncated; missing fields should be -1.0 (sentinel)."""
+        was = self.rankings["WAS"]
+        self.assertAlmostEqual(was.sf_freq_pct, -1.0)
+        self.assertAlmostEqual(was.and_one_freq_pct, -1.0)
+        self.assertAlmostEqual(was.score_freq_pct, -1.0)
+        self.assertAlmostEqual(was.percentile, -1.0)
+
+    def test_ppp_values_are_positive(self):
+        for stats in self.rankings.values():
+            self.assertGreater(stats.ppp, 0)
+
+    def test_gp_values_are_positive_integers(self):
+        for stats in self.rankings.values():
+            self.assertIsInstance(stats.gp, int)
+            self.assertGreater(stats.gp, 0)
+
+
+class TestRankTeamsByPnrManDefense(unittest.TestCase):
+    def setUp(self):
+        self.ranked = rank_teams_by_pnr_man_defense()
+
+    def test_returns_all_thirty_teams(self):
+        self.assertEqual(len(self.ranked), 30)
+
+    def test_sorted_best_to_worst(self):
+        percentiles = [s.percentile for s in self.ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+    def test_first_team_has_highest_percentile(self):
+        """Best PnR man defense (Houston Rockets, percentile=100) comes first."""
+        self.assertEqual(self.ranked[0].team, "HOU")
+
+    def test_accepts_custom_rankings_dict(self):
+        subset = {
+            "HOU": build_pnr_man_defensive_rankings()["HOU"],
+            "SAS": build_pnr_man_defensive_rankings()["SAS"],
+        }
+        ranked_subset = rank_teams_by_pnr_man_defense(subset)
+        self.assertEqual(len(ranked_subset), 2)
+        self.assertEqual(ranked_subset[0].team, "HOU")
 
 
 if __name__ == "__main__":

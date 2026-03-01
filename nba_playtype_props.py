@@ -139,6 +139,27 @@ class DefensivePnrBallHandlerStats:
 
 
 @dataclass
+class DefensivePnrManStats:
+    """Defensive pick-and-roll man (screener) stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed vs PnR man
+    freq_pct: float     # frequency % of PnR man possessions allowed
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better PnR man defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -576,6 +597,101 @@ def rank_teams_by_pnr_ball_handler_defense(
     """
     if rankings is None:
         rankings = build_pnr_ball_handler_defensive_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def build_pnr_man_defensive_rankings() -> Dict[str, "DefensivePnrManStats"]:
+    """
+    Return defensive pick-and-roll man (screener) stats for all 30 NBA teams
+    (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger pick-and-roll man defense (limiting both the frequency and
+    efficiency of opponent PnR screener possessions).
+
+    NOTE: Washington Wizards data in the source was truncated after TOV FREQ%.
+    The sf_freq_pct, and_one_freq_pct, score_freq_pct, and percentile fields
+    for WAS are stored as -1.0 to indicate missing/unavailable data (distinct
+    from a legitimate 0.0 percentile such as Portland Trail Blazers).
+    """
+    raw = [
+        # (team_abbr, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("ATL", 59,  7.2, 6.2, 1.05,  7.5, 2.9, 5.9, 48.9, 55.1, 10.1,  9.2, 10.1, 1.9, 48.1,  79.3),
+        ("BOS", 57,  5.1, 4.7, 1.17,  5.9, 2.3, 4.5, 51.4, 59.5,  9.0,  5.2,  8.7, 3.1, 50.9,  17.2),
+        ("BKN", 56,  6.5, 5.9, 1.11,  7.2, 2.9, 5.6, 51.6, 56.1, 10.5,  5.8, 10.2, 2.5, 51.9,  41.4),
+        ("CHA", 58,  5.3, 4.8, 1.13,  5.9, 2.4, 4.8, 50.2, 57.0,  6.2,  4.6,  6.2, 1.6, 50.2,  31.0),
+        ("CHI", 58,  6.7, 5.8, 1.21,  8.1, 3.2, 5.8, 54.7, 61.5, 11.1,  3.6, 10.9, 2.3, 56.2,   6.9),
+        ("CLE", 58,  6.1, 5.3, 1.11,  6.8, 2.7, 5.4, 50.2, 56.6,  7.9,  6.2,  7.0, 1.4, 50.0,  48.3),
+        ("DAL", 55,  6.0, 5.1, 1.07,  6.4, 2.5, 5.1, 49.3, 54.0, 10.3,  6.7, 10.3, 1.2, 50.3,  65.5),
+        ("DEN", 58,  5.6, 5.0, 1.02,  5.7, 2.3, 4.8, 48.0, 52.5, 10.1,  6.7,  9.5, 2.5, 48.5,  89.7),
+        ("DET", 55,  5.9, 5.2, 1.05,  6.2, 2.3, 4.8, 48.5, 57.6,  9.0, 11.1,  8.0, 1.5, 46.9,  75.9),
+        ("GSW", 57,  5.5, 4.9, 1.09,  6.1, 2.4, 4.6, 51.3, 57.0,  9.8,  8.9,  9.5, 2.5, 49.7,  51.7),
+        ("HOU", 56,  7.0, 6.3, 0.96,  6.7, 2.6, 5.9, 43.6, 49.8, 10.7,  7.1, 10.7, 2.0, 43.6, 100.0),
+        ("IND", 57,  7.5, 6.5, 1.08,  8.1, 3.1, 6.2, 49.4, 54.0, 15.0,  6.3, 14.5, 4.2, 50.6,  62.1),
+        ("LAC", 55,  6.1, 5.5, 1.05,  6.4, 2.4, 5.0, 47.8, 53.6, 12.0,  8.4, 11.7, 2.7, 47.7,  72.4),
+        ("LAL", 55,  5.0, 4.5, 1.27,  6.3, 2.5, 4.2, 60.0, 68.3, 12.0,  6.9, 12.0, 2.5, 58.2,   0.0),
+        ("MEM", 55,  6.1, 5.3, 1.01,  6.2, 2.4, 5.0, 48.5, 54.6, 10.1, 12.1,  9.8, 3.3, 45.3,  93.1),
+        ("MIA", 57,  6.2, 5.2, 1.06,  6.6, 2.6, 5.3, 49.3, 55.0,  9.9,  7.4,  9.3, 2.8, 48.4,  69.0),
+        ("MIL", 55,  5.6, 5.1, 1.25,  7.1, 2.7, 4.8, 56.9, 64.1, 11.6,  6.1, 11.6, 2.3, 57.1,   3.4),
+        ("MIN", 57,  6.6, 5.8, 1.12,  7.4, 2.9, 5.6, 51.2, 58.4, 10.8,  6.3, 10.0, 2.1, 50.7,  37.9),
+        ("NOP", 58,  5.4, 4.7, 1.11,  6.0, 2.4, 4.7, 50.9, 55.9, 10.2,  6.1, 10.2, 2.5, 51.6,  44.8),
+        ("NYK", 55,  6.1, 5.5, 1.14,  6.9, 2.5, 5.0, 49.5, 57.9, 13.5,  6.0, 13.2, 2.4, 51.5,  27.6),
+        ("OKC", 56,  6.1, 5.3, 1.05,  6.4, 2.4, 5.1, 48.2, 54.4, 12.3,  7.3, 12.0, 2.6, 48.5,  82.8),
+        ("ORL", 53,  5.9, 5.2, 1.15,  6.7, 2.6, 4.8, 54.4, 59.7, 14.1,  8.4, 13.5, 3.5, 53.4,  24.1),
+        ("PHI", 56,  6.2, 5.4, 1.09,  6.8, 2.6, 5.1, 51.9, 57.5, 12.7,  8.9, 11.0, 3.7, 50.1,  55.2),
+        ("PHX", 56,  4.8, 4.3, 1.16,  5.6, 2.2, 4.1, 53.7, 59.7, 12.2,  7.4, 10.7, 3.7, 53.0,  20.7),
+        ("POR", 58,  5.9, 5.1, 1.12,  6.7, 2.6, 5.1, 50.2, 57.3, 11.6,  6.4, 11.0, 3.5, 50.4,  34.5),
+        ("SAC", 58,  6.0, 5.3, 1.19,  7.2, 2.9, 4.9, 58.6, 63.7, 11.1,  8.6,  9.4, 1.1, 57.1,  13.8),
+        ("SAS", 54,  6.3, 5.6, 1.00,  6.4, 2.6, 5.6, 46.5, 51.0,  9.4,  5.0,  9.4, 2.9, 46.8,  96.6),
+        ("TOR", 57,  6.7, 6.0, 1.08,  7.3, 2.7, 5.5, 48.1, 54.1, 13.8,  7.0, 13.3, 3.1, 49.5,  58.6),
+        ("UTA", 58,  6.1, 5.2, 1.21,  7.4, 2.9, 5.3, 55.2, 62.3,  9.6,  5.9,  8.8, 2.5, 54.2,  10.3),
+        # Washington Wizards row was truncated in source after TOV FREQ%;
+        # sf_freq_pct, and_one_freq_pct, score_freq_pct, and percentile are set to -1.0
+        # to indicate missing/unavailable data (distinct from a legitimate 0.0 percentile).
+        ("WAS", 55,  6.4, 5.5, 1.05,  6.7, 2.7, 5.5, 47.9, 53.4,  9.1,  6.8, -1.0, -1.0,  -1.0,  -1.0),
+    ]
+
+    rankings: Dict[str, DefensivePnrManStats] = {}
+    for row in raw:
+        (abbr, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensivePnrManStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_pnr_man_defense(
+    rankings: Optional[Dict[str, "DefensivePnrManStats"]] = None,
+) -> List["DefensivePnrManStats"]:
+    """
+    Return all teams sorted from best to worst pick-and-roll man defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_pnr_man_defensive_rankings()
     return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
 
 
