@@ -25,6 +25,7 @@ from nba_playtype_props import (
     OffensiveHandoffStats,
     OffensiveOffScreenStats,
     OffensivePutbackStats,
+    PlayerDefensiveIsolationStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -88,6 +89,10 @@ from nba_playtype_props import (
     rank_players_by_offensive_putback,
     find_putback_player_scorers,
     predict_putback_matchup,
+    build_player_defensive_isolation_stats,
+    rank_players_by_defensive_isolation,
+    find_isolation_defenders,
+    predict_player_isolation_defense_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -4386,6 +4391,347 @@ class TestPredictPutbackMatchup(unittest.TestCase):
         result = predict_putback_matchup("Domantas Sabonis", "WAS")
         self.assertIsNotNone(result)
         self.assertEqual(result["player"], "Domantas Sabonis")
+
+
+# ===========================================================================
+# Player-level defensive isolation analytics tests
+# ===========================================================================
+
+class TestBuildPlayerDefensiveIsolationStats(unittest.TestCase):
+    """Tests for build_player_defensive_isolation_stats()."""
+
+    def setUp(self):
+        self.stats = build_player_defensive_isolation_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 60)
+
+    def test_all_items_are_player_defensive_isolation_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, PlayerDefensiveIsolationStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_no_duplicate_players(self):
+        names = [s.player for s in self.stats]
+        self.assertEqual(len(names), len(set(names)), "Duplicate player entries found")
+
+    def test_rudy_gobert_fields(self):
+        """Rudy Gobert should be the top isolation defender."""
+        gobert = next(s for s in self.stats if s.player == "Rudy Gobert")
+        self.assertEqual(gobert.team, "MIN")
+        self.assertAlmostEqual(gobert.ppp, 0.74)
+        self.assertAlmostEqual(gobert.percentile, 99.0)
+
+    def test_stephen_curry_fields(self):
+        """Curry is a poor isolation defender and should have high PPP allowed."""
+        curry = next(s for s in self.stats if s.player == "Stephen Curry")
+        self.assertEqual(curry.team, "GSW")
+        self.assertAlmostEqual(curry.ppp, 1.14)
+        self.assertAlmostEqual(curry.percentile, 11.3)
+
+    def test_batch1_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Rudy Gobert", "Victor Wembanyama", "Evan Mobley",
+            "Anthony Davis", "Bam Adebayo", "Chet Holmgren",
+            "Herb Jones", "Kawhi Leonard",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-1 players: {missing}")
+
+    def test_batch2_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Draymond Green", "Mikal Bridges", "Jalen Suggs",
+            "OG Anunoby", "Al Horford", "Isaiah Hartenstein",
+            "Walker Kessler", "Myles Turner", "Jimmy Butler",
+            "Scottie Barnes", "Brook Lopez",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-2 players: {missing}")
+
+    def test_batch3_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Giannis Antetokounmpo", "Robert Williams III", "Jabari Smith Jr.",
+            "Jalen Williams", "Tari Eason", "Luguentz Dort",
+            "Daniel Gafford", "Mark Williams", "De'Anthony Melton",
+            "Kentavious Caldwell-Pope", "Royce O'Neale", "Jonathan Kuminga",
+            "Josh Hart", "Dereck Lively II", "Onyeka Okongwu",
+            "Jalen Duren", "Julius Randle", "Ivica Zubac",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_batch4_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Naz Reid", "Lauri Markkanen", "Karl-Anthony Towns",
+            "Bradley Beal", "Pascal Siakam", "Devin Booker",
+            "Ja Morant", "Donovan Mitchell", "RJ Barrett",
+            "Trae Young", "James Harden", "De'Aaron Fox",
+            "Darius Garland", "LeBron James",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_batch5_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Nikola Jokic", "Luka Doncic", "Jayson Tatum",
+            "Kyrie Irving", "Joel Embiid", "Stephen Curry",
+            "Damian Lillard", "Nikola Vucevic", "Zach LaVine",
+            "Russell Westbrook",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-5 players: {missing}")
+
+    def test_elite_defenders_have_lower_ppp_than_poor_defenders(self):
+        """Rudy Gobert (best) should allow far less PPP than Russell Westbrook (worst)."""
+        gobert = next(s for s in self.stats if s.player == "Rudy Gobert")
+        westbrook = next(s for s in self.stats if s.player == "Russell Westbrook")
+        self.assertLess(gobert.ppp, westbrook.ppp)
+
+    def test_high_poss_players_targeted_more(self):
+        """Star offensive players (Trae Young, Luka) face more iso possessions as defenders."""
+        young = next(s for s in self.stats if s.player == "Trae Young")
+        gobert = next(s for s in self.stats if s.player == "Rudy Gobert")
+        self.assertGreater(young.poss, gobert.poss)
+
+
+class TestRankPlayersByDefensiveIsolation(unittest.TestCase):
+    """Tests for rank_players_by_defensive_isolation()."""
+
+    def setUp(self):
+        self.stats = build_player_defensive_isolation_stats()
+        self.ranked = rank_players_by_defensive_isolation(self.stats)
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_same_length_as_input(self):
+        self.assertEqual(len(self.ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        for i in range(len(self.ranked) - 1):
+            self.assertGreaterEqual(
+                self.ranked[i].percentile, self.ranked[i + 1].percentile
+            )
+
+    def test_first_has_highest_percentile(self):
+        max_pct = max(s.percentile for s in self.stats)
+        self.assertAlmostEqual(self.ranked[0].percentile, max_pct)
+
+    def test_default_dataset_used_when_none(self):
+        ranked_default = rank_players_by_defensive_isolation()
+        self.assertGreater(len(ranked_default), 0)
+
+    def test_first_is_rudy_gobert(self):
+        self.assertEqual(self.ranked[0].player, "Rudy Gobert")
+
+
+class TestFindIsolationDefenders(unittest.TestCase):
+    """Tests for find_isolation_defenders()."""
+
+    def setUp(self):
+        self.def_stats = build_player_defensive_isolation_stats()
+
+    def test_returns_list(self):
+        results = find_isolation_defenders(self.def_stats)
+        self.assertIsInstance(results, list)
+
+    def test_all_pass_poss_threshold(self):
+        min_poss = 1.8
+        results = find_isolation_defenders(self.def_stats, min_poss=min_poss)
+        for r in results:
+            self.assertGreaterEqual(r["poss"], min_poss)
+
+    def test_all_pass_max_ppp_threshold(self):
+        max_ppp = 0.85
+        results = find_isolation_defenders(self.def_stats, max_ppp=max_ppp)
+        for r in results:
+            self.assertLessEqual(r["ppp"], max_ppp)
+
+    def test_sorted_by_percentile_descending(self):
+        results = find_isolation_defenders(self.def_stats)
+        for i in range(len(results) - 1):
+            self.assertGreaterEqual(
+                results[i]["percentile"], results[i + 1]["percentile"]
+            )
+
+    def test_result_has_required_keys(self):
+        results = find_isolation_defenders(self.def_stats)
+        if results:
+            for k in ("player", "team", "poss", "freq_pct",
+                      "ppp", "pts", "percentile"):
+                self.assertIn(k, results[0])
+
+    def test_strict_thresholds_reduces_results(self):
+        loose = find_isolation_defenders(self.def_stats, min_poss=1.0, max_ppp=1.20)
+        strict = find_isolation_defenders(self.def_stats, min_poss=2.0, max_ppp=0.84)
+        self.assertGreater(len(loose), len(strict))
+
+    def test_default_dataset_used_when_none(self):
+        results = find_isolation_defenders()
+        self.assertIsInstance(results, list)
+
+    def test_bam_adebayo_in_elite_defenders(self):
+        results = find_isolation_defenders(self.def_stats, min_poss=2.0, max_ppp=0.85)
+        players = [r["player"] for r in results]
+        self.assertIn("Bam Adebayo", players)
+
+
+class TestPredictPlayerIsolationDefenseMatchup(unittest.TestCase):
+    """Tests for predict_player_isolation_defense_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_isolation_stats()
+        self.def_stats = build_player_defensive_isolation_stats()
+
+    def test_returns_dict_for_known_matchup(self):
+        result = predict_player_isolation_defense_matchup(
+            "Shai Gilgeous-Alexander", "Kawhi Leonard",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = predict_player_isolation_defense_matchup(
+            "Shai Gilgeous-Alexander", "Kawhi Leonard",
+            self.off_stats, self.def_stats,
+        )
+        for k in ("offensive_player", "off_team", "off_ppp", "off_freq_pct",
+                  "off_percentile", "defensive_player", "def_team", "def_ppp",
+                  "def_freq_pct", "def_percentile", "edge", "verdict"):
+            self.assertIn(k, result)
+
+    def test_player_fields_populated(self):
+        result = predict_player_isolation_defense_matchup(
+            "Shai Gilgeous-Alexander", "Kawhi Leonard",
+            self.off_stats, self.def_stats,
+        )
+        self.assertEqual(result["offensive_player"], "Shai Gilgeous-Alexander")
+        self.assertEqual(result["defensive_player"], "Kawhi Leonard")
+
+    def test_verdict_favorable_for_elite_iso_vs_poor_defender(self):
+        """Use a synthetic elite scorer against a synthetic poor defender → FAVORABLE."""
+        from nba_playtype_props import OffensiveIsolationStats, PlayerDefensiveIsolationStats
+        elite_off = [OffensiveIsolationStats(
+            player="Elite Iso Scorer", team="TST", gp=72,
+            poss=5.5, freq_pct=28.0, ppp=1.40, pts=7.7,
+            fgm=2.5, fga=4.8, fg_pct=52.0, efg_pct=58.0,
+            ft_freq_pct=30.0, tov_freq_pct=10.0, sf_freq_pct=22.0,
+            and_one_freq_pct=3.5, score_freq_pct=58.0, percentile=97.0,
+        )]
+        weak_def = [PlayerDefensiveIsolationStats(
+            player="Poor Defender", team="TST", gp=68,
+            poss=5.0, freq_pct=16.0, ppp=1.18, pts=5.9,
+            fgm=2.2, fga=3.8, fg_pct=55.0, efg_pct=59.0,
+            ft_freq_pct=29.0, tov_freq_pct=3.0, sf_freq_pct=16.5,
+            and_one_freq_pct=3.6, score_freq_pct=53.0, percentile=4.0,
+        )]
+        # edge = 1.40 - 1.18 = 0.22 → FAVORABLE
+        result = predict_player_isolation_defense_matchup(
+            "Elite Iso Scorer", "Poor Defender", elite_off, weak_def
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    def test_verdict_tough_for_average_iso_vs_elite_defender(self):
+        """Use a synthetic player with very low PPP attacking Rudy Gobert."""
+        from nba_playtype_props import OffensiveIsolationStats
+        weak_off = [OffensiveIsolationStats(
+            player="Weak Scorer", team="TST", gp=60,
+            poss=1.5, freq_pct=8.0, ppp=0.55, pts=0.8,
+            fgm=0.4, fga=1.3, fg_pct=30.0, efg_pct=33.0,
+            ft_freq_pct=10.0, tov_freq_pct=16.0, sf_freq_pct=8.0,
+            and_one_freq_pct=0.8, score_freq_pct=26.0, percentile=3.0,
+        )]
+        # edge = 0.55 - 0.74 = -0.19 → TOUGH
+        result = predict_player_isolation_defense_matchup(
+            "Weak Scorer", "Rudy Gobert", weak_off, self.def_stats
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        """PPP edge within ±0.15 → NEUTRAL."""
+        from nba_playtype_props import OffensiveIsolationStats, PlayerDefensiveIsolationStats
+        avg_off = [OffensiveIsolationStats(
+            player="Avg Scorer", team="TST", gp=65,
+            poss=3.5, freq_pct=12.0, ppp=0.92, pts=3.2,
+            fgm=1.2, fga=2.8, fg_pct=43.0, efg_pct=47.0,
+            ft_freq_pct=18.0, tov_freq_pct=12.0, sf_freq_pct=11.0,
+            and_one_freq_pct=2.0, score_freq_pct=40.0, percentile=48.0,
+        )]
+        avg_def = [PlayerDefensiveIsolationStats(
+            player="Avg Defender", team="TST", gp=65,
+            poss=2.0, freq_pct=9.0, ppp=0.90, pts=1.8,
+            fgm=0.7, fga=1.9, fg_pct=47.0, efg_pct=50.0,
+            ft_freq_pct=21.0, tov_freq_pct=12.5, sf_freq_pct=11.5,
+            and_one_freq_pct=2.1, score_freq_pct=38.5, percentile=62.0,
+        )]
+        # edge = 0.92 - 0.90 = 0.02 → NEUTRAL
+        result = predict_player_isolation_defense_matchup(
+            "Avg Scorer", "Avg Defender", avg_off, avg_def
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    def test_returns_none_for_unknown_offensive_player(self):
+        result = predict_player_isolation_defense_matchup(
+            "Nobody Famous", "Kawhi Leonard",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_defensive_player(self):
+        result = predict_player_isolation_defense_matchup(
+            "Shai Gilgeous-Alexander", "Unknown Defender",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_names(self):
+        r1 = predict_player_isolation_defense_matchup(
+            "shai gilgeous-alexander", "kawhi leonard",
+            self.off_stats, self.def_stats,
+        )
+        r2 = predict_player_isolation_defense_matchup(
+            "SHAI GILGEOUS-ALEXANDER", "KAWHI LEONARD",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNotNone(r1)
+        self.assertIsNotNone(r2)
+        self.assertEqual(r1["offensive_player"], r2["offensive_player"])
+        self.assertEqual(r1["defensive_player"], r2["defensive_player"])
+
+    def test_edge_equals_off_ppp_minus_def_ppp(self):
+        result = predict_player_isolation_defense_matchup(
+            "Shai Gilgeous-Alexander", "Bam Adebayo",
+            self.off_stats, self.def_stats,
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["off_ppp"] - result["def_ppp"], 3)
+        )
+
+    def test_default_datasets_used_when_none(self):
+        result = predict_player_isolation_defense_matchup(
+            "Shai Gilgeous-Alexander", "Bam Adebayo"
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["offensive_player"], "Shai Gilgeous-Alexander")
 
 
 if __name__ == "__main__":

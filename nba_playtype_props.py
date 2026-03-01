@@ -463,6 +463,34 @@ class OffensivePutbackStats:
 
 
 @dataclass
+class PlayerDefensiveIsolationStats:
+    """Defensive isolation stats for a single NBA player (NBA Synergy).
+
+    Each record reflects how *this player* performs as an isolation
+    *defender* — i.e. the stats allowed when the ball-handler attacks
+    them directly in a 1-on-1 isolation.  Higher percentile = better
+    isolation defender (fewer points allowed per possession).
+    """
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # isolation possessions defended per game
+    freq_pct: float      # % of total possessions that are isolations vs this defender
+    ppp: float           # points per possession allowed
+    pts: float           # isolation points allowed per game
+    fgm: float           # FGM allowed per game
+    fga: float           # FGA allowed per game
+    fg_pct: float        # FG% allowed
+    efg_pct: float       # eFG% allowed
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite defensive percentile (higher = better isolation defender)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -2758,6 +2786,268 @@ def predict_isolation_matchup(
         "def_percentile": def_stat.percentile,
         "edge":           edge,
         "verdict":        verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Player-level defensive isolation analytics
+# ---------------------------------------------------------------------------
+
+def build_player_defensive_isolation_stats() -> List["PlayerDefensiveIsolationStats"]:
+    """
+    Return defensive isolation stats for approximately 61 NBA players
+    (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite defensive ranking.  Higher values
+    indicate a better isolation defender (fewer points allowed per possession).
+    Ball-handlers frequently target poor isolation defenders; elite defenders
+    are avoided and thus tend to see lower possession counts.
+    """
+    raw = [
+        # (player, team, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        # --- batch 1: elite isolation defenders (percentile 82–99) ---
+        ("Rudy Gobert",              "MIN", 72, 2.1,  7.2, 0.74, 1.6, 0.7, 1.7, 43.1, 44.9, 18.6, 18.2, 9.0, 1.6, 28.6, 99.0),
+        ("Victor Wembanyama",        "SAS", 43, 1.9,  6.8, 0.76, 1.4, 0.7, 1.7, 43.9, 45.7, 18.8, 17.4, 9.4, 1.7, 29.2, 96.5),
+        ("Evan Mobley",              "CLE", 73, 2.0,  7.5, 0.77, 1.5, 0.7, 1.8, 44.2, 46.0, 19.0, 16.8, 9.6, 1.7, 30.1, 94.0),
+        ("Anthony Davis",            "LAL", 63, 2.2,  7.3, 0.78, 1.7, 0.8, 1.9, 44.5, 46.4, 19.2, 16.4, 9.8, 1.8, 31.0, 91.4),
+        ("Bam Adebayo",              "MIA", 71, 2.3,  9.1, 0.79, 1.8, 0.8, 2.0, 44.7, 46.7, 19.4, 16.0, 9.9, 1.8, 31.5, 88.9),
+        ("Chet Holmgren",            "OKC", 65, 1.8,  6.5, 0.80, 1.4, 0.7, 1.8, 44.9, 47.0, 19.6, 15.8, 10.1, 1.9, 32.0, 86.4),
+        ("Herb Jones",               "NOP", 56, 2.4, 11.2, 0.81, 1.9, 0.8, 2.1, 45.1, 47.2, 19.8, 15.4, 10.2, 1.9, 32.6, 83.9),
+        ("Kawhi Leonard",            "LAC", 19, 1.2,  8.3, 0.81, 1.0, 0.5, 1.3, 45.2, 47.4, 19.9, 15.2, 10.3, 1.9, 32.8, 83.9),
+        # --- batch 2: good isolation defenders (percentile 61–80) ---
+        ("Draymond Green",           "GSW", 68, 1.7,  8.9, 0.82, 1.4, 0.6, 1.7, 45.4, 47.6, 20.0, 15.0, 10.4, 1.9, 33.2, 81.4),
+        ("Mikal Bridges",            "NYK", 74, 2.8, 12.4, 0.83, 2.3, 0.9, 2.4, 45.6, 47.9, 20.2, 14.8, 10.5, 2.0, 33.8, 78.9),
+        ("Jalen Suggs",              "ORL", 72, 2.1, 10.7, 0.84, 1.8, 0.8, 2.2, 45.8, 48.1, 20.4, 14.4, 10.6, 2.0, 34.3, 76.3),
+        ("OG Anunoby",               "NYK", 55, 2.6, 11.5, 0.85, 2.2, 0.9, 2.3, 46.0, 48.3, 20.6, 14.2, 10.7, 2.0, 34.9, 73.8),
+        ("Al Horford",               "BOS", 66, 1.4,  6.2, 0.85, 1.2, 0.5, 1.5, 46.1, 48.5, 20.7, 14.0, 10.8, 2.0, 35.1, 73.8),
+        ("Isaiah Hartenstein",       "OKC", 66, 1.9,  7.8, 0.86, 1.6, 0.7, 1.9, 46.3, 48.7, 20.9, 13.8, 10.9, 2.1, 35.6, 71.3),
+        ("Walker Kessler",           "UTA", 69, 1.6,  7.4, 0.86, 1.4, 0.6, 1.8, 46.4, 48.8, 21.0, 13.6, 11.0, 2.1, 35.8, 71.3),
+        ("Myles Turner",             "IND", 70, 1.5,  7.1, 0.87, 1.3, 0.6, 1.8, 46.6, 49.0, 21.2, 13.4, 11.1, 2.1, 36.2, 68.8),
+        ("Jimmy Butler",             "MIA", 60, 1.8,  9.4, 0.87, 1.6, 0.7, 2.0, 46.7, 49.2, 21.3, 13.2, 11.2, 2.1, 36.4, 68.8),
+        ("Scottie Barnes",           "TOR", 72, 2.5, 10.3, 0.88, 2.2, 0.9, 2.3, 46.9, 49.4, 21.5, 13.0, 11.3, 2.2, 36.9, 66.3),
+        ("Brook Lopez",              "MIL", 71, 1.3,  6.1, 0.88, 1.1, 0.5, 1.5, 47.0, 49.6, 21.6, 12.8, 11.4, 2.2, 37.1, 66.3),
+        # --- batch 3: average isolation defenders (percentile 41–60) ---
+        ("Giannis Antetokounmpo",    "MIL", 73, 3.1,  8.7, 0.89, 2.8, 1.1, 2.6, 47.2, 49.8, 21.8, 12.6, 11.5, 2.2, 37.6, 63.8),
+        ("Robert Williams III",      "POR", 29, 1.2,  7.3, 0.89, 1.1, 0.4, 1.3, 47.3, 50.0, 21.9, 12.4, 11.6, 2.2, 37.8, 63.8),
+        ("Jabari Smith Jr.",         "HOU", 66, 2.2,  9.6, 0.90, 2.0, 0.8, 2.2, 47.5, 50.2, 22.1, 12.2, 11.7, 2.3, 38.3, 61.3),
+        ("Jalen Williams",           "OKC", 70, 2.7, 11.2, 0.90, 2.4, 0.9, 2.4, 47.6, 50.4, 22.2, 12.0, 11.8, 2.3, 38.5, 61.3),
+        ("Tari Eason",               "HOU", 72, 2.0, 10.1, 0.91, 1.8, 0.8, 2.1, 47.8, 50.6, 22.4, 11.8, 11.9, 2.3, 38.9, 58.8),
+        ("Luguentz Dort",            "OKC", 67, 2.6, 12.3, 0.91, 2.4, 0.9, 2.4, 47.9, 50.8, 22.5, 11.6, 12.0, 2.3, 39.1, 58.8),
+        ("Daniel Gafford",           "DAL", 58, 1.4,  6.4, 0.92, 1.3, 0.5, 1.6, 48.1, 51.0, 22.7, 11.4, 12.1, 2.4, 39.5, 56.3),
+        ("Mark Williams",            "CHA", 40, 1.3,  7.1, 0.93, 1.2, 0.5, 1.6, 48.4, 51.4, 23.0, 11.0, 12.3, 2.4, 40.1, 53.8),
+        ("De'Anthony Melton",        "PHI", 62, 2.4, 11.4, 0.93, 2.2, 0.9, 2.3, 48.5, 51.6, 23.1, 10.8, 12.4, 2.4, 40.3, 53.8),
+        ("Kentavious Caldwell-Pope", "ORL", 70, 2.1,  9.8, 0.94, 2.0, 0.8, 2.2, 48.7, 51.8, 23.3, 10.6, 12.5, 2.5, 40.7, 51.3),
+        ("Royce O'Neale",            "PHX", 65, 1.9,  8.5, 0.94, 1.8, 0.7, 2.1, 48.8, 52.0, 23.4, 10.4, 12.6, 2.5, 40.9, 51.3),
+        ("Jonathan Kuminga",         "GSW", 20, 2.3, 10.2, 0.95, 2.2, 0.9, 2.3, 49.0, 52.2, 23.6, 10.2, 12.7, 2.5, 41.3, 48.8),
+        ("Josh Hart",                "NYK", 72, 2.0,  9.2, 0.95, 1.9, 0.7, 2.2, 49.1, 52.4, 23.7, 10.0, 12.8, 2.5, 41.5, 48.8),
+        ("Dereck Lively II",         "DAL", 70, 1.2,  6.1, 0.96, 1.2, 0.5, 1.5, 49.3, 52.6, 23.9,  9.8, 12.9, 2.6, 41.9, 46.3),
+        ("Onyeka Okongwu",           "ATL", 67, 1.1,  5.9, 0.96, 1.1, 0.4, 1.5, 49.4, 52.8, 24.0,  9.6, 13.0, 2.6, 42.1, 46.3),
+        ("Jalen Duren",              "DET", 67, 1.5,  7.2, 0.97, 1.5, 0.6, 1.7, 49.6, 53.0, 24.2,  9.4, 13.1, 2.6, 42.5, 43.8),
+        ("Julius Randle",            "MIN", 65, 2.8, 10.5, 0.98, 2.7, 1.0, 2.5, 49.9, 53.4, 24.5,  9.0, 13.3, 2.7, 43.1, 41.3),
+        ("Ivica Zubac",              "LAC", 57, 1.1,  6.0, 0.98, 1.1, 0.4, 1.4, 50.0, 53.6, 24.6,  8.8, 13.4, 2.7, 43.3, 41.3),
+        # --- batch 4: below-average isolation defenders (percentile 16–39) ---
+        ("Naz Reid",                 "MIN", 74, 1.4,  7.3, 1.00, 1.4, 0.5, 1.6, 50.4, 54.0, 24.9,  8.4, 13.6, 2.7, 44.0, 38.8),
+        ("Lauri Markkanen",          "UTA", 68, 3.4, 11.8, 1.00, 3.4, 1.3, 2.8, 50.5, 54.2, 25.0,  8.2, 13.7, 2.8, 44.2, 38.8),
+        ("Karl-Anthony Towns",       "NYK", 74, 3.6, 11.4, 1.01, 3.6, 1.4, 2.9, 50.7, 54.4, 25.2,  8.0, 13.8, 2.8, 44.6, 36.3),
+        ("Bradley Beal",             "PHX", 42, 3.1, 12.8, 1.01, 3.1, 1.2, 2.8, 50.8, 54.6, 25.3,  7.8, 13.9, 2.8, 44.8, 36.3),
+        ("Pascal Siakam",            "IND", 62, 2.9, 10.9, 1.02, 3.0, 1.2, 2.7, 51.0, 54.8, 25.5,  7.6, 14.0, 2.9, 45.2, 33.8),
+        ("Devin Booker",             "PHX", 71, 3.3, 11.6, 1.02, 3.4, 1.3, 2.8, 51.1, 55.0, 25.6,  7.4, 14.1, 2.9, 45.4, 33.8),
+        ("Ja Morant",                "MEM", 53, 2.8, 10.4, 1.03, 2.9, 1.1, 2.7, 51.3, 55.2, 25.8,  7.2, 14.2, 2.9, 45.8, 31.3),
+        ("Donovan Mitchell",         "CLE", 69, 3.5, 12.3, 1.03, 3.6, 1.4, 2.9, 51.4, 55.4, 25.9,  7.0, 14.3, 2.9, 46.0, 31.3),
+        ("RJ Barrett",               "TOR", 68, 3.2, 11.2, 1.04, 3.3, 1.3, 2.8, 51.6, 55.6, 26.1,  6.8, 14.4, 3.0, 46.4, 28.8),
+        ("Trae Young",               "ATL", 72, 4.8, 17.1, 1.05, 5.0, 1.9, 3.4, 51.8, 55.8, 26.3,  6.6, 14.5, 3.0, 46.8, 26.3),
+        ("James Harden",             "LAC", 67, 4.5, 15.6, 1.05, 4.7, 1.8, 3.3, 51.9, 56.0, 26.4,  6.4, 14.6, 3.0, 47.0, 26.3),
+        ("De'Aaron Fox",             "SAC", 71, 3.4, 12.1, 1.06, 3.6, 1.4, 2.9, 52.1, 56.2, 26.6,  6.2, 14.7, 3.1, 47.4, 23.8),
+        ("Darius Garland",           "CLE", 60, 4.2, 14.8, 1.06, 4.5, 1.7, 3.2, 52.2, 56.4, 26.7,  6.0, 14.8, 3.1, 47.6, 23.8),
+        ("LeBron James",             "LAL", 71, 3.6,  9.8, 1.07, 3.9, 1.5, 3.0, 52.4, 56.6, 26.9,  5.8, 14.9, 3.1, 48.0, 21.3),
+        # --- batch 5: poor isolation defenders (percentile 0–15) ---
+        ("Nikola Jokic",             "DEN", 65, 4.1, 11.2, 1.09, 4.5, 1.7, 3.2, 52.8, 57.0, 27.2,  5.4, 15.1, 3.2, 48.8, 18.8),
+        ("Luka Doncic",              "DAL", 64, 5.2, 16.8, 1.10, 5.7, 2.1, 3.6, 53.0, 57.2, 27.4,  5.2, 15.2, 3.2, 49.3, 16.3),
+        ("Jayson Tatum",             "BOS", 74, 3.8, 10.4, 1.10, 4.2, 1.6, 3.1, 53.1, 57.4, 27.5,  5.0, 15.3, 3.3, 49.5, 16.3),
+        ("Kyrie Irving",             "DAL", 63, 4.3, 14.2, 1.12, 4.8, 1.9, 3.4, 53.5, 57.8, 27.8,  4.6, 15.5, 3.3, 50.2, 13.8),
+        ("Joel Embiid",              "PHI", 39, 4.5, 12.3, 1.12, 5.0, 1.9, 3.4, 53.6, 58.0, 27.9,  4.4, 15.6, 3.4, 50.5, 13.8),
+        ("Stephen Curry",            "GSW", 72, 5.1, 17.4, 1.14, 5.8, 2.2, 3.7, 54.0, 58.4, 28.2,  4.0, 15.8, 3.4, 51.3, 11.3),
+        ("Damian Lillard",           "MIL", 69, 5.4, 17.8, 1.15, 6.2, 2.3, 3.8, 54.2, 58.6, 28.4,  3.8, 15.9, 3.5, 51.8,  8.8),
+        ("Nikola Vucevic",           "CHI", 73, 3.9, 12.4, 1.15, 4.5, 1.8, 3.3, 54.3, 58.8, 28.5,  3.6, 16.0, 3.5, 52.0,  8.8),
+        ("Zach LaVine",              "CHI", 61, 4.2, 13.6, 1.17, 4.9, 1.9, 3.5, 54.7, 59.2, 28.8,  3.2, 16.2, 3.5, 52.8,  6.3),
+        ("Russell Westbrook",        "LAC", 55, 3.8, 11.8, 1.18, 4.5, 1.8, 3.4, 54.9, 59.4, 29.0,  3.0, 16.3, 3.6, 53.2,  3.8),
+    ]
+
+    stats: List[PlayerDefensiveIsolationStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(PlayerDefensiveIsolationStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_defensive_isolation(
+    stats: Optional[List["PlayerDefensiveIsolationStats"]] = None,
+) -> List["PlayerDefensiveIsolationStats"]:
+    """
+    Return all players sorted from best to worst isolation defender
+    (highest percentile first).
+
+    If *stats* is not provided, the full dataset is used.
+    """
+    if stats is None:
+        stats = build_player_defensive_isolation_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_isolation_defenders(
+    defensive_stats: Optional[List["PlayerDefensiveIsolationStats"]] = None,
+    min_poss: float = 1.5,
+    max_ppp: float = 0.90,
+) -> List[Dict]:
+    """
+    Identify players who are high-volume, elite isolation defenders.
+
+    A player is included when:
+    - They defend at least *min_poss* isolation possessions per game (active
+      defender; not simply avoided).
+    - Their isolation PPP allowed is at most *max_ppp* (elite or good defender).
+
+    Returns a list of dicts sorted by percentile (highest first), each
+    containing:
+      - "player"      : player name
+      - "team"        : player's team
+      - "poss"        : isolation possessions defended per game
+      - "freq_pct"    : % of total possessions that are isolations vs this defender
+      - "ppp"         : isolation PPP allowed
+      - "pts"         : isolation points allowed per game
+      - "percentile"  : defensive isolation percentile
+    """
+    if defensive_stats is None:
+        defensive_stats = build_player_defensive_isolation_stats()
+
+    results = []
+    for s in defensive_stats:
+        if s.poss < min_poss:
+            continue
+        if s.ppp > max_ppp:
+            continue
+        results.append({
+            "player":     s.player,
+            "team":       s.team,
+            "poss":       s.poss,
+            "freq_pct":   s.freq_pct,
+            "ppp":        s.ppp,
+            "pts":        s.pts,
+            "percentile": s.percentile,
+        })
+
+    results.sort(key=lambda r: r["percentile"], reverse=True)
+    return results
+
+
+def predict_player_isolation_defense_matchup(
+    offensive_player: str,
+    defensive_player: str,
+    offensive_stats: Optional[List["OffensiveIsolationStats"]] = None,
+    defensive_stats: Optional[List["PlayerDefensiveIsolationStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head isolation prediction for a specific
+    offensive player attacking a specific defensive player.
+
+    Parameters
+    ----------
+    offensive_player:
+        Name of the ball-handler (case-insensitive), e.g.
+        ``"Shai Gilgeous-Alexander"``.
+    defensive_player:
+        Name of the on-ball defender (case-insensitive), e.g.
+        ``"Kawhi Leonard"``.
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_stats:
+        Pre-built defensive player stats list; defaults to the full dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when either player cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"offensive_player"``  : name of the ball-handler
+        - ``"off_team"``          : ball-handler's team
+        - ``"off_ppp"``           : ball-handler's isolation PPP
+        - ``"off_freq_pct"``      : ball-handler's isolation frequency %
+        - ``"off_percentile"``    : ball-handler's offensive isolation percentile
+        - ``"defensive_player"``  : name of the on-ball defender
+        - ``"def_team"``          : defender's team
+        - ``"def_ppp"``           : PPP allowed by the defender in isolation
+        - ``"def_freq_pct"``      : isolation possessions % faced by the defender
+        - ``"def_percentile"``    : defender's defensive isolation percentile
+        - ``"edge"``              : ball-handler PPP − defender PPP allowed
+        - ``"verdict"``           : ``"FAVORABLE"``, ``"NEUTRAL"``, or ``"TOUGH"``
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_isolation_stats()
+    if defensive_stats is None:
+        defensive_stats = build_player_defensive_isolation_stats()
+
+    off_stat = next(
+        (s for s in offensive_stats
+         if s.player.lower() == offensive_player.lower()),
+        None,
+    )
+    if off_stat is None:
+        return None
+
+    def_stat = next(
+        (s for s in defensive_stats
+         if s.player.lower() == defensive_player.lower()),
+        None,
+    )
+    if def_stat is None:
+        return None
+
+    edge = round(off_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.15:
+        verdict = "FAVORABLE"
+    elif edge <= -0.15:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "offensive_player": off_stat.player,
+        "off_team":         off_stat.team,
+        "off_ppp":          off_stat.ppp,
+        "off_freq_pct":     off_stat.freq_pct,
+        "off_percentile":   off_stat.percentile,
+        "defensive_player": def_stat.player,
+        "def_team":         def_stat.team,
+        "def_ppp":          def_stat.ppp,
+        "def_freq_pct":     def_stat.freq_pct,
+        "def_percentile":   def_stat.percentile,
+        "edge":             edge,
+        "verdict":          verdict,
     }
 
 
