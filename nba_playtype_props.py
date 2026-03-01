@@ -5689,6 +5689,110 @@ def apply_blitz_boost(
     }
 
 
+def find_secondary_prop_targets(
+    scheme: "DefensiveScheme",
+    players: Optional[List[PlayerProfile]] = None,
+    defenses: Optional[List[DefensiveMatchup]] = None,
+    prop_type: str = "points",
+    lines: Optional[Dict[str, float]] = None,
+    top_n: int = 5,
+) -> List[Dict]:
+    """
+    Identify and rank offensive players who benefit most when the defense
+    blitzes the star named in *scheme*.
+
+    When a defense double-teams a star ball-handler it vacates assignments
+    elsewhere on the floor.  This function scores every player in *players*
+    (excluding the blitz target) by computing a scheme-adjusted *prop_type*
+    projection via :func:`apply_blitz_boost`, then returns the top *top_n*
+    results sorted by descending blitz boost — making it easy to spot the
+    secondary players whose props are most attractive in this matchup.
+
+    Parameters
+    ----------
+    scheme:
+        A :class:`DefensiveScheme` describing which star is being blitzed and
+        the magnitude of the boost for secondary spot-up shooters.
+    players:
+        Player pool to scan; defaults to :func:`build_sample_players`.
+    defenses:
+        Defense pool; defaults to :func:`build_sample_defenses`.
+    prop_type:
+        Stat category to project.  Blitz boosts only affect ``"points"``;
+        other categories are still scored via the matchup multiplier alone.
+    lines:
+        Optional mapping of player name → bookmaker line for *prop_type*.
+        When a player's name is found here the line is used to compute
+        ``edge``; otherwise the player's season average is the implicit line.
+    top_n:
+        Maximum number of ranked results to return.
+
+    Returns
+    -------
+    list of dict, sorted by descending ``blitz_boost`` (up to *top_n*).
+    Each entry contains:
+
+    - ``"player"``            : player name
+    - ``"team"``              : player team abbreviation
+    - ``"position"``          : player position
+    - ``"season_avg"``        : player's season average for *prop_type*
+    - ``"base_projection"``   : projection without scheme adjustment
+    - ``"scheme_projection"`` : projection after blitz boost
+    - ``"blitz_boost"``       : extra value added by the blitz scheme
+    - ``"line"``              : bookmaker line used (falls back to season avg)
+    - ``"edge"``              : scheme_projection − line
+    - ``"is_spot_up_scorer"`` : True if spot_up is in the player's top-2 types
+    - ``"scheme_notes"``      : human-readable explanation string
+    """
+    if players is None:
+        players = build_sample_players()
+    if defenses is None:
+        defenses = build_sample_defenses()
+    if lines is None:
+        lines = {}
+
+    defense = next(
+        (d for d in defenses if d.team.upper() == scheme.opponent_team.upper()), None
+    )
+    if defense is None:
+        return []
+
+    results = []
+    for player in players:
+        if player.name.lower() == scheme.blitz_target.lower():
+            continue
+
+        season_avg = getattr(player, f"avg_{prop_type}", None)
+        if season_avg is None:
+            continue
+
+        line = lines.get(player.name, season_avg)
+        recs = project_props(player, defense, {prop_type: line})
+        rec = next((r for r in recs if r.prop_type == prop_type), None)
+        if rec is None:
+            continue
+
+        boost_result = apply_blitz_boost(player, scheme, rec.projection)
+        edge = round(boost_result["scheme_projection"] - line, 1)
+
+        results.append({
+            "player":            player.name,
+            "team":              player.team,
+            "position":          player.position,
+            "season_avg":        season_avg,
+            "base_projection":   boost_result["base_projection"],
+            "scheme_projection": boost_result["scheme_projection"],
+            "blitz_boost":       boost_result["blitz_boost"],
+            "line":              line,
+            "edge":              edge,
+            "is_spot_up_scorer": boost_result["is_spot_up_scorer"],
+            "scheme_notes":      boost_result["scheme_notes"],
+        })
+
+    results.sort(key=lambda r: r["blitz_boost"], reverse=True)
+    return results[:top_n]
+
+
 def explain_prop_result(
     player_name: str,
     prop_type: str,
@@ -5935,6 +6039,219 @@ def explain_prop_result(
         "reasons":             reasons,
         "actual":              actual,
         "actual_verdict":      actual_verdict,
+        "scheme":              scheme,
+    }
+
+
+def explain_hot_streak_failure(
+    player_name: str,
+    prop_type: str,
+    line: float,
+    opponent_team: str,
+    recent_values: List[float],
+    players: Optional[List[PlayerProfile]] = None,
+    defenses: Optional[List[DefensiveMatchup]] = None,
+    scheme: Optional["DefensiveScheme"] = None,
+) -> Optional[Dict]:
+    """
+    Explain why a player is on a hot streak or why a hot-streak prop failed.
+
+    Given the player's *recent_values* (a list of game results for *prop_type*),
+    this function compares the recent form against the season baseline, checks
+    whether the upcoming matchup supports or fights the streak, flags regression
+    risk when the streak is far above the mean, and warns about small samples.
+    Optionally, a defensive :class:`DefensiveScheme` can be applied when the
+    opponent is expected to blitz a star teammate.
+
+    Parameters
+    ----------
+    player_name:
+        Player name (case-insensitive), e.g. ``"Donte DiVincenzo"``.
+    prop_type:
+        One of ``"points"``, ``"assists"``, or ``"rebounds"``.
+    line:
+        Bookmaker line for the prop.
+    opponent_team:
+        Three-letter team abbreviation of the opposing defense.
+    recent_values:
+        Ordered list of actual game results (most recent last is fine).
+        Pass an empty list when no recent data is available.
+    players:
+        Pre-built player list; defaults to :func:`build_sample_players`.
+    defenses:
+        Pre-built defense list; defaults to :func:`build_sample_defenses`.
+    scheme:
+        Optional :class:`DefensiveScheme`.  Applied only when
+        ``prop_type == "points"``.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or defense cannot be found.  Otherwise:
+
+        - ``"player"``              : player name
+        - ``"prop_type"``           : stat category
+        - ``"season_avg"``          : season average for the prop
+        - ``"recent_avg"``          : mean of *recent_values* (None if empty)
+        - ``"streak_delta"``        : recent_avg − season_avg (None if empty)
+        - ``"recent_game_count"``   : number of games in *recent_values*
+        - ``"line"``                : bookmaker line
+        - ``"projection"``          : base (non-scheme) model projection
+        - ``"scheme_projection"``   : scheme-adjusted projection (equals
+                                      ``projection`` when no scheme applies)
+        - ``"verdict"``             : ``"OVER"`` / ``"UNDER"`` / ``"PUSH"``
+                                      vs the line (based on scheme_projection)
+        - ``"edge"``                : scheme_projection − line
+        - ``"confidence"``          : ``"HIGH"``, ``"MEDIUM"``, or ``"LOW"``
+        - ``"multiplier"``          : matchup multiplier
+        - ``"dominant_play_types"`` : top-2 play types by frequency
+        - ``"reasons"``             : list of human-readable explanation strings
+        - ``"scheme"``              : the :class:`DefensiveScheme` used, or None
+    """
+    if players is None:
+        players = build_sample_players()
+    if defenses is None:
+        defenses = build_sample_defenses()
+
+    player = next(
+        (p for p in players if p.name.lower() == player_name.lower()), None
+    )
+    if player is None:
+        return None
+
+    defense = next(
+        (d for d in defenses if d.team.upper() == opponent_team.upper()), None
+    )
+    if defense is None:
+        return None
+
+    season_avg = getattr(player, f"avg_{prop_type}", None)
+    if season_avg is None:
+        return None
+
+    # Recent form
+    recent_avg: Optional[float] = None
+    streak_delta: Optional[float] = None
+    if recent_values:
+        recent_avg = round(sum(recent_values) / len(recent_values), 2)
+        streak_delta = round(recent_avg - season_avg, 2)
+
+    # Base projection via existing matchup engine
+    recs = project_props(player, defense, {prop_type: line})
+    rec = next((r for r in recs if r.prop_type == prop_type), None)
+    if rec is None:
+        return None
+
+    multiplier = _matchup_multiplier(player, defense)
+    dom_types = player.dominant_play_types(top_n=2)
+
+    # Optional scheme boost
+    blitz_info: Optional[Dict] = None
+    if scheme is not None and prop_type == "points":
+        blitz_info = apply_blitz_boost(player, scheme, rec.projection)
+
+    final_projection = (
+        blitz_info["scheme_projection"] if blitz_info is not None else rec.projection
+    )
+    final_edge = round(final_projection - line, 1)
+    if final_edge > 0:
+        proj_verdict = "OVER"
+    elif final_edge < 0:
+        proj_verdict = "UNDER"
+    else:
+        proj_verdict = "PUSH"
+
+    abs_edge = abs(final_edge)
+    if abs_edge >= 2.5:
+        final_confidence = "HIGH"
+    elif abs_edge >= 1.0:
+        final_confidence = "MEDIUM"
+    else:
+        final_confidence = "LOW"
+
+    reasons: List[str] = []
+
+    # 1. Recent form vs season baseline
+    if recent_avg is not None and streak_delta is not None:
+        if streak_delta > 0:
+            reasons.append(
+                f"Hot streak: {player.name} is averaging {recent_avg} {prop_type} "
+                f"over the last {len(recent_values)} game(s), "
+                f"+{streak_delta:.2f} above season average ({season_avg})."
+            )
+            regression_pct = (streak_delta / season_avg * 100) if season_avg > 0 else 0.0
+            if regression_pct >= 15.0:
+                reasons.append(
+                    f"Regression risk: recent average is {regression_pct:.0f}% above "
+                    f"the season baseline — streaks of this magnitude typically cool off."
+                )
+        elif streak_delta < 0:
+            reasons.append(
+                f"Cold stretch: {player.name} is averaging {recent_avg} {prop_type} "
+                f"over the last {len(recent_values)} game(s), "
+                f"{abs(streak_delta):.2f} below season average ({season_avg})."
+            )
+        else:
+            reasons.append(
+                f"Neutral form: recent average ({recent_avg}) matches "
+                f"season average ({season_avg}) for {prop_type}."
+            )
+        if len(recent_values) < 3:
+            reasons.append(
+                f"Small sample ({len(recent_values)} game(s)) — treat recent "
+                f"form with caution; season average remains {season_avg}."
+            )
+    else:
+        reasons.append(
+            f"No recent game data provided — using season average "
+            f"({season_avg} {prop_type}) as baseline."
+        )
+
+    # 2. Matchup favorability
+    if multiplier < 0.96:
+        reasons.append(
+            f"{defense.team} defense is tough for {player.name}'s play style "
+            f"(multiplier={multiplier:.3f}) — may suppress output and explain "
+            f"a prop failure despite the hot streak."
+        )
+    elif multiplier > 1.04:
+        reasons.append(
+            f"{defense.team} defense is favorable for {player.name}'s play style "
+            f"(multiplier={multiplier:.3f}) — helps sustain recent form."
+        )
+    else:
+        reasons.append(
+            f"{defense.team} defense is roughly neutral for {player.name}'s "
+            f"play style (multiplier={multiplier:.3f})."
+        )
+
+    # 3. Scheme context
+    if blitz_info is not None:
+        reasons.append(blitz_info["scheme_notes"])
+
+    # 4. Final verdict
+    reasons.append(
+        f"{'Scheme-adjusted projection' if blitz_info else 'Model projection'}: "
+        f"{final_projection} {prop_type} (line {line}) → {proj_verdict} "
+        f"[confidence: {final_confidence}]."
+    )
+
+    return {
+        "player":              player.name,
+        "prop_type":           prop_type,
+        "season_avg":          season_avg,
+        "recent_avg":          recent_avg,
+        "streak_delta":        streak_delta,
+        "recent_game_count":   len(recent_values),
+        "line":                line,
+        "projection":          rec.projection,
+        "scheme_projection":   final_projection,
+        "verdict":             proj_verdict,
+        "edge":                final_edge,
+        "confidence":          final_confidence,
+        "multiplier":          round(multiplier, 4),
+        "dominant_play_types": dom_types,
+        "reasons":             reasons,
         "scheme":              scheme,
     }
 

@@ -106,6 +106,8 @@ from nba_playtype_props import (
     explain_prop_result,
     apply_blitz_boost,
     DefensiveScheme,
+    find_secondary_prop_targets,
+    explain_hot_streak_failure,
     predict_transition_matchup,
 )
 
@@ -5606,6 +5608,239 @@ class TestExplainPropResultWithScheme(unittest.TestCase):
             scheme=self.den_blitz,
         )
         self.assertIn(result["confidence"], ("MEDIUM", "HIGH"))
+
+
+class TestFindSecondaryPropTargets(unittest.TestCase):
+    """Tests for find_secondary_prop_targets()."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.defenses = build_sample_defenses()
+        self.den_blitz = DefensiveScheme(
+            opponent_team="DEN",
+            blitz_target="Anthony Edwards",
+            blitz_spot_up_boost=0.15,
+            blitz_points_boost=3.0,
+        )
+
+    def test_returns_list(self):
+        results = find_secondary_prop_targets(self.den_blitz, self.players, self.defenses)
+        self.assertIsInstance(results, list)
+
+    def test_blitz_target_excluded(self):
+        results = find_secondary_prop_targets(self.den_blitz, self.players, self.defenses)
+        names = [r["player"] for r in results]
+        self.assertNotIn("Anthony Edwards", names)
+
+    def test_spot_up_scorer_ranked_first(self):
+        """DiVincenzo (spot_up freq=0.40) should have the highest blitz boost."""
+        results = find_secondary_prop_targets(self.den_blitz, self.players, self.defenses)
+        self.assertGreater(len(results), 0)
+        self.assertEqual(results[0]["player"], "Donte DiVincenzo")
+
+    def test_required_keys(self):
+        results = find_secondary_prop_targets(self.den_blitz, self.players, self.defenses)
+        required = {
+            "player", "team", "position", "season_avg",
+            "base_projection", "scheme_projection", "blitz_boost",
+            "line", "edge", "is_spot_up_scorer", "scheme_notes",
+        }
+        for r in results:
+            self.assertTrue(required.issubset(r.keys()))
+
+    def test_top_n_limits_results(self):
+        results = find_secondary_prop_targets(
+            self.den_blitz, self.players, self.defenses, top_n=2
+        )
+        self.assertLessEqual(len(results), 2)
+
+    def test_unknown_defense_returns_empty_list(self):
+        bad_scheme = DefensiveScheme(
+            opponent_team="ZZZ",
+            blitz_target="Anthony Edwards",
+        )
+        results = find_secondary_prop_targets(bad_scheme, self.players, self.defenses)
+        self.assertEqual(results, [])
+
+    def test_blitz_boost_non_negative(self):
+        results = find_secondary_prop_targets(self.den_blitz, self.players, self.defenses)
+        for r in results:
+            self.assertGreaterEqual(r["blitz_boost"], 0.0)
+
+    def test_spot_up_scorer_flag_set_for_divincenzo(self):
+        results = find_secondary_prop_targets(self.den_blitz, self.players, self.defenses)
+        dd = next((r for r in results if r["player"] == "Donte DiVincenzo"), None)
+        self.assertIsNotNone(dd)
+        self.assertTrue(dd["is_spot_up_scorer"])
+
+    def test_scheme_projection_ge_base_projection(self):
+        results = find_secondary_prop_targets(self.den_blitz, self.players, self.defenses)
+        for r in results:
+            self.assertGreaterEqual(r["scheme_projection"], r["base_projection"])
+
+    def test_default_datasets_used_when_none(self):
+        results = find_secondary_prop_targets(self.den_blitz)
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+
+    def test_custom_line_affects_edge(self):
+        """Providing a custom line should change the computed edge."""
+        default_results = find_secondary_prop_targets(
+            self.den_blitz, self.players, self.defenses
+        )
+        dd_default = next(r for r in default_results if r["player"] == "Donte DiVincenzo")
+        custom_lines = {"Donte DiVincenzo": 99.0}
+        custom_results = find_secondary_prop_targets(
+            self.den_blitz, self.players, self.defenses, lines=custom_lines
+        )
+        dd_custom = next(r for r in custom_results if r["player"] == "Donte DiVincenzo")
+        self.assertNotEqual(dd_default["edge"], dd_custom["edge"])
+
+
+class TestExplainHotStreakFailure(unittest.TestCase):
+    """Tests for explain_hot_streak_failure()."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.defenses = build_sample_defenses()
+        self.hot_streak = [28.0, 31.0, 35.0, 29.0]
+        self.den_blitz = DefensiveScheme(
+            opponent_team="DEN",
+            blitz_target="Anthony Edwards",
+            blitz_spot_up_boost=0.15,
+            blitz_points_boost=3.0,
+        )
+
+    def test_returns_none_for_unknown_player(self):
+        result = explain_hot_streak_failure(
+            "Nobody Real", "points", 15.5, "DEN", [], self.players, self.defenses
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_defense(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "ZZZ", [], self.players, self.defenses
+        )
+        self.assertIsNone(result)
+
+    def test_required_keys(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.hot_streak, self.players, self.defenses,
+        )
+        required = {
+            "player", "prop_type", "season_avg", "recent_avg", "streak_delta",
+            "recent_game_count", "line", "projection", "scheme_projection",
+            "verdict", "edge", "confidence", "multiplier",
+            "dominant_play_types", "reasons", "scheme",
+        }
+        self.assertTrue(required.issubset(result.keys()))
+
+    def test_hot_streak_identified_in_reasons(self):
+        """When recent avg > season avg, reasons mention 'hot streak'."""
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.hot_streak, self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"]).lower()
+        self.assertIn("hot streak", combined)
+
+    def test_recent_avg_correct(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            [20.0, 30.0], self.players, self.defenses,
+        )
+        self.assertAlmostEqual(result["recent_avg"], 25.0)
+
+    def test_streak_delta_correct(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            [20.0, 30.0], self.players, self.defenses,
+        )
+        expected_delta = round(25.0 - result["season_avg"], 2)
+        self.assertAlmostEqual(result["streak_delta"], expected_delta)
+
+    def test_regression_risk_flagged_for_large_streak(self):
+        """A recent avg >= 15% above season avg triggers a regression warning."""
+        player = next(p for p in self.players if p.name == "Donte DiVincenzo")
+        big_values = [player.avg_points * 1.25] * 4
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            big_values, self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"]).lower()
+        self.assertIn("regression", combined)
+
+    def test_cold_stretch_identified_in_reasons(self):
+        """When recent avg < season avg, reasons mention 'cold stretch'."""
+        player = next(p for p in self.players if p.name == "Donte DiVincenzo")
+        cold_values = [player.avg_points * 0.5] * 3
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            cold_values, self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"]).lower()
+        self.assertIn("cold stretch", combined)
+
+    def test_small_sample_flagged(self):
+        """A 1- or 2-game sample should trigger a small-sample warning."""
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            [35.0], self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"]).lower()
+        self.assertIn("small sample", combined)
+
+    def test_empty_recent_values_returns_result(self):
+        """Passing an empty list should still return a valid result dict."""
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            [], self.players, self.defenses,
+        )
+        self.assertIsNotNone(result)
+        self.assertIsNone(result["recent_avg"])
+        self.assertIsNone(result["streak_delta"])
+        self.assertEqual(result["recent_game_count"], 0)
+
+    def test_tough_matchup_reason_present(self):
+        """When the matchup multiplier < 0.96, reasons flag the tough defense."""
+        result = explain_hot_streak_failure(
+            "Luka Doncic", "points", 25.0, "OKC",
+            self.hot_streak, self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"]).lower()
+        self.assertIn("tough", combined)
+
+    def test_scheme_projection_greater_than_base_when_scheme_provided(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.hot_streak, self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        self.assertGreater(result["scheme_projection"], result["projection"])
+
+    def test_scheme_notes_in_reasons_when_scheme_provided(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.hot_streak, self.players, self.defenses,
+            scheme=self.den_blitz,
+        )
+        combined = " ".join(result["reasons"])
+        self.assertIn("Anthony Edwards", combined)
+
+    def test_no_scheme_gives_scheme_projection_equal_projection(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.hot_streak, self.players, self.defenses,
+        )
+        self.assertEqual(result["scheme_projection"], result["projection"])
+
+    def test_default_datasets_used_when_none(self):
+        result = explain_hot_streak_failure(
+            "Donte DiVincenzo", "points", 15.5, "DEN",
+            self.hot_streak,
+        )
+        self.assertIsNotNone(result)
 
 
 if __name__ == "__main__":
