@@ -108,6 +108,7 @@ from nba_playtype_props import (
     DefensiveScheme,
     find_secondary_prop_targets,
     explain_hot_streak_failure,
+    find_mismatch_prop_targets,
     predict_transition_matchup,
 )
 
@@ -5841,6 +5842,121 @@ class TestExplainHotStreakFailure(unittest.TestCase):
             self.hot_streak,
         )
         self.assertIsNotNone(result)
+
+
+class TestFindMismatchPropTargets(unittest.TestCase):
+    """Tests for find_mismatch_prop_targets()."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.defenses = build_sample_defenses()
+        # MEM is the sample weak defense (PPP > 1.0 across all play types)
+
+    def test_returns_none_for_unknown_team(self):
+        result = find_mismatch_prop_targets("ZZZ", self.players, self.defenses)
+        self.assertIsNone(result)
+
+    def test_returns_dict_for_known_team(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        self.assertIsInstance(result, dict)
+
+    def test_required_top_level_keys(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        required = {
+            "opponent_team", "is_weak_defense", "defense_avg_ppp_allowed",
+            "weakest_play_types", "blowout_pace_factor", "targets",
+        }
+        self.assertTrue(required.issubset(result.keys()))
+
+    def test_mem_is_flagged_as_weak_defense(self):
+        """MEM sample data has PPP > 1.0 on every play type."""
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        self.assertTrue(result["is_weak_defense"])
+
+    def test_okc_is_not_weak_defense(self):
+        """OKC sample data has PPP < 1.0 on every play type."""
+        result = find_mismatch_prop_targets("OKC", self.players, self.defenses)
+        self.assertFalse(result["is_weak_defense"])
+
+    def test_weakest_play_types_sorted_worst_first(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        ppps = [
+            self.defenses[
+                next(i for i, d in enumerate(self.defenses) if d.team == "MEM")
+            ].play_types[pt].ppp
+            for pt in result["weakest_play_types"]
+        ]
+        self.assertEqual(ppps, sorted(ppps, reverse=True))
+
+    def test_targets_is_list(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        self.assertIsInstance(result["targets"], list)
+
+    def test_top_n_limits_targets(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses, top_n=3)
+        self.assertLessEqual(len(result["targets"]), 3)
+
+    def test_target_required_keys(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        required = {
+            "player", "team", "position", "season_avg",
+            "base_projection", "adjusted_projection", "blowout_bonus",
+            "line", "edge", "multiplier", "exploited_weaknesses",
+            "is_blowout_beneficiary", "notes",
+        }
+        for t in result["targets"]:
+            self.assertTrue(required.issubset(t.keys()))
+
+    def test_blowout_bonus_zero_when_pace_factor_zero(self):
+        result = find_mismatch_prop_targets(
+            "MEM", self.players, self.defenses, blowout_pace_factor=0.0
+        )
+        for t in result["targets"]:
+            self.assertEqual(t["blowout_bonus"], 0.0)
+
+    def test_blowout_bonus_applied_to_spot_up_player(self):
+        """DiVincenzo is spot-up dominant and should receive the blowout bonus."""
+        result = find_mismatch_prop_targets(
+            "MEM", self.players, self.defenses, blowout_pace_factor=2.5
+        )
+        dd = next((t for t in result["targets"] if t["player"] == "Donte DiVincenzo"), None)
+        if dd is not None and dd["is_blowout_beneficiary"]:
+            self.assertEqual(dd["blowout_bonus"], 2.5)
+            self.assertGreater(dd["adjusted_projection"], dd["base_projection"])
+
+    def test_multiplier_greater_than_one_for_weak_defense(self):
+        """Against MEM's weak defense every player's multiplier should exceed 1.0."""
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        for t in result["targets"]:
+            self.assertGreater(t["multiplier"], 1.0)
+
+    def test_default_datasets_used_when_none(self):
+        result = find_mismatch_prop_targets("MEM")
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result["targets"], list)
+        self.assertGreater(len(result["targets"]), 0)
+
+    def test_opponent_team_matches_input(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        self.assertEqual(result["opponent_team"], "MEM")
+
+    def test_case_insensitive_team_lookup(self):
+        result_upper = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        result_lower = find_mismatch_prop_targets("mem", self.players, self.defenses)
+        self.assertEqual(result_upper["opponent_team"], result_lower["opponent_team"])
+        self.assertEqual(len(result_upper["targets"]), len(result_lower["targets"]))
+
+    def test_notes_field_is_non_empty_string(self):
+        result = find_mismatch_prop_targets("MEM", self.players, self.defenses)
+        for t in result["targets"]:
+            self.assertIsInstance(t["notes"], str)
+            self.assertGreater(len(t["notes"]), 0)
+
+    def test_blowout_pace_factor_stored_in_result(self):
+        result = find_mismatch_prop_targets(
+            "MEM", self.players, self.defenses, blowout_pace_factor=1.5
+        )
+        self.assertAlmostEqual(result["blowout_pace_factor"], 1.5)
 
 
 if __name__ == "__main__":

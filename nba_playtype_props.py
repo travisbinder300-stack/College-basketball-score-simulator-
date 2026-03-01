@@ -28,6 +28,10 @@ PLAY_TYPES = [
 
 POSITIONS = ["PG", "SG", "SF", "PF", "C"]
 
+# Play types associated with pace-up / blowout / garbage-time situations where
+# secondary scorers receive extra open looks as starters are pulled early.
+_BLOWOUT_PLAY_TYPES: frozenset = frozenset({"spot_up", "off_screen", "cut", "transition"})
+
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -6253,6 +6257,204 @@ def explain_hot_streak_failure(
         "dominant_play_types": dom_types,
         "reasons":             reasons,
         "scheme":              scheme,
+    }
+
+
+def find_mismatch_prop_targets(
+    opponent_team: str,
+    players: Optional[List[PlayerProfile]] = None,
+    defenses: Optional[List[DefensiveMatchup]] = None,
+    prop_type: str = "points",
+    lines: Optional[Dict[str, float]] = None,
+    top_n: int = 5,
+    blowout_pace_factor: float = 0.0,
+) -> Optional[Dict]:
+    """
+    Identify offensive players who will take advantage of a weak, tanking, or
+    blowout-prone defense.
+
+    When a defense is below average (PPP allowed > league average of 1.00) across
+    its key play types, certain offensive players are positioned to exploit it.
+    This function:
+
+    1. Measures the defense's overall weakness (average PPP allowed) and flags
+       whether it qualifies as weak / tanking (allows above-average PPP, i.e.
+       avg PPP allowed > 1.00).
+    2. Identifies the specific play-type vulnerabilities — the slots where the
+       defense allows the most points per possession (above league average).
+    3. Scores every player in *players* by how well their dominant play types
+       align with those vulnerabilities, using :func:`_matchup_multiplier`.
+    4. Applies an optional *blowout_pace_factor* flat-point bonus to spot-up and
+       transition-oriented players, who see extra open looks when a game turns
+       into a blowout early.
+    5. Returns up to *top_n* targets, sorted by descending adjusted score, with
+       human-readable explanations.
+
+    Parameters
+    ----------
+    opponent_team:
+        Three-letter abbreviation of the defending (weak/tanking) team,
+        e.g. ``"MEM"``.
+    players:
+        Player pool to scan; defaults to :func:`build_sample_players`.
+    defenses:
+        Defense pool; defaults to :func:`build_sample_defenses`.
+    prop_type:
+        Stat category to project — one of ``"points"``, ``"assists"``, or
+        ``"rebounds"``.
+    lines:
+        Optional mapping of player name → bookmaker line for *prop_type*.
+        When a player's name is present, the line is used to compute ``edge``;
+        otherwise the player's season average serves as the implicit line.
+    top_n:
+        Maximum number of ranked targets to return.
+    blowout_pace_factor:
+        Extra points added to the projection for spot-up / transition-heavy
+        players when a blowout is expected.  A value of ``2.0`` adds two extra
+        expected points for those player types.  Defaults to ``0.0`` (no
+        blowout adjustment).
+
+    Returns
+    -------
+    dict or None
+        ``None`` when *opponent_team* is not found in *defenses*.  Otherwise:
+
+        - ``"opponent_team"``         : team abbreviation
+        - ``"is_weak_defense"``       : True when avg PPP allowed > 1.00
+        - ``"defense_avg_ppp_allowed"``: mean PPP allowed across all tracked
+                                         play types
+        - ``"weakest_play_types"``    : list of play-type names where the defense
+                                         allows PPP > 1.00 (sorted worst-first)
+        - ``"blowout_pace_factor"``   : the pace bonus value passed in
+        - ``"targets"``               : list of up to *top_n* dicts, sorted by
+                                         descending ``adjusted_score``; each entry:
+
+            - ``"player"``            : player name
+            - ``"team"``              : player team abbreviation
+            - ``"position"``          : player position
+            - ``"season_avg"``        : season average for *prop_type*
+            - ``"base_projection"``   : projection before blowout bonus
+            - ``"adjusted_projection"``: projection after blowout pace bonus
+            - ``"blowout_bonus"``     : extra points from blowout pace factor
+            - ``"line"``              : bookmaker line used (falls back to avg)
+            - ``"edge"``              : adjusted_projection − line
+            - ``"multiplier"``        : matchup multiplier vs this defense
+            - ``"exploited_weaknesses"``: play-type names from player's dominant
+                                          profile that match defense weak spots
+            - ``"is_blowout_beneficiary"``: True when spot_up or transition is a
+                                            dominant type and pace factor > 0
+            - ``"notes"``             : human-readable explanation string
+    """
+    if players is None:
+        players = build_sample_players()
+    if defenses is None:
+        defenses = build_sample_defenses()
+    if lines is None:
+        lines = {}
+
+    defense = next(
+        (d for d in defenses if d.team.upper() == opponent_team.upper()), None
+    )
+    if defense is None:
+        return None
+
+    # ------------------------------------------------------------------
+    # 1. Measure overall defensive weakness
+    # ------------------------------------------------------------------
+    all_ppps = [stats.ppp for stats in defense.play_types.values()]
+    defense_avg_ppp = round(sum(all_ppps) / len(all_ppps), 3) if all_ppps else 1.0
+    is_weak_defense = defense_avg_ppp > 1.00
+
+    # Play types where the defense allows more than league average (PPP > 1.00)
+    weakest_play_types: List[str] = sorted(
+        (pt for pt, stats in defense.play_types.items() if stats.ppp > 1.00),
+        key=lambda pt: defense.play_types[pt].ppp,
+        reverse=True,
+    )
+
+    # ------------------------------------------------------------------
+    # 2. Score every player against this defense
+    # ------------------------------------------------------------------
+
+    raw_results = []
+    for player in players:
+        season_avg = getattr(player, f"avg_{prop_type}", None)
+        if season_avg is None:
+            continue
+
+        line = lines.get(player.name, season_avg)
+        recs = project_props(player, defense, {prop_type: line})
+        rec = next((r for r in recs if r.prop_type == prop_type), None)
+        if rec is None:
+            continue
+
+        multiplier = _matchup_multiplier(player, defense)
+        dom_types = player.dominant_play_types(top_n=2)
+
+        # Which of the player's dominant types exploit the defense's weaknesses?
+        exploited = [t for t in dom_types if t in weakest_play_types]
+
+        # Blowout pace bonus for spot-up / off-screen / cut players
+        is_blowout_beneficiary = (
+            blowout_pace_factor > 0.0
+            and bool(_BLOWOUT_PLAY_TYPES.intersection(dom_types))
+        )
+        blowout_bonus = round(blowout_pace_factor, 1) if is_blowout_beneficiary else 0.0
+        adjusted_projection = round(rec.projection + blowout_bonus, 1)
+        edge = round(adjusted_projection - line, 1)
+
+        # Human-readable notes
+        if is_weak_defense:
+            quality_label = "weak/tanking"
+        else:
+            quality_label = "average"
+        if exploited:
+            exploit_note = (
+                f"{player.name} dominates {', '.join(exploited)} — exactly where "
+                f"{defense.team} ({quality_label} defense, avg {defense_avg_ppp:.3f} PPP "
+                f"allowed) is most vulnerable."
+            )
+        else:
+            exploit_note = (
+                f"{player.name}'s dominant play types ({', '.join(dom_types)}) "
+                f"face a {quality_label} defense (avg {defense_avg_ppp:.3f} PPP allowed); "
+                f"overall multiplier={multiplier:.3f}."
+            )
+        if is_blowout_beneficiary:
+            exploit_note += (
+                f" Blowout/pace bonus +{blowout_bonus} pts for {', '.join(dom_types)} "
+                f"player in a likely lopsided game."
+            )
+
+        raw_results.append({
+            "player":                player.name,
+            "team":                  player.team,
+            "position":              player.position,
+            "season_avg":            season_avg,
+            "base_projection":       rec.projection,
+            "adjusted_projection":   adjusted_projection,
+            "blowout_bonus":         blowout_bonus,
+            "line":                  line,
+            "edge":                  edge,
+            "multiplier":            round(multiplier, 4),
+            "exploited_weaknesses":  exploited,
+            "is_blowout_beneficiary": is_blowout_beneficiary,
+            "notes":                 exploit_note,
+        })
+
+    # Sort: players who exploit specific weaknesses first, then by multiplier
+    raw_results.sort(
+        key=lambda r: (len(r["exploited_weaknesses"]), r["multiplier"]),
+        reverse=True,
+    )
+
+    return {
+        "opponent_team":          defense.team,
+        "is_weak_defense":        is_weak_defense,
+        "defense_avg_ppp_allowed": defense_avg_ppp,
+        "weakest_play_types":     weakest_play_types,
+        "blowout_pace_factor":    blowout_pace_factor,
+        "targets":                raw_results[:top_n],
     }
 
 
