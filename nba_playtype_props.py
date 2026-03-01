@@ -223,6 +223,27 @@ class DefensiveHandoffStats:
 
 
 @dataclass
+class DefensiveOffScreenStats:
+    """Defensive off-screen stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed vs off-screen
+    freq_pct: float     # frequency % of off-screen possessions allowed
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better off-screen defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -1123,6 +1144,147 @@ def find_handoff_beneficiaries(
         })
 
     results.sort(key=lambda r: r["handoff_freq"], reverse=True)
+    return results
+
+
+def build_off_screen_defensive_rankings() -> Dict[str, "DefensiveOffScreenStats"]:
+    """
+    Return defensive off-screen stats for all 30 NBA teams (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger off-screen defense (limiting both the frequency and efficiency of
+    opponent off-screen possessions).
+    """
+    raw = [
+        # (team_abbr, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("UTA", 58, 9.1, 7.7, 0.94, 8.5, 2.9, 7.7, 38.0, 46.9,  9.1,  8.2,  8.6, 2.1, 38.7,  27.6),
+        ("ATL", 59, 6.6, 5.7, 0.99, 6.5, 2.3, 5.6, 40.4, 51.8,  7.2,  9.3,  6.4, 1.0, 40.1,  55.2),
+        ("GSW", 57, 7.4, 6.5, 0.91, 6.7, 2.2, 6.6, 33.7, 46.1,  4.3,  6.7,  4.3, 0.2, 34.1,  17.2),
+        ("DEN", 58, 4.8, 4.4, 1.23, 5.9, 1.8, 4.1, 44.6, 59.0, 11.4,  4.3, 10.7, 1.4, 48.2, 100.0),
+        ("LAL", 55, 5.6, 5.1, 1.11, 6.2, 2.3, 4.9, 46.5, 55.9,  9.7,  4.9,  9.4, 2.3, 47.6,  96.6),
+        ("MIN", 57, 5.7, 5.0, 1.04, 5.9, 2.0, 4.8, 41.7, 53.8,  7.7,  8.0,  6.8, 1.2, 42.1,  75.9),
+        ("BOS", 57, 5.6, 5.1, 0.96, 5.4, 1.9, 5.0, 37.8, 47.6,  6.6,  4.7,  6.3, 0.9, 39.2,  51.7),
+        ("DAL", 55, 5.5, 4.8, 0.96, 5.3, 2.0, 4.8, 41.7, 50.6,  4.9,  9.2,  4.6, 0.7, 40.3,  48.3),
+        ("TOR", 57, 4.8, 4.3, 1.05, 5.1, 1.9, 4.3, 44.9, 52.4,  8.7,  4.4,  8.0, 2.2, 45.8,  86.2),
+        ("SAS", 54, 5.5, 4.8, 0.94, 5.1, 1.9, 4.8, 40.0, 47.5,  7.1,  6.4,  6.4, 1.7, 40.3,  34.5),
+        ("SAC", 58, 3.7, 3.3, 1.10, 4.1, 1.5, 3.3, 46.6, 54.5, 10.1,  5.1,  9.7, 2.3, 48.4,  93.1),
+        ("IND", 57, 4.6, 4.0, 0.89, 4.1, 1.5, 4.1, 35.9, 45.2,  6.5,  7.6,  6.1, 1.9, 36.1,  10.3),
+        ("WAS", 55, 4.1, 3.6, 1.00, 4.1, 1.5, 3.5, 44.0, 52.6,  7.1,  9.3,  6.6, 1.8, 41.6,  63.0),
+        ("MIA", 57, 4.2, 3.5, 0.95, 4.0, 1.3, 3.5, 37.9, 46.2, 12.2,  6.7, 10.1, 2.1, 41.2,  44.8),
+        ("PHI", 56, 4.0, 3.5, 1.00, 4.0, 1.4, 3.5, 39.1, 49.0,  7.6,  5.8,  6.3, 1.3, 40.2,  63.0),
+        ("BKN", 56, 3.9, 3.5, 0.94, 3.7, 1.3, 3.4, 37.9, 50.0,  6.4, 10.0,  5.9, 3.2, 36.1,  37.9),
+        ("DET", 55, 4.3, 3.7, 0.84, 3.7, 1.3, 3.7, 34.7, 42.8,  7.1,  8.8,  5.5, 0.8, 35.3,   3.4),
+        ("PHX", 56, 4.0, 3.5, 0.89, 3.6, 1.3, 3.4, 37.4, 46.8,  7.1, 10.7,  6.7, 2.7, 35.7,  13.8),
+        ("MEM", 55, 3.4, 2.9, 1.05, 3.6, 1.2, 2.8, 43.6, 54.8,  9.6,  9.6,  9.0, 2.1, 43.1,  82.8),
+        ("ORL", 53, 3.9, 3.4, 0.95, 3.7, 1.3, 3.3, 38.9, 45.1, 13.1,  5.3, 12.1, 3.4, 42.7,  41.4),
+        ("CHA", 58, 3.0, 2.7, 1.02, 3.1, 1.0, 2.7, 38.2, 51.0,  6.9,  6.9,  6.9, 3.4, 37.7,  72.4),
+        ("CLE", 58, 3.0, 2.6, 1.01, 3.0, 1.2, 2.6, 45.4, 55.6,  2.3,  9.3,  1.7, 0.0, 42.4,  69.0),
+        ("NOP", 58, 3.0, 2.6, 0.91, 2.7, 1.0, 2.6, 40.0, 47.0,  7.5,  8.6,  6.9, 2.3, 39.1,  20.7),
+        ("OKC", 56, 2.5, 2.2, 1.09, 2.7, 1.0, 2.2, 45.1, 54.1,  9.4,  5.0,  7.9, 2.2, 46.0,  89.7),
+        ("NYK", 55, 2.7, 2.4, 1.00, 2.7, 1.0, 2.4, 40.6, 49.2,  6.8,  4.1,  6.1, 1.4, 42.2,  63.0),
+        ("LAC", 55, 2.5, 2.3, 1.05, 2.6, 0.9, 2.2, 42.9, 52.1,  8.9,  5.9,  8.9, 3.0, 43.0,  79.3),
+        ("HOU", 56, 2.9, 2.6, 0.85, 2.5, 1.0, 2.6, 37.8, 43.2,  4.9,  6.1,  4.9, 1.2, 37.2,   6.9),
+        ("POR", 58, 2.6, 2.2, 0.80, 2.1, 0.7, 2.2, 33.3, 40.9,  8.7, 10.1,  8.1, 3.4, 32.9,   0.0),
+        ("MIL", 55, 2.2, 2.0, 0.94, 2.1, 0.7, 2.0, 36.1, 49.1,  3.3,  7.4,  2.5, 0.0, 35.5,  31.0),
+        ("CHI", 58, 2.1, 1.8, 0.93, 2.0, 0.7, 1.8, 37.4, 48.1,  7.4,  8.2,  6.6, 3.3, 36.9,  24.1),
+    ]
+
+    rankings: Dict[str, DefensiveOffScreenStats] = {}
+    for row in raw:
+        (abbr, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensiveOffScreenStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_off_screen_defense(
+    rankings: Optional[Dict[str, "DefensiveOffScreenStats"]] = None,
+) -> List["DefensiveOffScreenStats"]:
+    """
+    Return all teams sorted from best to worst off-screen defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_off_screen_defensive_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def find_off_screen_beneficiaries(
+    players: List[PlayerProfile],
+    opponent_team: str,
+    off_screen_rankings: Optional[Dict[str, "DefensiveOffScreenStats"]] = None,
+    min_off_screen_freq: float = 0.05,
+    ppp_threshold: float = 1.00,
+) -> List[Dict]:
+    """
+    Identify players who are likely to benefit from a weak off-screen defense.
+
+    A player is flagged as a beneficiary when:
+    - Their off-screen play frequency is at least *min_off_screen_freq*
+    - The opposing team's off-screen defensive PPP allowed is >= *ppp_threshold*
+      (meaning the defense struggles to contain off-screen actions)
+
+    Returns a list of dicts sorted by off-screen frequency (highest first), each
+    containing:
+      - "player"            : player name
+      - "position"          : player position
+      - "off_screen_freq"   : player's off-screen frequency (0–1)
+      - "off_screen_ppp"    : player's historical off-screen PPP
+      - "def_ppp"           : opponent's off-screen defensive PPP allowed
+      - "def_percentile"    : opponent's off-screen defensive percentile (lower = weaker)
+      - "edge"              : player off-screen PPP minus opponent defensive PPP
+    """
+    if off_screen_rankings is None:
+        off_screen_rankings = build_off_screen_defensive_rankings()
+
+    def_stats = off_screen_rankings.get(opponent_team)
+    if def_stats is None:
+        return []
+
+    results = []
+    for player in players:
+        os_stats = player.play_types.get("off_screen")
+        if os_stats is None:
+            continue
+        if os_stats.frequency < min_off_screen_freq:
+            continue
+        if def_stats.ppp < ppp_threshold:
+            continue
+        results.append({
+            "player":           player.name,
+            "position":         player.position,
+            "off_screen_freq":  os_stats.frequency,
+            "off_screen_ppp":   os_stats.ppp,
+            "def_ppp":          def_stats.ppp,
+            "def_percentile":   def_stats.percentile,
+            "edge":             round(os_stats.ppp - def_stats.ppp, 3),
+        })
+
+    results.sort(key=lambda r: r["off_screen_freq"], reverse=True)
     return results
 
 
