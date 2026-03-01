@@ -16,6 +16,7 @@ from nba_playtype_props import (
     DefensiveHandoffStats,
     DefensiveOffScreenStats,
     DefensivePutbackStats,
+    OffensiveTransitionStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -40,6 +41,9 @@ from nba_playtype_props import (
     build_putback_defensive_rankings,
     rank_teams_by_putback_defense,
     find_putback_beneficiaries,
+    build_offensive_transition_stats,
+    rank_players_by_offensive_transition,
+    find_transition_scorers,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -1141,6 +1145,147 @@ class TestFindPutbackBeneficiaries(unittest.TestCase):
             self.players, "SAC", self.putback_rankings, ppp_threshold=999.0
         )
         self.assertGreaterEqual(len(result_low), len(result_high))
+
+
+class TestOffensiveTransitionStats(unittest.TestCase):
+    def setUp(self):
+        self.stats = build_offensive_transition_stats()
+
+    def test_returns_fifty_players(self):
+        self.assertEqual(len(self.stats), 50)
+
+    def test_all_are_dataclass_instances(self):
+        for s in self.stats:
+            self.assertIsInstance(s, OffensiveTransitionStats)
+
+    def test_best_percentile_payton_pritchard(self):
+        """Payton Pritchard should have the highest percentile (93.9)."""
+        pritchard = next(s for s in self.stats if s.player == "Payton Pritchard")
+        self.assertAlmostEqual(pritchard.percentile, 93.9)
+
+    def test_worst_percentile_russell_westbrook(self):
+        """Russell Westbrook should have the lowest percentile (35.5)."""
+        westbrook = next(s for s in self.stats if s.player == "Russell Westbrook")
+        self.assertAlmostEqual(westbrook.percentile, 35.5)
+
+    def test_ppp_values_are_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_gp_values_are_positive_integers(self):
+        for s in self.stats:
+            self.assertIsInstance(s.gp, int)
+            self.assertGreater(s.gp, 0)
+
+    def test_efg_pct_generally_geq_fg_pct(self):
+        """EFG% should be >= FG% for all transition entries."""
+        for s in self.stats:
+            self.assertGreaterEqual(s.efg_pct, s.fg_pct)
+
+    def test_known_player_fields(self):
+        harden = next(s for s in self.stats if s.player == "James Harden")
+        self.assertEqual(harden.team, "LAC")
+        self.assertAlmostEqual(harden.freq_pct, 42.1)
+        self.assertAlmostEqual(harden.ppp, 1.06)
+
+    def test_all_players_have_teams(self):
+        for s in self.stats:
+            self.assertTrue(s.team, f"{s.player} has no team")
+
+
+class TestRankPlayersByOffensiveTransition(unittest.TestCase):
+    def setUp(self):
+        self.ranked = rank_players_by_offensive_transition()
+
+    def test_returns_fifty_players(self):
+        self.assertEqual(len(self.ranked), 50)
+
+    def test_sorted_best_to_worst(self):
+        percentiles = [s.percentile for s in self.ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+    def test_first_player_has_highest_percentile(self):
+        """Payton Pritchard (93.9) or Norman Powell (91.8) should be near top."""
+        self.assertGreaterEqual(self.ranked[0].percentile, 91.0)
+
+    def test_last_player_has_lowest_percentile(self):
+        """Russell Westbrook (35.5) should be last."""
+        self.assertAlmostEqual(self.ranked[-1].percentile, 35.5)
+
+    def test_accepts_custom_list(self):
+        subset = [
+            s for s in build_offensive_transition_stats()
+            if s.player in ("Payton Pritchard", "Russell Westbrook")
+        ]
+        ranked_subset = rank_players_by_offensive_transition(subset)
+        self.assertEqual(len(ranked_subset), 2)
+        self.assertEqual(ranked_subset[0].player, "Payton Pritchard")
+
+
+class TestFindTransitionScorers(unittest.TestCase):
+    def setUp(self):
+        self.stats = build_offensive_transition_stats()
+
+    def test_returns_list(self):
+        result = find_transition_scorers(self.stats)
+        self.assertIsInstance(result, list)
+
+    def test_all_results_meet_freq_threshold(self):
+        threshold = 12.0
+        result = find_transition_scorers(self.stats, min_freq_pct=threshold)
+        for entry in result:
+            self.assertGreaterEqual(entry["freq_pct"], threshold)
+
+    def test_all_results_meet_ppp_threshold(self):
+        threshold = 1.05
+        result = find_transition_scorers(self.stats, min_ppp=threshold)
+        for entry in result:
+            self.assertGreaterEqual(entry["ppp"], threshold)
+
+    def test_sorted_by_freq_pct_descending(self):
+        result = find_transition_scorers(self.stats)
+        freqs = [e["freq_pct"] for e in result]
+        self.assertEqual(freqs, sorted(freqs, reverse=True))
+
+    def test_result_keys_without_opponent(self):
+        result = find_transition_scorers(self.stats)
+        if result:
+            expected_keys = {
+                "player", "team", "freq_pct", "ppp",
+                "pts", "percentile", "def_ppp", "def_percentile",
+            }
+            self.assertEqual(set(result[0].keys()), expected_keys)
+
+    def test_def_fields_none_without_opponent(self):
+        result = find_transition_scorers(self.stats)
+        for entry in result:
+            self.assertIsNone(entry["def_ppp"])
+            self.assertIsNone(entry["def_percentile"])
+
+    def test_def_fields_populated_with_opponent(self):
+        def_rankings = build_transition_defensive_rankings()
+        result = find_transition_scorers(
+            self.stats, opponent_team="WAS",
+            transition_defensive_rankings=def_rankings,
+            min_freq_pct=0.0, min_ppp=0.0,
+        )
+        for entry in result:
+            self.assertIsNotNone(entry["def_ppp"])
+            self.assertIsNotNone(entry["def_percentile"])
+
+    def test_empty_when_no_players_meet_thresholds(self):
+        result = find_transition_scorers(self.stats, min_freq_pct=999.0)
+        self.assertEqual(result, [])
+
+    def test_harden_appears_at_top_by_freq(self):
+        """James Harden leads all players with 42.1% transition freq."""
+        result = find_transition_scorers(self.stats, min_freq_pct=10.0, min_ppp=1.00)
+        self.assertEqual(result[0]["player"], "James Harden")
+
+    def test_custom_thresholds_narrow_results(self):
+        broad = find_transition_scorers(self.stats, min_freq_pct=10.0, min_ppp=0.80)
+        narrow = find_transition_scorers(self.stats, min_freq_pct=20.0, min_ppp=1.00)
+        self.assertGreaterEqual(len(broad), len(narrow))
 
 
 if __name__ == "__main__":
