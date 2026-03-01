@@ -202,6 +202,27 @@ class DefensiveSpotUpStats:
 
 
 @dataclass
+class DefensiveHandoffStats:
+    """Defensive handoff stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed vs handoff
+    freq_pct: float     # frequency % of handoff possessions allowed
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better handoff defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -961,6 +982,147 @@ def find_spot_up_beneficiaries(
         })
 
     results.sort(key=lambda r: r["spot_up_freq"], reverse=True)
+    return results
+
+
+def build_handoff_defensive_rankings() -> Dict[str, "DefensiveHandoffStats"]:
+    """
+    Return defensive handoff stats for all 30 NBA teams (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger handoff defense (limiting both the frequency and efficiency of
+    opponent handoff possessions).
+    """
+    raw = [
+        # (team_abbr, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("BKN", 56, 4.1, 3.7, 0.82, 3.3, 1.1, 3.1, 36.4, 44.9,  8.3, 15.8,  7.0, 1.3, 34.6,  96.6),
+        ("MIA", 57, 4.8, 4.0, 0.82, 3.9, 1.4, 3.7, 36.2, 42.7,  9.2, 14.7,  8.8, 2.2, 35.3, 100.0),
+        ("GSW", 57, 4.7, 4.2, 0.86, 4.1, 1.5, 3.7, 40.6, 46.0, 10.0, 13.8,  9.7, 2.6, 39.0,  86.2),
+        ("TOR", 57, 4.6, 4.1, 0.88, 4.1, 1.3, 3.8, 34.4, 43.1, 10.2,  8.7,  8.0, 1.5, 37.1,  79.3),
+        ("SAC", 58, 4.2, 3.7, 0.96, 4.0, 1.5, 3.5, 42.4, 50.7,  7.0,  9.9,  6.2, 1.7, 41.3,  37.9),
+        ("OKC", 56, 4.9, 4.3, 0.86, 4.2, 1.4, 3.8, 35.8, 43.9, 11.2, 13.0, 10.1, 0.7, 37.2,  89.7),
+        ("UTA", 58, 3.9, 3.3, 1.07, 4.1, 1.5, 3.2, 47.0, 58.2,  8.4, 12.0,  7.6, 1.8, 44.9,   6.9),
+        ("LAL", 55, 4.1, 3.7, 1.09, 4.5, 1.6, 3.5, 45.9, 56.2,  8.4,  8.4,  7.5, 2.2, 44.9,   3.4),
+        ("DEN", 58, 4.5, 4.0, 0.95, 4.3, 1.4, 3.5, 39.5, 47.6, 11.5, 11.2, 11.2, 1.5, 41.2,  44.8),
+        ("PHI", 56, 4.6, 4.0, 0.96, 4.4, 1.5, 3.6, 41.3, 47.8, 13.5, 10.8, 11.2, 1.9, 43.2,  27.6),
+        ("BOS", 57, 4.6, 4.3, 0.96, 4.4, 1.5, 3.8, 39.9, 48.9,  8.7,  9.8,  8.7, 1.1, 40.2,  41.4),
+        ("NYK", 55, 5.1, 4.6, 0.91, 4.6, 1.6, 4.4, 37.3, 44.6,  9.6,  6.8,  9.6, 2.5, 38.9,  72.4),
+        ("LAC", 55, 5.4, 5.0, 0.89, 4.8, 1.7, 4.0, 42.1, 50.7,  8.4, 18.7,  7.7, 1.0, 38.1,  75.9),
+        ("NOP", 58, 4.7, 4.0, 0.98, 4.6, 1.6, 3.8, 41.9, 52.7,  8.1, 11.0,  7.4, 0.7, 41.5,  20.7),
+        ("MEM", 55, 5.7, 4.9, 0.85, 4.9, 1.7, 4.7, 36.2, 43.4,  9.2, 11.1,  8.3, 1.9, 36.8,  93.1),
+        ("PHX", 56, 5.2, 4.6, 0.94, 4.9, 1.7, 4.1, 40.1, 48.7,  8.6, 12.4,  7.2, 1.0, 39.7,  55.2),
+        ("DET", 55, 5.4, 4.7, 0.93, 5.0, 1.6, 4.0, 39.8, 48.6, 13.2, 13.6, 12.2, 1.7, 40.3,  58.6),
+        ("CLE", 58, 5.0, 4.4, 0.94, 4.7, 1.7, 4.0, 41.0, 48.9,  8.6, 12.0,  7.9, 1.0, 40.5,  51.7),
+        ("MIL", 55, 4.8, 4.3, 1.04, 5.0, 1.7, 3.8, 43.1, 53.3, 12.5, 10.9, 12.5, 3.0, 43.4,  10.3),
+        ("HOU", 56, 5.2, 4.6, 0.97, 5.0, 1.9, 4.4, 43.1, 49.8,  9.0,  8.0,  8.3, 2.1, 42.2,  24.1),
+        ("CHA", 58, 5.6, 5.1, 0.87, 4.9, 1.7, 4.7, 37.3, 43.9,  8.9,  9.2,  7.7, 1.2, 38.7,  82.8),
+        ("ORL", 53, 5.6, 5.0, 1.00, 5.6, 2.0, 4.7, 43.5, 52.0,  8.1, 10.4,  7.4, 2.0, 42.4,  17.2),
+        ("POR", 58, 5.7, 4.9, 0.91, 5.2, 1.8, 4.7, 39.6, 47.2,  8.8, 11.2,  7.9, 1.5, 39.3,  69.0),
+        ("ATL", 59, 5.6, 4.8, 0.92, 5.1, 1.8, 4.6, 39.6, 47.0,  9.4, 10.3,  8.5, 1.5, 40.0,  65.5),
+        ("MIN", 57, 5.7, 4.9, 0.96, 5.4, 2.1, 4.8, 43.6, 50.0,  8.0,  9.6,  7.4, 2.2, 42.7,  34.5),
+        ("DAL", 55, 6.0, 5.2, 0.96, 5.8, 2.3, 5.3, 43.6, 49.7,  6.0,  8.5,  6.0, 1.8, 42.0,  31.0),
+        ("WAS", 55, 5.3, 4.6, 1.09, 5.8, 2.0, 4.2, 48.3, 57.2, 11.9, 11.3, 10.6, 1.7, 47.4,   0.0),
+        ("IND", 57, 5.9, 5.1, 0.95, 5.6, 2.1, 4.5, 46.5, 52.8, 11.3, 16.3, 10.7, 3.0, 43.3,  48.3),
+        ("CHI", 58, 5.6, 4.8, 1.00, 5.6, 1.9, 4.5, 41.1, 49.8, 11.5,  9.6, 10.9, 2.8, 41.6,  13.8),
+        ("SAS", 54, 6.8, 6.0, 0.93, 6.3, 2.4, 5.6, 42.1, 47.8,  8.7, 10.1,  8.2, 1.4, 41.0,  62.1),
+    ]
+
+    rankings: Dict[str, DefensiveHandoffStats] = {}
+    for row in raw:
+        (abbr, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensiveHandoffStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_handoff_defense(
+    rankings: Optional[Dict[str, "DefensiveHandoffStats"]] = None,
+) -> List["DefensiveHandoffStats"]:
+    """
+    Return all teams sorted from best to worst handoff defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_handoff_defensive_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def find_handoff_beneficiaries(
+    players: List[PlayerProfile],
+    opponent_team: str,
+    handoff_rankings: Optional[Dict[str, "DefensiveHandoffStats"]] = None,
+    min_handoff_freq: float = 0.05,
+    ppp_threshold: float = 1.00,
+) -> List[Dict]:
+    """
+    Identify players who are likely to benefit from a weak handoff defense.
+
+    A player is flagged as a beneficiary when:
+    - Their handoff play frequency is at least *min_handoff_freq*
+    - The opposing team's handoff defensive PPP allowed is >= *ppp_threshold*
+      (meaning the defense struggles to contain handoff actions)
+
+    Returns a list of dicts sorted by handoff frequency (highest first), each
+    containing:
+      - "player"         : player name
+      - "position"       : player position
+      - "handoff_freq"   : player's handoff frequency (0–1)
+      - "handoff_ppp"    : player's historical handoff PPP
+      - "def_ppp"        : opponent's handoff defensive PPP allowed
+      - "def_percentile" : opponent's handoff defensive percentile (lower = weaker)
+      - "edge"           : player handoff PPP minus opponent defensive PPP
+    """
+    if handoff_rankings is None:
+        handoff_rankings = build_handoff_defensive_rankings()
+
+    def_stats = handoff_rankings.get(opponent_team)
+    if def_stats is None:
+        return []
+
+    results = []
+    for player in players:
+        ho_stats = player.play_types.get("handoff")
+        if ho_stats is None:
+            continue
+        if ho_stats.frequency < min_handoff_freq:
+            continue
+        if def_stats.ppp < ppp_threshold:
+            continue
+        results.append({
+            "player":         player.name,
+            "position":       player.position,
+            "handoff_freq":   ho_stats.frequency,
+            "handoff_ppp":    ho_stats.ppp,
+            "def_ppp":        def_stats.ppp,
+            "def_percentile": def_stats.percentile,
+            "edge":           round(ho_stats.ppp - def_stats.ppp, 3),
+        })
+
+    results.sort(key=lambda r: r["handoff_freq"], reverse=True)
     return results
 
 

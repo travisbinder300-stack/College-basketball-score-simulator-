@@ -13,6 +13,7 @@ from nba_playtype_props import (
     DefensivePnrManStats,
     DefensivePostUpStats,
     DefensiveSpotUpStats,
+    DefensiveHandoffStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -28,6 +29,9 @@ from nba_playtype_props import (
     build_spot_up_defensive_rankings,
     rank_teams_by_spot_up_defense,
     find_spot_up_beneficiaries,
+    build_handoff_defensive_rankings,
+    rank_teams_by_handoff_defense,
+    find_handoff_beneficiaries,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -724,6 +728,137 @@ class TestFindSpotUpBeneficiaries(unittest.TestCase):
         )
         result_high = find_spot_up_beneficiaries(
             self.players, "WAS", self.spot_up_rankings, ppp_threshold=999.0
+        )
+        self.assertGreaterEqual(len(result_low), len(result_high))
+
+
+class TestHandoffDefensiveRankings(unittest.TestCase):
+    def setUp(self):
+        self.rankings = build_handoff_defensive_rankings()
+
+    def test_all_thirty_teams_present(self):
+        self.assertEqual(len(self.rankings), 30)
+
+    def test_known_team_abbrevs_present(self):
+        for abbr in ("MIA", "BKN", "MEM", "WAS", "OKC", "SAS"):
+            self.assertIn(abbr, self.rankings)
+
+    def test_stats_dataclass_fields(self):
+        mia = self.rankings["MIA"]
+        self.assertIsInstance(mia, DefensiveHandoffStats)
+        self.assertEqual(mia.team, "MIA")
+        self.assertAlmostEqual(mia.ppp, 0.82)
+        self.assertAlmostEqual(mia.percentile, 100.0)
+
+    def test_best_handoff_defense_highest_percentile(self):
+        """Miami Heat should have the highest percentile (100)."""
+        mia = self.rankings["MIA"]
+        self.assertAlmostEqual(mia.percentile, 100.0)
+
+    def test_worst_handoff_defense_lowest_percentile(self):
+        """Washington Wizards should have the lowest percentile (0.0)."""
+        was = self.rankings["WAS"]
+        self.assertAlmostEqual(was.percentile, 0.0)
+
+    def test_ppp_values_are_positive(self):
+        for stats in self.rankings.values():
+            self.assertGreater(stats.ppp, 0)
+
+    def test_gp_values_are_positive_integers(self):
+        for stats in self.rankings.values():
+            self.assertIsInstance(stats.gp, int)
+            self.assertGreater(stats.gp, 0)
+
+    def test_efg_pct_greater_than_or_equal_fg_pct(self):
+        """EFG% should be >= FG% (handoffs include three-point shots)."""
+        for stats in self.rankings.values():
+            self.assertGreaterEqual(stats.efg_pct, stats.fg_pct)
+
+
+class TestRankTeamsByHandoffDefense(unittest.TestCase):
+    def setUp(self):
+        self.ranked = rank_teams_by_handoff_defense()
+
+    def test_returns_all_thirty_teams(self):
+        self.assertEqual(len(self.ranked), 30)
+
+    def test_sorted_best_to_worst(self):
+        percentiles = [s.percentile for s in self.ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+    def test_first_team_has_highest_percentile(self):
+        """Best handoff defense (Miami Heat, percentile=100) comes first."""
+        self.assertEqual(self.ranked[0].team, "MIA")
+
+    def test_accepts_custom_rankings_dict(self):
+        subset = {
+            "MIA": build_handoff_defensive_rankings()["MIA"],
+            "MEM": build_handoff_defensive_rankings()["MEM"],
+        }
+        ranked_subset = rank_teams_by_handoff_defense(subset)
+        self.assertEqual(len(ranked_subset), 2)
+        self.assertEqual(ranked_subset[0].team, "MIA")
+
+
+class TestFindHandoffBeneficiaries(unittest.TestCase):
+    """Tests for find_handoff_beneficiaries()."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.handoff_rankings = build_handoff_defensive_rankings()
+
+    def test_returns_list(self):
+        result = find_handoff_beneficiaries(self.players, "WAS", self.handoff_rankings)
+        self.assertIsInstance(result, list)
+
+    def test_empty_for_unknown_team(self):
+        result = find_handoff_beneficiaries(self.players, "UNKNOWN", self.handoff_rankings)
+        self.assertEqual(result, [])
+
+    def test_all_players_meet_freq_threshold(self):
+        """Every returned player should have handoff freq >= min_handoff_freq."""
+        min_freq = 0.05
+        result = find_handoff_beneficiaries(
+            self.players, "WAS", self.handoff_rankings, min_handoff_freq=min_freq
+        )
+        for entry in result:
+            self.assertGreaterEqual(entry["handoff_freq"], min_freq)
+
+    def test_opponent_def_ppp_populated(self):
+        result = find_handoff_beneficiaries(self.players, "WAS", self.handoff_rankings)
+        for entry in result:
+            self.assertAlmostEqual(
+                entry["def_ppp"], self.handoff_rankings["WAS"].ppp
+            )
+
+    def test_sorted_by_handoff_freq_descending(self):
+        result = find_handoff_beneficiaries(self.players, "WAS", self.handoff_rankings)
+        freqs = [e["handoff_freq"] for e in result]
+        self.assertEqual(freqs, sorted(freqs, reverse=True))
+
+    def test_no_beneficiaries_for_elite_defense(self):
+        """MIA (ppp=0.82) is below the default ppp_threshold=1.00 → no beneficiaries."""
+        result = find_handoff_beneficiaries(self.players, "MIA", self.handoff_rankings)
+        self.assertEqual(result, [])
+
+    def test_result_keys(self):
+        result = find_handoff_beneficiaries(
+            self.players, "WAS", self.handoff_rankings, ppp_threshold=0.0
+        )
+        if result:
+            expected_keys = {
+                "player", "position", "handoff_freq",
+                "handoff_ppp", "def_ppp", "def_percentile", "edge",
+            }
+            self.assertEqual(set(result[0].keys()), expected_keys)
+
+    def test_custom_ppp_threshold(self):
+        """With a very low threshold every eligible-freq player should appear."""
+        result_low = find_handoff_beneficiaries(
+            self.players, "WAS", self.handoff_rankings, ppp_threshold=0.0
+        )
+        result_high = find_handoff_beneficiaries(
+            self.players, "WAS", self.handoff_rankings, ppp_threshold=999.0
         )
         self.assertGreaterEqual(len(result_low), len(result_high))
 
