@@ -9,12 +9,15 @@ from nba_playtype_props import (
     DefensiveMatchup,
     DefensiveIsolationStats,
     TransitionDefensiveStats,
+    DefensivePnrBallHandlerStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
     rank_teams_by_isolation_defense,
     build_transition_defensive_rankings,
     rank_teams_by_transition_defense,
+    build_pnr_ball_handler_defensive_rankings,
+    rank_teams_by_pnr_ball_handler_defense,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -378,6 +381,73 @@ class TestRankTeamsByTransitionDefense(unittest.TestCase):
         ranked_subset = rank_teams_by_transition_defense(subset)
         self.assertEqual(len(ranked_subset), 2)
         self.assertEqual(ranked_subset[0].team, "DAL")
+
+
+class TestPnrBallHandlerDefensiveRankings(unittest.TestCase):
+    def setUp(self):
+        self.rankings = build_pnr_ball_handler_defensive_rankings()
+
+    def test_all_thirty_teams_present(self):
+        self.assertEqual(len(self.rankings), 30)
+
+    def test_known_team_abbrevs_present(self):
+        for abbr in ("DET", "OKC", "POR", "BKN", "CLE", "GSW"):
+            self.assertIn(abbr, self.rankings)
+
+    def test_stats_dataclass_fields(self):
+        det = self.rankings["DET"]
+        self.assertIsInstance(det, DefensivePnrBallHandlerStats)
+        self.assertEqual(det.team, "DET")
+        self.assertAlmostEqual(det.ppp, 0.79)
+        self.assertAlmostEqual(det.percentile, 100.0)
+
+    def test_best_pnr_bh_defense_highest_percentile(self):
+        """Detroit Pistons should have the highest percentile (100)."""
+        det = self.rankings["DET"]
+        self.assertAlmostEqual(det.percentile, 100.0)
+
+    def test_worst_pnr_bh_defense_lowest_percentile(self):
+        """Portland Trail Blazers should have the lowest percentile (0.0)."""
+        por = self.rankings["POR"]
+        self.assertAlmostEqual(por.percentile, 0.0)
+
+    def test_ppp_values_are_positive(self):
+        for stats in self.rankings.values():
+            self.assertGreater(stats.ppp, 0)
+
+    def test_gp_values_are_positive_integers(self):
+        for stats in self.rankings.values():
+            self.assertIsInstance(stats.gp, int)
+            self.assertGreater(stats.gp, 0)
+
+
+class TestRankTeamsByPnrBallHandlerDefense(unittest.TestCase):
+    def setUp(self):
+        self.ranked = rank_teams_by_pnr_ball_handler_defense()
+
+    def test_returns_all_thirty_teams(self):
+        self.assertEqual(len(self.ranked), 30)
+
+    def test_sorted_best_to_worst(self):
+        percentiles = [s.percentile for s in self.ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+    def test_first_team_has_highest_percentile(self):
+        """Best PnR ball handler defense (Detroit Pistons, percentile=100) comes first."""
+        self.assertEqual(self.ranked[0].team, "DET")
+
+    def test_last_team_has_lowest_percentile(self):
+        """Worst PnR ball handler defense (Portland Trail Blazers, percentile=0) comes last."""
+        self.assertEqual(self.ranked[-1].team, "POR")
+
+    def test_accepts_custom_rankings_dict(self):
+        subset = {
+            "DET": build_pnr_ball_handler_defensive_rankings()["DET"],
+            "OKC": build_pnr_ball_handler_defensive_rankings()["OKC"],
+        }
+        ranked_subset = rank_teams_by_pnr_ball_handler_defense(subset)
+        self.assertEqual(len(ranked_subset), 2)
+        self.assertEqual(ranked_subset[0].team, "DET")
 
 
 if __name__ == "__main__":

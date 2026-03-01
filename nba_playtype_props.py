@@ -118,6 +118,27 @@ class TransitionDefensiveStats:
 
 
 @dataclass
+class DefensivePnrBallHandlerStats:
+    """Defensive pick-and-roll ball handler stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed vs PnR ball handler
+    freq_pct: float     # frequency % of PnR ball handler possessions allowed
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better PnR ball handler defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -468,6 +489,93 @@ def rank_teams_by_transition_defense(
     """
     if rankings is None:
         rankings = build_transition_defensive_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def build_pnr_ball_handler_defensive_rankings() -> Dict[str, "DefensivePnrBallHandlerStats"]:
+    """
+    Return defensive pick-and-roll ball handler stats for all 30 NBA teams
+    (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger pick-and-roll ball handler defense (limiting both the frequency
+    and efficiency of opponent PnR ball handler possessions).
+    """
+    raw = [
+        # (team_abbr, full_name, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("BKN", "Brooklyn Nets",            56, 11.8, 10.8, 0.87, 10.3, 3.7,  8.1, 45.3, 50.2, 13.2, 20.9, 10.6, 2.7, 41.1,  69.0),
+        ("GSW", "Golden State Warriors",    57, 15.1, 13.3, 0.85, 12.9, 4.8, 10.8, 44.7, 48.9, 10.2, 20.4,  8.7, 2.0, 39.9,  79.3),
+        ("UTA", "Utah Jazz",                58, 13.5, 11.5, 0.95, 12.8, 4.4, 10.0, 44.3, 50.9, 12.5, 15.8, 11.4, 2.3, 42.6,   3.4),
+        ("PHX", "Phoenix Suns",             56, 15.0, 13.4, 0.89, 13.3, 4.8, 10.9, 44.0, 49.2, 10.7, 18.3,  9.5, 1.9, 40.5,  41.4),
+        ("MIL", "Milwaukee Bucks",          55, 15.5, 13.9, 0.89, 13.8, 4.8, 11.5, 41.5, 46.7, 13.2, 14.5, 11.7, 1.9, 41.9,  34.5),
+        ("CLE", "Cleveland Cavaliers",      58, 16.1, 14.0, 0.81, 13.1, 4.8, 11.8, 40.6, 46.0,  8.9, 18.7,  7.3, 1.3, 37.1,  93.1),
+        ("CHI", "Chicago Bulls",            58, 15.9, 13.8, 0.88, 13.9, 5.2, 12.0, 43.7, 49.2,  9.1, 17.4,  8.6, 2.1, 39.7,  62.1),
+        ("NOP", "New Orleans Pelicans",     58, 15.5, 13.3, 0.90, 13.9, 4.9, 11.7, 42.5, 48.3, 11.3, 15.2,  9.9, 1.8, 41.2,  17.2),
+        ("LAL", "Los Angeles Lakers",       55, 17.0, 15.3, 0.88, 15.0, 5.7, 13.2, 42.8, 48.3,  9.4, 15.6,  8.8, 2.6, 39.7,  51.7),
+        ("DET", "Detroit Pistons",          55, 19.0, 16.7, 0.79, 15.0, 5.1, 13.5, 37.9, 42.1, 11.8, 18.5, 10.4, 1.4, 37.2, 100.0),
+        ("WAS", "Washington Wizards",       55, 16.8, 14.4, 0.89, 15.0, 5.2, 12.6, 41.0, 45.8, 13.8, 14.1, 12.9, 3.0, 41.0,  27.6),
+        ("LAC", "LA Clippers",              55, 17.4, 15.9, 0.88, 15.2, 5.5, 12.8, 42.8, 48.2, 11.0, 16.8,  9.9, 1.4, 40.7,  65.5),
+        ("MEM", "Memphis Grizzlies",        55, 17.7, 15.3, 0.88, 15.5, 5.5, 13.3, 41.4, 46.5, 12.3, 15.3, 11.6, 2.3, 40.2,  58.6),
+        ("SAC", "Sacramento Kings",         58, 15.9, 14.0, 0.93, 14.8, 5.6, 12.2, 45.7, 51.6,  9.3, 16.3,  8.9, 2.1, 42.1,  10.3),
+        ("ATL", "Atlanta Hawks",            59, 16.8, 14.5, 0.87, 14.6, 5.2, 12.1, 43.5, 49.2, 10.9, 19.6,  9.5, 2.4, 39.4,  72.4),
+        ("ORL", "Orlando Magic",            53, 18.5, 16.3, 0.88, 16.2, 6.1, 14.1, 43.3, 47.7, 10.2, 15.8,  9.4, 2.4, 40.7,  55.2),
+        ("SAS", "San Antonio Spurs",        54, 19.1, 16.9, 0.84, 16.0, 6.2, 15.2, 41.1, 46.0,  7.6, 15.3,  6.7, 2.1, 37.9,  82.8),
+        ("OKC", "Oklahoma City Thunder",    56, 19.0, 16.5, 0.81, 15.4, 5.7, 14.4, 39.2, 44.3,  9.7, 15.7,  8.7, 1.5, 37.4,  96.6),
+        ("DAL", "Dallas Mavericks",         55, 17.8, 15.3, 0.90, 15.9, 5.7, 13.8, 41.7, 47.5, 10.5, 14.3, 10.0, 2.1, 40.4,  24.1),
+        ("DEN", "Denver Nuggets",           58, 16.9, 15.0, 0.90, 15.1, 5.6, 13.1, 42.5, 47.8, 10.2, 14.2,  9.0, 1.8, 41.1,  20.7),
+        ("PHI", "Philadelphia 76ers",       56, 18.8, 16.3, 0.84, 15.7, 5.6, 13.3, 42.5, 46.8, 11.6, 19.5, 10.0, 1.7, 39.5,  86.2),
+        ("BOS", "Boston Celtics",           57, 17.5, 16.1, 0.89, 15.6, 5.4, 13.6, 39.5, 45.3, 11.9, 12.6, 10.7, 2.1, 40.1,  37.9),
+        ("MIA", "Miami Heat",               57, 17.9, 15.2, 0.87, 15.6, 5.5, 13.8, 40.1, 45.4, 10.2, 14.8,  9.4, 2.1, 38.7,  75.9),
+        ("NYK", "New York Knicks",          55, 18.3, 16.5, 0.89, 16.2, 5.9, 13.7, 42.6, 48.9,  9.9, 16.8,  8.9, 1.7, 39.9,  48.3),
+        ("HOU", "Houston Rockets",          56, 19.2, 17.3, 0.83, 16.0, 5.8, 14.9, 39.2, 44.4,  9.5, 14.9,  8.3, 2.2, 37.4,  89.7),
+        ("TOR", "Toronto Raptors",          57, 18.0, 16.0, 0.89, 16.0, 5.6, 13.5, 41.4, 46.8, 12.0, 14.9, 10.1, 2.0, 40.8,  31.0),
+        ("IND", "Indiana Pacers",           57, 18.0, 15.7, 0.94, 16.9, 6.3, 13.4, 47.2, 51.6, 12.0, 16.3, 10.6, 2.5, 44.2,   6.9),
+        ("CHA", "Charlotte Hornets",        58, 18.5, 16.8, 0.91, 16.8, 6.3, 14.7, 43.0, 48.5,  8.9, 13.5,  8.1, 2.1, 40.9,  13.8),
+        ("MIN", "Minnesota Timberwolves",   57, 20.3, 17.6, 0.89, 17.9, 6.5, 15.6, 41.6, 46.8, 10.6, 14.1,  9.2, 1.8, 40.7,  44.8),
+        ("POR", "Portland Trail Blazers",   58, 18.5, 16.0, 0.96, 17.7, 6.6, 14.8, 44.7, 50.5,  9.7, 12.5,  8.6, 2.2, 43.1,   0.0),
+    ]
+
+    rankings: Dict[str, DefensivePnrBallHandlerStats] = {}
+    for row in raw:
+        (abbr, _name, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensivePnrBallHandlerStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_pnr_ball_handler_defense(
+    rankings: Optional[Dict[str, "DefensivePnrBallHandlerStats"]] = None,
+) -> List["DefensivePnrBallHandlerStats"]:
+    """
+    Return all teams sorted from best to worst pick-and-roll ball handler defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_pnr_ball_handler_defensive_rankings()
     return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
 
 
