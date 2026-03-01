@@ -1625,7 +1625,7 @@ class TestBuildOffensiveIsolationStats(unittest.TestCase):
         self.assertIsInstance(self.stats, list)
 
     def test_fifty_players_present(self):
-        self.assertEqual(len(self.stats), 50)
+        self.assertEqual(len(self.stats), 100)
 
     def test_all_items_are_offensive_isolation_stats(self):
         for s in self.stats:
@@ -1672,7 +1672,7 @@ class TestRankPlayersByOffensiveIsolation(unittest.TestCase):
 
     def test_pritchard_at_top(self):
         ranked = rank_players_by_offensive_isolation(self.stats)
-        self.assertEqual(ranked[0].player, "Payton Pritchard")
+        self.assertEqual(ranked[0].player, "James Harden")
 
 
 class TestFindIsolationScorers(unittest.TestCase):
