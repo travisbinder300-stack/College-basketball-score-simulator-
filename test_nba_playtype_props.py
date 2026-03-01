@@ -26,6 +26,7 @@ from nba_playtype_props import (
     OffensiveOffScreenStats,
     OffensivePutbackStats,
     PlayerDefensiveIsolationStats,
+    PlayerDefensiveTransitionStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -93,6 +94,10 @@ from nba_playtype_props import (
     rank_players_by_defensive_isolation,
     find_isolation_defenders,
     predict_player_isolation_defense_matchup,
+    build_player_defensive_transition_stats,
+    rank_players_by_defensive_transition,
+    find_transition_defenders,
+    predict_player_transition_defense_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -4732,6 +4737,356 @@ class TestPredictPlayerIsolationDefenseMatchup(unittest.TestCase):
         )
         self.assertIsNotNone(result)
         self.assertEqual(result["offensive_player"], "Shai Gilgeous-Alexander")
+
+
+# ===========================================================================
+# Player-level defensive transition analytics tests
+# ===========================================================================
+
+class TestBuildPlayerDefensiveTransitionStats(unittest.TestCase):
+    """Tests for build_player_defensive_transition_stats()."""
+
+    def setUp(self):
+        self.stats = build_player_defensive_transition_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 60)
+
+    def test_all_items_are_player_defensive_transition_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, PlayerDefensiveTransitionStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_no_duplicate_players(self):
+        names = [s.player for s in self.stats]
+        self.assertEqual(len(names), len(set(names)), "Duplicate player entries found")
+
+    def test_rudy_gobert_fields(self):
+        """Rudy Gobert should be the top transition defender."""
+        gobert = next(s for s in self.stats if s.player == "Rudy Gobert")
+        self.assertEqual(gobert.team, "MIN")
+        self.assertAlmostEqual(gobert.ppp, 0.76)
+        self.assertAlmostEqual(gobert.percentile, 99.0)
+
+    def test_russell_westbrook_fields(self):
+        """Westbrook is a poor transition defender and should have high PPP allowed."""
+        west = next(s for s in self.stats if s.player == "Russell Westbrook")
+        self.assertEqual(west.team, "LAC")
+        self.assertAlmostEqual(west.ppp, 1.20)
+        self.assertAlmostEqual(west.percentile, 3.8)
+
+    def test_batch1_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Rudy Gobert", "Victor Wembanyama", "Evan Mobley",
+            "Anthony Davis", "Bam Adebayo", "Chet Holmgren",
+            "Herb Jones", "Kawhi Leonard",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-1 players: {missing}")
+
+    def test_batch2_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Draymond Green", "Mikal Bridges", "Jalen Suggs",
+            "OG Anunoby", "Al Horford", "Isaiah Hartenstein",
+            "Walker Kessler", "Myles Turner", "Jimmy Butler",
+            "Scottie Barnes", "Brook Lopez",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-2 players: {missing}")
+
+    def test_batch3_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Giannis Antetokounmpo", "Robert Williams III", "Jabari Smith Jr.",
+            "Jalen Williams", "Tari Eason", "Luguentz Dort",
+            "Daniel Gafford", "Mark Williams", "De'Anthony Melton",
+            "Kentavious Caldwell-Pope", "Royce O'Neale", "Jonathan Kuminga",
+            "Josh Hart", "Dereck Lively II", "Onyeka Okongwu",
+            "Jalen Duren", "Julius Randle", "Ivica Zubac",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_batch4_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Naz Reid", "Lauri Markkanen", "Karl-Anthony Towns",
+            "Bradley Beal", "Pascal Siakam", "Devin Booker",
+            "Ja Morant", "Donovan Mitchell", "RJ Barrett",
+            "Trae Young", "James Harden", "De'Aaron Fox",
+            "Darius Garland", "LeBron James",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_batch5_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Nikola Jokic", "Luka Doncic", "Jayson Tatum",
+            "Kyrie Irving", "Joel Embiid", "Stephen Curry",
+            "Damian Lillard", "Nikola Vucevic", "Zach LaVine",
+            "Russell Westbrook",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-5 players: {missing}")
+
+    def test_elite_defenders_have_lower_ppp_than_poor_defenders(self):
+        """Rudy Gobert (best) should allow far less PPP than Russell Westbrook (worst)."""
+        gobert = next(s for s in self.stats if s.player == "Rudy Gobert")
+        westbrook = next(s for s in self.stats if s.player == "Russell Westbrook")
+        self.assertLess(gobert.ppp, westbrook.ppp)
+
+    def test_poor_defenders_face_more_transition_possessions(self):
+        """Slower guards (Trae Young, Harden) face more transition possessions than bigs."""
+        young = next(s for s in self.stats if s.player == "Trae Young")
+        gobert = next(s for s in self.stats if s.player == "Rudy Gobert")
+        self.assertGreater(young.poss, gobert.poss)
+
+
+class TestRankPlayersByDefensiveTransition(unittest.TestCase):
+    """Tests for rank_players_by_defensive_transition()."""
+
+    def setUp(self):
+        self.stats = build_player_defensive_transition_stats()
+        self.ranked = rank_players_by_defensive_transition(self.stats)
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_same_length_as_input(self):
+        self.assertEqual(len(self.ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        for i in range(len(self.ranked) - 1):
+            self.assertGreaterEqual(
+                self.ranked[i].percentile, self.ranked[i + 1].percentile
+            )
+
+    def test_first_has_highest_percentile(self):
+        max_pct = max(s.percentile for s in self.stats)
+        self.assertAlmostEqual(self.ranked[0].percentile, max_pct)
+
+    def test_default_dataset_used_when_none(self):
+        ranked_default = rank_players_by_defensive_transition()
+        self.assertGreater(len(ranked_default), 0)
+
+    def test_first_is_rudy_gobert(self):
+        self.assertEqual(self.ranked[0].player, "Rudy Gobert")
+
+    def test_last_is_russell_westbrook(self):
+        self.assertEqual(self.ranked[-1].player, "Russell Westbrook")
+
+
+class TestFindTransitionDefenders(unittest.TestCase):
+    """Tests for find_transition_defenders()."""
+
+    def setUp(self):
+        self.def_stats = build_player_defensive_transition_stats()
+
+    def test_returns_list(self):
+        results = find_transition_defenders(self.def_stats)
+        self.assertIsInstance(results, list)
+
+    def test_all_pass_poss_threshold(self):
+        min_poss = 3.0
+        results = find_transition_defenders(self.def_stats, min_poss=min_poss)
+        for r in results:
+            self.assertGreaterEqual(r["poss"], min_poss)
+
+    def test_all_pass_max_ppp_threshold(self):
+        max_ppp = 0.88
+        results = find_transition_defenders(self.def_stats, max_ppp=max_ppp)
+        for r in results:
+            self.assertLessEqual(r["ppp"], max_ppp)
+
+    def test_sorted_by_percentile_descending(self):
+        results = find_transition_defenders(self.def_stats)
+        for i in range(len(results) - 1):
+            self.assertGreaterEqual(
+                results[i]["percentile"], results[i + 1]["percentile"]
+            )
+
+    def test_result_has_required_keys(self):
+        results = find_transition_defenders(self.def_stats)
+        if results:
+            for k in ("player", "team", "poss", "freq_pct",
+                      "ppp", "pts", "percentile"):
+                self.assertIn(k, results[0])
+
+    def test_strict_thresholds_reduces_results(self):
+        loose = find_transition_defenders(self.def_stats, min_poss=1.0, max_ppp=1.25)
+        strict = find_transition_defenders(self.def_stats, min_poss=3.0, max_ppp=0.86)
+        self.assertGreater(len(loose), len(strict))
+
+    def test_default_dataset_used_when_none(self):
+        results = find_transition_defenders()
+        self.assertIsInstance(results, list)
+
+    def test_bam_adebayo_in_elite_defenders(self):
+        results = find_transition_defenders(self.def_stats, min_poss=3.0, max_ppp=0.88)
+        players = [r["player"] for r in results]
+        self.assertIn("Bam Adebayo", players)
+
+    def test_poor_defenders_excluded_by_max_ppp(self):
+        results = find_transition_defenders(self.def_stats, max_ppp=0.85)
+        players = [r["player"] for r in results]
+        self.assertNotIn("Russell Westbrook", players)
+        self.assertNotIn("Damian Lillard", players)
+
+
+class TestPredictPlayerTransitionDefenseMatchup(unittest.TestCase):
+    """Tests for predict_player_transition_defense_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_transition_stats()
+        self.def_stats = build_player_defensive_transition_stats()
+
+    def test_returns_dict_for_known_matchup(self):
+        result = predict_player_transition_defense_matchup(
+            "Josh Hart", "Rudy Gobert",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = predict_player_transition_defense_matchup(
+            "Josh Hart", "Rudy Gobert",
+            self.off_stats, self.def_stats,
+        )
+        for k in ("offensive_player", "off_team", "off_ppp", "off_freq_pct",
+                  "off_percentile", "defensive_player", "def_team", "def_ppp",
+                  "def_freq_pct", "def_percentile", "edge", "verdict"):
+            self.assertIn(k, result)
+
+    def test_player_fields_populated(self):
+        result = predict_player_transition_defense_matchup(
+            "Josh Hart", "Rudy Gobert",
+            self.off_stats, self.def_stats,
+        )
+        self.assertEqual(result["offensive_player"], "Josh Hart")
+        self.assertEqual(result["defensive_player"], "Rudy Gobert")
+
+    def test_verdict_favorable_for_elite_off_vs_poor_defender(self):
+        """Use a synthetic elite scorer against a synthetic poor defender → FAVORABLE."""
+        from nba_playtype_props import OffensiveTransitionStats, PlayerDefensiveTransitionStats
+        elite_off = [OffensiveTransitionStats(
+            player="Fast Scorer", team="TST", gp=72,
+            poss=6.0, freq_pct=18.0, ppp=1.40, pts=8.4,
+            fgm=2.6, fga=4.6, fg_pct=56.0, efg_pct=62.0,
+            ft_freq_pct=18.0, tov_freq_pct=8.0, sf_freq_pct=14.0,
+            and_one_freq_pct=3.0, score_freq_pct=62.0, percentile=97.0,
+        )]
+        weak_def = [PlayerDefensiveTransitionStats(
+            player="Slow Defender", team="TST", gp=68,
+            poss=6.0, freq_pct=18.0, ppp=1.20, pts=7.2,
+            fgm=2.4, fga=4.0, fg_pct=58.0, efg_pct=63.0,
+            ft_freq_pct=23.0, tov_freq_pct=2.2, sf_freq_pct=12.5,
+            and_one_freq_pct=3.1, score_freq_pct=53.5, percentile=4.0,
+        )]
+        # edge = 1.40 - 1.20 = 0.20 → FAVORABLE
+        result = predict_player_transition_defense_matchup(
+            "Fast Scorer", "Slow Defender", elite_off, weak_def
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    def test_verdict_tough_for_weak_off_vs_elite_defender(self):
+        """Use a synthetic player with very low PPP running at Rudy Gobert → TOUGH."""
+        from nba_playtype_props import OffensiveTransitionStats
+        weak_off = [OffensiveTransitionStats(
+            player="Slow Scorer", team="TST", gp=60,
+            poss=2.0, freq_pct=6.0, ppp=0.55, pts=1.1,
+            fgm=0.5, fga=1.4, fg_pct=36.0, efg_pct=40.0,
+            ft_freq_pct=10.0, tov_freq_pct=18.0, sf_freq_pct=8.0,
+            and_one_freq_pct=1.0, score_freq_pct=28.0, percentile=4.0,
+        )]
+        # edge = 0.55 - 0.76 = -0.21 → TOUGH
+        result = predict_player_transition_defense_matchup(
+            "Slow Scorer", "Rudy Gobert", weak_off, self.def_stats
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        """PPP edge within ±0.15 → NEUTRAL."""
+        from nba_playtype_props import OffensiveTransitionStats, PlayerDefensiveTransitionStats
+        avg_off = [OffensiveTransitionStats(
+            player="Avg Trans Scorer", team="TST", gp=65,
+            poss=4.0, freq_pct=12.0, ppp=0.96, pts=3.8,
+            fgm=1.4, fga=2.8, fg_pct=50.0, efg_pct=55.0,
+            ft_freq_pct=16.0, tov_freq_pct=12.0, sf_freq_pct=10.0,
+            and_one_freq_pct=2.0, score_freq_pct=42.0, percentile=50.0,
+        )]
+        avg_def = [PlayerDefensiveTransitionStats(
+            player="Avg Trans Defender", team="TST", gp=65,
+            poss=3.5, freq_pct=10.0, ppp=0.94, pts=3.3,
+            fgm=1.3, fga=2.7, fg_pct=51.0, efg_pct=56.0,
+            ft_freq_pct=17.0, tov_freq_pct=11.0, sf_freq_pct=9.5,
+            and_one_freq_pct=2.1, score_freq_pct=40.0, percentile=52.0,
+        )]
+        # edge = 0.96 - 0.94 = 0.02 → NEUTRAL
+        result = predict_player_transition_defense_matchup(
+            "Avg Trans Scorer", "Avg Trans Defender", avg_off, avg_def
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    def test_returns_none_for_unknown_offensive_player(self):
+        result = predict_player_transition_defense_matchup(
+            "Unknown Scorer", "Rudy Gobert",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_defensive_player(self):
+        result = predict_player_transition_defense_matchup(
+            "Josh Hart", "Unknown Defender",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_names(self):
+        r1 = predict_player_transition_defense_matchup(
+            "josh hart", "rudy gobert",
+            self.off_stats, self.def_stats,
+        )
+        r2 = predict_player_transition_defense_matchup(
+            "JOSH HART", "RUDY GOBERT",
+            self.off_stats, self.def_stats,
+        )
+        self.assertIsNotNone(r1)
+        self.assertIsNotNone(r2)
+        self.assertEqual(r1["offensive_player"], r2["offensive_player"])
+        self.assertEqual(r1["defensive_player"], r2["defensive_player"])
+
+    def test_edge_equals_off_ppp_minus_def_ppp(self):
+        result = predict_player_transition_defense_matchup(
+            "Josh Hart", "Bam Adebayo",
+            self.off_stats, self.def_stats,
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["off_ppp"] - result["def_ppp"], 3)
+        )
+
+    def test_default_datasets_used_when_none(self):
+        result = predict_player_transition_defense_matchup(
+            "Josh Hart", "Bam Adebayo"
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["offensive_player"], "Josh Hart")
 
 
 if __name__ == "__main__":
