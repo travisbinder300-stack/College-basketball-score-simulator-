@@ -1152,8 +1152,8 @@ class TestOffensiveTransitionStats(unittest.TestCase):
     def setUp(self):
         self.stats = build_offensive_transition_stats()
 
-    def test_returns_150_players(self):
-        self.assertEqual(len(self.stats), 150)
+    def test_returns_196_players(self):
+        self.assertEqual(len(self.stats), 196)
 
     def test_all_are_dataclass_instances(self):
         for s in self.stats:
@@ -1198,8 +1198,8 @@ class TestRankPlayersByOffensiveTransition(unittest.TestCase):
     def setUp(self):
         self.ranked = rank_players_by_offensive_transition()
 
-    def test_returns_150_players(self):
-        self.assertEqual(len(self.ranked), 150)
+    def test_returns_196_players(self):
+        self.assertEqual(len(self.ranked), 196)
 
     def test_sorted_best_to_worst(self):
         percentiles = [s.percentile for s in self.ranked]
@@ -1210,8 +1210,8 @@ class TestRankPlayersByOffensiveTransition(unittest.TestCase):
         self.assertGreaterEqual(self.ranked[0].percentile, 91.0)
 
     def test_last_player_has_lowest_percentile(self):
-        """Derrick White (3.7) should be last."""
-        self.assertAlmostEqual(self.ranked[-1].percentile, 3.7)
+        """Jordan Goodwin (0.0) should be last."""
+        self.assertAlmostEqual(self.ranked[-1].percentile, 0.0)
 
     def test_accepts_custom_list(self):
         subset = [
