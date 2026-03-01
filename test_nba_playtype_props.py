@@ -1152,22 +1152,22 @@ class TestOffensiveTransitionStats(unittest.TestCase):
     def setUp(self):
         self.stats = build_offensive_transition_stats()
 
-    def test_returns_fifty_players(self):
-        self.assertEqual(len(self.stats), 50)
+    def test_returns_one_hundred_players(self):
+        self.assertEqual(len(self.stats), 100)
 
     def test_all_are_dataclass_instances(self):
         for s in self.stats:
             self.assertIsInstance(s, OffensiveTransitionStats)
 
-    def test_best_percentile_james_harden(self):
-        """James Harden should have the highest percentile (97.6)."""
-        harden = next(s for s in self.stats if s.player == "James Harden")
-        self.assertAlmostEqual(harden.percentile, 97.6)
+    def test_best_percentile_cam_thomas_mil(self):
+        """Cam Thomas (MIL) should have the highest percentile (100.0)."""
+        cam = next(s for s in self.stats if s.player == "Cam Thomas" and s.team == "MIL")
+        self.assertAlmostEqual(cam.percentile, 100.0)
 
-    def test_worst_percentile_jerami_grant(self):
-        """Jerami Grant should have the lowest percentile (9.4)."""
-        grant = next(s for s in self.stats if s.player == "Jerami Grant")
-        self.assertAlmostEqual(grant.percentile, 9.4)
+    def test_worst_percentile_derrick_white(self):
+        """Derrick White should have the lowest percentile (3.7)."""
+        white = next(s for s in self.stats if s.player == "Derrick White")
+        self.assertAlmostEqual(white.percentile, 3.7)
 
     def test_ppp_values_are_positive(self):
         for s in self.stats:
@@ -1198,20 +1198,20 @@ class TestRankPlayersByOffensiveTransition(unittest.TestCase):
     def setUp(self):
         self.ranked = rank_players_by_offensive_transition()
 
-    def test_returns_fifty_players(self):
-        self.assertEqual(len(self.ranked), 50)
+    def test_returns_one_hundred_players(self):
+        self.assertEqual(len(self.ranked), 100)
 
     def test_sorted_best_to_worst(self):
         percentiles = [s.percentile for s in self.ranked]
         self.assertEqual(percentiles, sorted(percentiles, reverse=True))
 
     def test_first_player_has_highest_percentile(self):
-        """James Harden (97.6) should be at or near the top."""
+        """Cam Thomas MIL (100.0) should be at the top."""
         self.assertGreaterEqual(self.ranked[0].percentile, 91.0)
 
     def test_last_player_has_lowest_percentile(self):
-        """Jerami Grant (9.4) should be last."""
-        self.assertAlmostEqual(self.ranked[-1].percentile, 9.4)
+        """Derrick White (3.7) should be last."""
+        self.assertAlmostEqual(self.ranked[-1].percentile, 3.7)
 
     def test_accepts_custom_list(self):
         subset = [
