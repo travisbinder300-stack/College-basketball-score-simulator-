@@ -1654,6 +1654,56 @@ class TestBuildOffensiveIsolationStats(unittest.TestCase):
         self.assertAlmostEqual(harden.ppp, 1.06)
         self.assertAlmostEqual(harden.percentile, 82.4)
 
+    def test_batch3_players_present(self):
+        """All 50 batch-3 isolation players are in the dataset."""
+        names = {s.player for s in self.stats}
+        expected = {
+            "Jabari Smith Jr.", "Anthony Davis", "Ty Jerome",
+            "Nickeil Alexander-Walker", "Bennedict Mathurin", "Toumani Camara",
+            "Josh Giddey", "Jarace Walker", "Darius Garland", "Lauri Markkanen",
+            "CJ McCollum", "Malik Monk", "Jalen Suggs", "Cedric Coward",
+            "Marvin Bagley III", "Matas Buzelis", "De'Anthony Melton",
+            "Dylan Harper", "Max Christie", "Derrick White", "Reed Sheppard",
+            "Alex Sarr", "Jamal Shead", "Bub Carrington", "OG Anunoby",
+            "Ryan Nembhard", "Collin Sexton", "Noah Clowney", "Anthony Black",
+            "Kris Dunn", "Bobby Portis", "Tre Mann", "P.J. Washington",
+            "Jonathan Kuminga", "Aaron Wiggins", "Dyson Daniels", "Franz Wagner",
+            "Cam Thomas", "Kenrich Williams", "D'Angelo Russell", "Moses Moody",
+            "Gui Santos", "Rui Hachimura", "Sharife Cooper", "Drake Powell",
+            "Keldon Johnson", "Brice Sensabaugh", "Cason Wallace", "Ace Bailey",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_cam_thomas_mil_fields(self):
+        """Cam Thomas (MIL, 8 GP) batch-3 entry has correct stats."""
+        cam = next(
+            s for s in self.stats if s.player == "Cam Thomas" and s.team == "MIL"
+        )
+        self.assertEqual(cam.gp, 8)
+        self.assertAlmostEqual(cam.poss, 1.3)
+        self.assertAlmostEqual(cam.freq_pct, 9.1)
+        self.assertAlmostEqual(cam.ppp, 2.30)
+        self.assertAlmostEqual(cam.percentile, 100.0)
+
+    def test_gui_santos_fields(self):
+        """Gui Santos (GSW) batch-3 entry has correct stats."""
+        santos = next(s for s in self.stats if s.player == "Gui Santos")
+        self.assertEqual(santos.team, "GSW")
+        self.assertEqual(santos.gp, 48)
+        self.assertAlmostEqual(santos.ppp, 1.47)
+        self.assertAlmostEqual(santos.fg_pct, 90.0)
+        self.assertAlmostEqual(santos.percentile, 98.8)
+
+    def test_ace_bailey_fields(self):
+        """Ace Bailey (UTA) batch-3 entry has correct stats."""
+        ace = next(s for s in self.stats if s.player == "Ace Bailey")
+        self.assertEqual(ace.team, "UTA")
+        self.assertEqual(ace.gp, 51)
+        self.assertAlmostEqual(ace.ppp, 0.67)
+        self.assertAlmostEqual(ace.tov_freq_pct, 15.2)
+        self.assertAlmostEqual(ace.percentile, 12.9)
+
 
 class TestRankPlayersByOffensiveIsolation(unittest.TestCase):
     """Tests for rank_players_by_offensive_isolation()."""
