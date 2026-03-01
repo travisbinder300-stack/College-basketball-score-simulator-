@@ -76,6 +76,27 @@ class DefensiveMatchup:
 
 
 @dataclass
+class DefensiveIsolationStats:
+    """Defensive isolation stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game
+    freq_pct: float     # frequency % of isolations vs this defense
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed in isolation
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # defensive percentile (higher = better defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -256,6 +277,91 @@ def build_sample_defenses() -> List[DefensiveMatchup]:
         play_types = {pt: PlayTypeStats(**stats) for pt, stats in data.items()}
         defenses.append(DefensiveMatchup(team=team, play_types=play_types))
     return defenses
+
+
+def build_defensive_isolation_rankings() -> Dict[str, "DefensiveIsolationStats"]:
+    """
+    Return defensive isolation stats for all 30 NBA teams (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    A higher PERCENTILE indicates better isolation defense (fewer points allowed
+    per possession vs. league average).
+    """
+    raw = [
+        # (team_abbr, full_name, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("ATL", "Atlanta Hawks",            59, 8.9, 7.7, 1.05, 9.3, 3.5, 7.2, 48.3, 52.4, 12.8,  9.2, 11.6, 2.9, 48.9,   0.0),
+        ("BOS", "Boston Celtics",           57, 6.5, 6.0, 0.91, 5.9, 2.2, 5.2, 41.8, 44.1, 12.5,  8.7, 10.8, 1.6, 43.9,  72.4),
+        ("BKN", "Brooklyn Nets",            56, 9.7, 8.9, 0.96, 9.3, 3.3, 7.3, 45.0, 48.0, 14.2, 12.9, 13.4, 2.2, 45.8,  20.7),
+        ("CHA", "Charlotte Hornets",        58, 7.0, 6.4, 0.96, 6.7, 2.4, 5.6, 43.2, 48.0, 12.5,  9.3, 11.5, 1.5, 45.0,  17.2),
+        ("CHI", "Chicago Bulls",            58, 8.2, 7.1, 0.94, 7.7, 2.8, 6.8, 41.1, 45.0, 12.8,  7.2, 12.2, 2.5, 44.2,  44.8),
+        ("CLE", "Cleveland Cavaliers",      58, 9.1, 7.9, 0.94, 8.5, 3.1, 7.4, 42.1, 45.3, 14.2,  7.2, 12.7, 2.7, 44.6,  55.2),
+        ("DAL", "Dallas Mavericks",         55, 7.5, 6.5, 0.97, 7.3, 2.9, 6.3, 46.5, 48.8, 11.8,  8.2, 11.8, 2.9, 47.2,  13.8),
+        ("DEN", "Denver Nuggets",           58, 7.8, 6.9, 0.94, 7.3, 2.6, 6.1, 42.9, 45.9, 14.2, 10.8, 13.3, 2.9, 44.0,  48.3),
+        ("DET", "Detroit Pistons",          55, 8.1, 7.2, 0.91, 7.4, 2.5, 6.1, 41.3, 44.3, 16.3, 12.7, 14.1, 3.6, 42.6,  69.0),
+        ("GSW", "Golden State Warriors",    57, 9.0, 7.9, 0.94, 8.4, 3.3, 7.6, 43.6, 47.4, 10.0,  8.6,  9.0, 2.7, 43.8,  51.7),
+        ("HOU", "Houston Rockets",          56, 8.6, 7.7, 0.89, 7.6, 2.9, 6.8, 43.3, 45.1, 12.5, 11.5, 12.5, 2.9, 43.3,  79.3),
+        ("IND", "Indiana Pacers",           57, 9.0, 7.8, 0.95, 8.5, 3.1, 7.1, 43.2, 45.5, 15.7,  7.2, 14.9, 2.5, 46.6,  34.5),
+        ("LAC", "LA Clippers",              55, 7.9, 7.2, 0.98, 7.7, 2.7, 6.3, 43.9, 48.5, 13.8, 10.1, 12.7, 3.2, 45.2,  10.3),
+        ("LAL", "Los Angeles Lakers",       55, 9.3, 8.4, 0.95, 8.8, 3.1, 7.5, 40.8, 44.8, 14.6,  7.6, 14.2, 2.7, 44.6,  41.4),
+        ("MEM", "Memphis Grizzlies",        55, 7.2, 6.2, 0.96, 6.9, 2.4, 5.5, 43.2, 47.8, 15.4, 10.9, 14.4, 2.3, 44.9,  24.1),
+        ("MIA", "Miami Heat",               57, 9.6, 8.1, 0.90, 8.6, 3.1, 7.8, 39.6, 44.1, 11.5,  8.8, 10.8, 1.8, 41.8,  75.9),
+        ("MIL", "Milwaukee Bucks",          55, 8.2, 7.4, 0.95, 7.8, 2.7, 6.3, 41.8, 45.3, 16.4,  9.5, 15.3, 3.1, 45.4,  37.9),
+        ("MIN", "Minnesota Timberwolves",   57, 8.7, 7.6, 0.87, 7.6, 2.9, 6.9, 42.2, 44.0, 12.2, 11.4, 11.0, 2.6, 42.2,  89.7),
+        ("NOP", "New Orleans Pelicans",     58, 8.6, 7.4, 0.92, 7.9, 2.9, 6.8, 42.4, 47.0, 11.6, 12.0, 10.6, 2.6, 41.7,  62.1),
+        ("NYK", "New York Knicks",          55, 7.5, 6.7, 0.87, 6.5, 2.3, 5.9, 39.8, 43.1, 14.6,  9.7, 13.6, 3.2, 41.8,  86.2),
+        ("OKC", "Oklahoma City Thunder",    56, 6.7, 5.8, 0.82, 5.5, 1.9, 5.2, 37.5, 40.0, 14.1, 11.2, 13.0, 2.7, 40.2,  96.6),
+        ("ORL", "Orlando Magic",            53, 9.5, 8.4, 0.95, 9.1, 3.5, 7.9, 43.8, 47.4, 11.9,  7.7, 11.5, 2.4, 45.5,  27.6),
+        ("PHI", "Philadelphia 76ers",       56, 6.5, 5.7, 0.93, 6.1, 2.1, 5.3, 40.5, 44.6, 13.1,  9.0, 12.0, 2.5, 43.2,  58.6),
+        ("PHX", "Phoenix Suns",             56, 9.8, 8.7, 0.81, 7.9, 2.7, 7.0, 38.5, 41.3, 14.2, 16.4, 13.1, 2.0, 39.7, 100.0),
+        ("POR", "Portland Trail Blazers",   58, 6.2, 5.4, 0.95, 5.9, 2.1, 4.7, 45.0, 47.2, 15.5, 11.0, 15.2, 1.4, 47.2,  31.0),
+        ("SAC", "Sacramento Kings",         58, 8.6, 7.6, 1.02, 8.7, 3.2, 6.9, 46.7, 49.9, 13.5,  9.0, 12.9, 3.4, 47.6,   3.4),
+        ("SAS", "San Antonio Spurs",        54, 6.8, 6.0, 0.92, 6.2, 2.2, 5.2, 42.4, 44.5, 14.4, 10.9, 13.3, 2.2, 44.3,  65.5),
+        ("TOR", "Toronto Raptors",          57, 9.0, 8.0, 0.88, 7.9, 2.8, 6.6, 42.8, 45.5, 14.9, 13.7, 13.9, 1.8, 43.2,  82.8),
+        ("UTA", "Utah Jazz",                58, 8.0, 6.9, 0.99, 7.9, 2.6, 5.9, 43.6, 46.6, 19.1,  9.7, 17.6, 2.1, 48.5,   6.9),
+        ("WAS", "Washington Wizards",       55, 7.4, 6.3, 0.82, 6.1, 2.0, 5.6, 35.8, 38.4, 15.7,  9.6, 15.0, 1.5, 40.8,  93.1),
+    ]
+
+    rankings: Dict[str, DefensiveIsolationStats] = {}
+    for row in raw:
+        (abbr, _name, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensiveIsolationStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_isolation_defense(
+    rankings: Optional[Dict[str, "DefensiveIsolationStats"]] = None,
+) -> List["DefensiveIsolationStats"]:
+    """
+    Return all teams sorted from best to worst isolation defense
+    (highest percentile first, i.e. lowest PPP allowed).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_defensive_isolation_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
 
 
 # ---------------------------------------------------------------------------

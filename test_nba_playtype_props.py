@@ -7,8 +7,11 @@ from nba_playtype_props import (
     PlayTypeStats,
     PlayerProfile,
     DefensiveMatchup,
+    DefensiveIsolationStats,
     build_sample_players,
     build_sample_defenses,
+    build_defensive_isolation_rankings,
+    rank_teams_by_isolation_defense,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -238,6 +241,73 @@ class TestAnalyzeMatchup(unittest.TestCase):
         mem = self._get_defense("MEM")
         result = analyze_matchup(sga, mem, self.players)
         self.assertEqual(len(result["prop_recommendations"]), 3)
+
+
+class TestDefensiveIsolationRankings(unittest.TestCase):
+    def setUp(self):
+        self.rankings = build_defensive_isolation_rankings()
+
+    def test_all_thirty_teams_present(self):
+        self.assertEqual(len(self.rankings), 30)
+
+    def test_known_team_abbrevs_present(self):
+        for abbr in ("ATL", "BOS", "OKC", "PHX", "LAL", "LAC"):
+            self.assertIn(abbr, self.rankings)
+
+    def test_stats_dataclass_fields(self):
+        okc = self.rankings["OKC"]
+        self.assertIsInstance(okc, DefensiveIsolationStats)
+        self.assertEqual(okc.team, "OKC")
+        self.assertAlmostEqual(okc.ppp, 0.82)
+        self.assertAlmostEqual(okc.percentile, 96.6)
+
+    def test_best_isolation_defense_highest_percentile(self):
+        """Phoenix Suns should have the highest percentile (100)."""
+        phx = self.rankings["PHX"]
+        self.assertAlmostEqual(phx.percentile, 100.0)
+
+    def test_worst_isolation_defense_lowest_percentile(self):
+        """Atlanta Hawks should have the lowest percentile (0.0)."""
+        atl = self.rankings["ATL"]
+        self.assertAlmostEqual(atl.percentile, 0.0)
+
+    def test_ppp_values_are_positive(self):
+        for stats in self.rankings.values():
+            self.assertGreater(stats.ppp, 0)
+
+    def test_gp_values_are_positive_integers(self):
+        for stats in self.rankings.values():
+            self.assertIsInstance(stats.gp, int)
+            self.assertGreater(stats.gp, 0)
+
+
+class TestRankTeamsByIsolationDefense(unittest.TestCase):
+    def setUp(self):
+        self.ranked = rank_teams_by_isolation_defense()
+
+    def test_returns_all_thirty_teams(self):
+        self.assertEqual(len(self.ranked), 30)
+
+    def test_sorted_best_to_worst(self):
+        percentiles = [s.percentile for s in self.ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+    def test_first_team_has_highest_percentile(self):
+        """Best isolation defense (Phoenix Suns, percentile=100) comes first."""
+        self.assertEqual(self.ranked[0].team, "PHX")
+
+    def test_last_team_has_lowest_percentile(self):
+        """Worst isolation defense (Atlanta Hawks, percentile=0) comes last."""
+        self.assertEqual(self.ranked[-1].team, "ATL")
+
+    def test_accepts_custom_rankings_dict(self):
+        subset = {
+            "OKC": build_defensive_isolation_rankings()["OKC"],
+            "BOS": build_defensive_isolation_rankings()["BOS"],
+        }
+        ranked_subset = rank_teams_by_isolation_defense(subset)
+        self.assertEqual(len(ranked_subset), 2)
+        self.assertEqual(ranked_subset[0].team, "OKC")
 
 
 if __name__ == "__main__":
