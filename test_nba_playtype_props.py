@@ -1152,8 +1152,8 @@ class TestOffensiveTransitionStats(unittest.TestCase):
     def setUp(self):
         self.stats = build_offensive_transition_stats()
 
-    def test_returns_one_hundred_players(self):
-        self.assertEqual(len(self.stats), 100)
+    def test_returns_150_players(self):
+        self.assertEqual(len(self.stats), 150)
 
     def test_all_are_dataclass_instances(self):
         for s in self.stats:
@@ -1198,8 +1198,8 @@ class TestRankPlayersByOffensiveTransition(unittest.TestCase):
     def setUp(self):
         self.ranked = rank_players_by_offensive_transition()
 
-    def test_returns_one_hundred_players(self):
-        self.assertEqual(len(self.ranked), 100)
+    def test_returns_150_players(self):
+        self.assertEqual(len(self.ranked), 150)
 
     def test_sorted_best_to_worst(self):
         percentiles = [s.percentile for s in self.ranked]
