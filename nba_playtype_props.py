@@ -160,6 +160,27 @@ class DefensivePnrManStats:
 
 
 @dataclass
+class DefensivePostUpStats:
+    """Defensive post-up stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed vs post-up
+    freq_pct: float     # frequency % of post-up possessions allowed
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better post-up defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -692,6 +713,92 @@ def rank_teams_by_pnr_man_defense(
     """
     if rankings is None:
         rankings = build_pnr_man_defensive_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def build_post_up_defensive_rankings() -> Dict[str, "DefensivePostUpStats"]:
+    """
+    Return defensive post-up stats for all 30 NBA teams (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger post-up defense (limiting both the frequency and efficiency of
+    opponent post-up possessions).
+    """
+    raw = [
+        # (team_abbr, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("DET", 55, 2.8, 2.5, 0.74, 2.1, 0.7, 1.9, 35.5, 35.5, 18.1, 15.5, 14.8, 2.6, 39.4, 100.0),
+        ("PHI", 56, 2.9, 2.5, 1.00, 2.9, 1.2, 2.2, 53.3, 53.3, 13.8, 13.1, 12.5, 3.1, 50.0,  55.2),
+        ("SAS", 54, 3.9, 3.4, 0.78, 3.0, 1.2, 3.0, 41.0, 41.0, 11.9, 12.4, 10.5, 1.0, 40.5,  96.6),
+        ("MIL", 55, 3.2, 2.9, 0.95, 3.0, 1.1, 2.3, 46.5, 46.5, 21.0,  9.7, 18.8, 4.0, 50.6,  82.8),
+        ("LAL", 55, 3.5, 3.1, 0.93, 3.2, 1.2, 2.4, 49.6, 49.6, 16.8, 17.4, 12.1, 3.2, 47.9,  86.2),
+        ("POR", 58, 3.1, 2.7, 0.98, 3.1, 1.2, 2.4, 51.4, 51.4, 15.5,  9.4, 12.7, 2.2, 51.4,  62.1),
+        ("MIN", 57, 2.8, 2.4, 1.13, 3.1, 1.3, 2.1, 59.5, 59.5, 16.5, 11.4, 14.6, 4.4, 57.0,   0.0),
+        ("DAL", 55, 3.3, 2.8, 1.02, 3.3, 1.3, 2.3, 55.0, 55.0, 15.6, 16.8, 14.5, 4.5, 50.3,  41.4),
+        ("TOR", 57, 3.3, 2.9, 1.02, 3.3, 1.1, 2.3, 48.5, 48.5, 22.6, 12.4, 17.2, 4.8, 51.6,  44.8),
+        ("LAC", 55, 3.2, 2.9, 1.11, 3.5, 1.5, 2.6, 56.6, 56.6, 14.9,  7.5, 13.8, 4.6, 56.3,   3.4),
+        ("DEN", 58, 3.6, 3.2, 0.95, 3.4, 1.3, 2.6, 49.3, 49.3, 19.3, 12.1, 16.4, 3.9, 49.8,  79.3),
+        ("HOU", 56, 3.8, 3.4, 0.98, 3.7, 1.5, 2.9, 50.3, 50.3, 16.4,  9.4, 12.7, 2.3, 51.6,  69.0),
+        ("GSW", 57, 3.9, 3.4, 0.98, 3.8, 1.4, 3.0, 47.4, 47.4, 16.6, 10.3, 16.6, 3.6, 48.9,  65.5),
+        ("OKC", 56, 4.3, 3.7, 0.92, 3.9, 1.5, 3.3, 46.2, 46.2, 16.4, 10.1, 14.7, 2.9, 46.6,  89.7),
+        ("NYK", 55, 4.0, 3.6, 1.02, 4.1, 1.4, 2.8, 51.3, 51.3, 20.5, 11.9, 18.3, 2.7, 52.5,  37.9),
+        ("BOS", 57, 4.7, 4.4, 0.85, 4.0, 1.6, 3.5, 44.5, 44.5, 10.7, 16.3,  8.5, 1.1, 42.6,  93.1),
+        ("UTA", 58, 3.9, 3.4, 1.03, 4.1, 1.4, 2.6, 55.3, 55.3, 21.5, 15.8, 16.7, 3.9, 53.1,  27.6),
+        ("BKN", 56, 3.9, 3.6, 1.10, 4.3, 1.6, 2.9, 55.0, 55.0, 21.2,  8.8, 16.1, 3.7, 57.1,  10.7),
+        ("MEM", 55, 4.4, 3.8, 1.01, 4.5, 1.7, 3.4, 50.3, 50.3, 16.8,  9.4, 14.8, 3.7, 51.6,  48.3),
+        ("ATL", 59, 4.6, 4.0, 0.95, 4.4, 1.7, 3.5, 50.0, 50.0, 13.9, 14.6, 10.6, 3.6, 47.8,  75.9),
+        ("MIA", 57, 4.4, 3.7, 1.06, 4.6, 1.8, 3.2, 55.7, 55.7, 17.3, 12.4, 14.9, 3.2, 54.2,  17.2),
+        ("ORL", 53, 4.8, 4.2, 1.05, 5.0, 2.0, 3.7, 52.8, 52.8, 16.3, 10.3, 15.1, 4.8, 52.8,  24.1),
+        ("WAS", 55, 5.0, 4.3, 0.96, 4.8, 1.9, 4.0, 49.1, 49.1, 13.4, 10.5, 11.6, 2.9, 48.9,  72.4),
+        ("CHA", 58, 4.6, 4.2, 1.00, 4.6, 2.0, 3.9, 50.7, 50.7, 10.8,  8.2,  9.7, 3.0, 50.4,  51.7),
+        ("IND", 57, 4.4, 3.8, 1.10, 4.8, 1.9, 3.2, 58.5, 58.5, 16.9, 10.9, 16.1, 1.6, 56.0,  10.7),
+        ("NOP", 58, 4.5, 3.9, 1.05, 4.8, 1.8, 3.2, 54.5, 54.5, 17.6, 13.4, 15.6, 2.3, 54.2,  20.7),
+        ("PHX", 56, 4.8, 4.3, 1.03, 5.0, 1.9, 3.6, 53.2, 53.2, 18.5, 11.5, 14.8, 4.4, 52.6,  31.0),
+        ("CLE", 58, 5.1, 4.4, 0.99, 5.0, 1.7, 3.4, 50.0, 50.0, 19.7, 16.7, 17.0, 3.7, 49.3,  58.6),
+        ("CHI", 58, 5.4, 4.7, 1.03, 5.6, 2.2, 4.1, 53.6, 53.6, 15.6, 11.5, 14.0, 3.2, 52.5,  34.5),
+        ("SAC", 58, 5.3, 4.6, 1.11, 5.8, 2.4, 4.0, 59.2, 59.2, 16.7, 11.8, 16.0, 4.6, 56.2,   6.9),
+    ]
+
+    rankings: Dict[str, DefensivePostUpStats] = {}
+    for row in raw:
+        (abbr, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensivePostUpStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_post_up_defense(
+    rankings: Optional[Dict[str, "DefensivePostUpStats"]] = None,
+) -> List["DefensivePostUpStats"]:
+    """
+    Return all teams sorted from best to worst post-up defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_post_up_defensive_rankings()
     return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
 
 
