@@ -21,6 +21,7 @@ from nba_playtype_props import (
     OffensivePnrBallHandlerStats,
     OffensivePnrManStats,
     OffensivePostUpStats,
+    OffensiveSpotUpStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -68,6 +69,10 @@ from nba_playtype_props import (
     rank_players_by_offensive_post_up,
     find_post_up_scorers,
     predict_post_up_matchup,
+    build_offensive_spot_up_stats,
+    rank_players_by_offensive_spot_up,
+    find_spot_up_player_scorers,
+    predict_spot_up_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -3066,6 +3071,332 @@ class TestPredictPostUpMatchup(unittest.TestCase):
         result = predict_post_up_matchup("Joel Embiid", "SAS")
         self.assertIsNotNone(result)
         self.assertEqual(result["player"], "Joel Embiid")
+
+
+# ===========================================================================
+# Offensive spot-up analytics tests
+# ===========================================================================
+
+class TestBuildOffensiveSpotUpStats(unittest.TestCase):
+    """Tests for build_offensive_spot_up_stats()."""
+
+    def setUp(self):
+        self.stats = build_offensive_spot_up_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 60)
+
+    def test_all_items_are_offensive_spot_up_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, OffensiveSpotUpStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_curry_fields(self):
+        """Stephen Curry should be the top spot-up scorer."""
+        curry = next(s for s in self.stats if s.player == "Stephen Curry")
+        self.assertEqual(curry.team, "GSW")
+        self.assertAlmostEqual(curry.ppp, 1.29)
+        self.assertAlmostEqual(curry.percentile, 99.0)
+
+    def test_klay_fields(self):
+        """Klay Thompson spot-check."""
+        klay = next(s for s in self.stats if s.player == "Klay Thompson")
+        self.assertEqual(klay.team, "GSW")
+        self.assertEqual(klay.gp, 68)
+        self.assertAlmostEqual(klay.ppp, 1.21)
+        self.assertAlmostEqual(klay.percentile, 96.6)
+
+    def test_known_players_present(self):
+        names = {s.player for s in self.stats}
+        for expected in (
+            "Stephen Curry", "Klay Thompson", "Buddy Hield",
+            "Duncan Robinson", "Desmond Bane", "Kevin Durant",
+            "Jayson Tatum", "Mikal Bridges",
+        ):
+            self.assertIn(expected, names)
+
+    def test_batch2_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "CJ McCollum", "OG Anunoby", "Dorian Finney-Smith",
+            "Josh Hart", "Dillon Brooks", "Saddiq Bey",
+            "Jalen McDaniels", "Reggie Bullock", "Josh Richardson",
+            "Royce O'Neale", "Danny Green", "Pat Connaughton",
+            "Gary Harris", "Max Strus", "Goga Bitadze",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-2 players: {missing}")
+
+    def test_batch3_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Patrick Beverley", "Anfernee Simons", "Caris LeVert",
+            "Marcus Morris Sr.", "Derrick White", "Jae'Sean Tate",
+            "Terance Mann", "Miles Bridges", "Donte DiVincenzo",
+            "Terrence Ross", "Kyle Kuzma", "Harrison Barnes",
+            "Josh Green", "Jalen Green", "Keldon Johnson",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_batch4_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Zaccharie Risacher", "Stephon Castle", "Gradey Dick",
+            "Victor Wembanyama", "Derik Queen", "Cason Wallace",
+            "Dylan Harper", "Ace Bailey", "Bub Carrington",
+            "Max Christie", "Jaden Ivey", "Ryan Nembhard",
+            "Rob Dillingham", "Ajay Mitchell", "Will Riley",
+            "Daniss Jenkins", "Caleb Love", "Kel'el Ware",
+            "Jonathan Kuminga",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_victor_wembanyama_fields(self):
+        """Victor Wembanyama (batch-4) spot-check."""
+        vw = next(s for s in self.stats if s.player == "Victor Wembanyama")
+        self.assertEqual(vw.team, "SAS")
+        self.assertEqual(vw.gp, 43)
+        self.assertAlmostEqual(vw.ppp, 1.06)
+        self.assertAlmostEqual(vw.percentile, 37.9)
+
+    def test_derrick_white_fields(self):
+        """Derrick White (batch-3) spot-check."""
+        dw = next(s for s in self.stats if s.player == "Derrick White")
+        self.assertEqual(dw.team, "BOS")
+        self.assertAlmostEqual(dw.ppp, 1.06)
+        self.assertAlmostEqual(dw.percentile, 37.9)
+
+
+class TestRankPlayersByOffensiveSpotUp(unittest.TestCase):
+    """Tests for rank_players_by_offensive_spot_up()."""
+
+    def setUp(self):
+        self.stats = build_offensive_spot_up_stats()
+        self.ranked = rank_players_by_offensive_spot_up(self.stats)
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_same_length_as_input(self):
+        self.assertEqual(len(self.ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        for i in range(len(self.ranked) - 1):
+            self.assertGreaterEqual(
+                self.ranked[i].percentile, self.ranked[i + 1].percentile
+            )
+
+    def test_first_has_highest_percentile(self):
+        max_pct = max(s.percentile for s in self.stats)
+        self.assertAlmostEqual(self.ranked[0].percentile, max_pct)
+
+    def test_default_dataset_used_when_none(self):
+        ranked_default = rank_players_by_offensive_spot_up()
+        self.assertGreater(len(ranked_default), 0)
+
+
+class TestFindSpotUpPlayerScorers(unittest.TestCase):
+    """Tests for find_spot_up_player_scorers()."""
+
+    def setUp(self):
+        self.spot_up_stats = build_offensive_spot_up_stats()
+        self.def_rankings = build_spot_up_defensive_rankings()
+
+    def test_returns_list(self):
+        results = find_spot_up_player_scorers(self.spot_up_stats)
+        self.assertIsInstance(results, list)
+
+    def test_all_pass_freq_threshold(self):
+        min_freq = 30.0
+        results = find_spot_up_player_scorers(self.spot_up_stats, min_freq_pct=min_freq)
+        for r in results:
+            self.assertGreaterEqual(r["freq_pct"], min_freq)
+
+    def test_all_pass_ppp_threshold(self):
+        min_ppp = 1.15
+        results = find_spot_up_player_scorers(self.spot_up_stats, min_ppp=min_ppp)
+        for r in results:
+            self.assertGreaterEqual(r["ppp"], min_ppp)
+
+    def test_sorted_by_freq_pct_descending(self):
+        results = find_spot_up_player_scorers(self.spot_up_stats)
+        for i in range(len(results) - 1):
+            self.assertGreaterEqual(results[i]["freq_pct"], results[i + 1]["freq_pct"])
+
+    def test_result_has_required_keys(self):
+        results = find_spot_up_player_scorers(self.spot_up_stats)
+        if results:
+            for k in ("player", "team", "freq_pct", "ppp", "pts",
+                      "percentile", "def_ppp", "def_percentile"):
+                self.assertIn(k, results[0].keys())
+
+    def test_def_ppp_none_when_no_opponent(self):
+        results = find_spot_up_player_scorers(self.spot_up_stats)
+        for r in results:
+            self.assertIsNone(r["def_ppp"])
+            self.assertIsNone(r["def_percentile"])
+
+    def test_def_ppp_populated_with_opponent(self):
+        results = find_spot_up_player_scorers(
+            self.spot_up_stats, "OKC", self.def_rankings
+        )
+        for r in results:
+            self.assertIsNotNone(r["def_ppp"])
+            self.assertIsNotNone(r["def_percentile"])
+
+    def test_curry_in_high_freq_scorers(self):
+        results = find_spot_up_player_scorers(
+            self.spot_up_stats, min_freq_pct=40.0, min_ppp=1.20
+        )
+        players = [r["player"] for r in results]
+        self.assertIn("Stephen Curry", players)
+
+
+class TestPredictSpotUpMatchup(unittest.TestCase):
+    """Tests for predict_spot_up_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_spot_up_stats()
+        self.def_rankings = build_spot_up_defensive_rankings()
+
+    def test_returns_dict_for_known_player_and_team(self):
+        result = predict_spot_up_matchup(
+            "Stephen Curry", "OKC", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = predict_spot_up_matchup(
+            "Stephen Curry", "OKC", self.off_stats, self.def_rankings
+        )
+        for k in ("player", "team", "gp", "freq_pct", "ppp", "pts",
+                  "off_percentile", "opponent", "def_ppp", "def_freq_pct",
+                  "def_percentile", "edge", "verdict"):
+            self.assertIn(k, result)
+
+    def test_curry_player_and_opponent_fields(self):
+        result = predict_spot_up_matchup(
+            "Stephen Curry", "OKC", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["player"], "Stephen Curry")
+        self.assertEqual(result["opponent"], "OKC")
+
+    def test_verdict_favorable_for_large_positive_edge(self):
+        """A top shooter vs a weak spot-up defense → FAVORABLE."""
+        strong_player = OffensiveSpotUpStats(
+            player="Elite Shooter", team="TST", gp=55,
+            poss=10.0, freq_pct=50.0, ppp=1.25, pts=12.5,
+            fgm=4.5, fga=9.0, fg_pct=50.0, efg_pct=65.0,
+            ft_freq_pct=5.0, tov_freq_pct=2.5, sf_freq_pct=3.8,
+            and_one_freq_pct=0.5, score_freq_pct=56.0, percentile=90.0,
+        )
+        # find a team with relatively high def ppp allowed so we can test
+        # FAVORABLE when edge >= 0.10.
+        # Build a synthetic weak defense with ppp=1.00 → edge = 1.25-1.00 = 0.25
+        from nba_playtype_props import DefensiveSpotUpStats
+        weak_def = {"ZZZ": DefensiveSpotUpStats(
+            team="ZZZ", gp=55, poss=8.0, freq_pct=20.0, ppp=1.00,
+            pts=8.0, fgm=3.0, fga=6.5, fg_pct=46.0, efg_pct=58.0,
+            ft_freq_pct=4.0, tov_freq_pct=3.5, sf_freq_pct=3.0,
+            and_one_freq_pct=0.5, score_freq_pct=52.0, percentile=5.0,
+        )}
+        result = predict_spot_up_matchup(
+            "Elite Shooter", "ZZZ", [strong_player], weak_def
+        )
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    def test_verdict_tough_for_large_negative_edge(self):
+        """A below-average shooter vs elite spot-up defense → TOUGH."""
+        weak_player = OffensiveSpotUpStats(
+            player="Cold Shooter", team="TST", gp=55,
+            poss=5.0, freq_pct=22.0, ppp=0.85, pts=4.3,
+            fgm=1.5, fga=4.5, fg_pct=34.0, efg_pct=44.0,
+            ft_freq_pct=3.5, tov_freq_pct=4.5, sf_freq_pct=2.5,
+            and_one_freq_pct=0.3, score_freq_pct=40.0, percentile=8.0,
+        )
+        from nba_playtype_props import DefensiveSpotUpStats
+        elite_def = {"ZZZ": DefensiveSpotUpStats(
+            team="ZZZ", gp=55, poss=6.5, freq_pct=15.0, ppp=1.10,
+            pts=7.2, fgm=2.6, fga=5.5, fg_pct=47.0, efg_pct=60.0,
+            ft_freq_pct=4.2, tov_freq_pct=3.0, sf_freq_pct=3.2,
+            and_one_freq_pct=0.5, score_freq_pct=53.0, percentile=95.0,
+        )}
+        result = predict_spot_up_matchup(
+            "Cold Shooter", "ZZZ", [weak_player], elite_def
+        )
+        # edge = 0.85 - 1.10 = -0.25 → TOUGH
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        avg_player = OffensiveSpotUpStats(
+            player="Avg Shooter", team="TST", gp=55,
+            poss=6.0, freq_pct=28.0, ppp=1.07, pts=6.4,
+            fgm=2.3, fga=5.4, fg_pct=43.0, efg_pct=57.0,
+            ft_freq_pct=4.0, tov_freq_pct=3.2, sf_freq_pct=3.0,
+            and_one_freq_pct=0.5, score_freq_pct=48.0, percentile=40.0,
+        )
+        from nba_playtype_props import DefensiveSpotUpStats
+        avg_def = {"ZZZ": DefensiveSpotUpStats(
+            team="ZZZ", gp=55, poss=7.0, freq_pct=18.0, ppp=1.05,
+            pts=7.4, fgm=2.7, fga=5.8, fg_pct=46.0, efg_pct=59.0,
+            ft_freq_pct=4.1, tov_freq_pct=3.1, sf_freq_pct=3.1,
+            and_one_freq_pct=0.5, score_freq_pct=52.0, percentile=45.0,
+        )}
+        # edge = 1.07 - 1.05 = 0.02 → NEUTRAL
+        result = predict_spot_up_matchup(
+            "Avg Shooter", "ZZZ", [avg_player], avg_def
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    def test_returns_none_for_unknown_player(self):
+        result = predict_spot_up_matchup(
+            "Nobody Famous", "OKC", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_team(self):
+        result = predict_spot_up_matchup(
+            "Stephen Curry", "ZZZ", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_name(self):
+        result_lower = predict_spot_up_matchup(
+            "stephen curry", "OKC", self.off_stats, self.def_rankings
+        )
+        result_upper = predict_spot_up_matchup(
+            "STEPHEN CURRY", "OKC", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result_lower)
+        self.assertIsNotNone(result_upper)
+        self.assertEqual(result_lower["player"], result_upper["player"])
+
+    def test_edge_equals_ppp_minus_def_ppp(self):
+        result = predict_spot_up_matchup(
+            "Klay Thompson", "OKC", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["ppp"] - result["def_ppp"], 3)
+        )
+
+    def test_default_datasets_used_when_none(self):
+        result = predict_spot_up_matchup("Stephen Curry", "OKC")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["player"], "Stephen Curry")
 
 
 if __name__ == "__main__":

@@ -375,6 +375,28 @@ class OffensivePostUpStats:
 
 
 @dataclass
+class OffensiveSpotUpStats:
+    """Offensive spot-up stats for a single NBA player (NBA Synergy)."""
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # spot-up possessions per game
+    freq_pct: float      # frequency % of total possessions
+    ppp: float           # points per possession
+    pts: float           # spot-up points per game
+    fgm: float           # field goals made per game
+    fga: float           # field goals attempted per game
+    fg_pct: float        # FG%
+    efg_pct: float       # eFG%
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite offensive percentile (higher = better spot-up scorer)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -3566,6 +3588,280 @@ def predict_post_up_matchup(
         offensive_stats = build_offensive_post_up_stats()
     if defensive_rankings is None:
         defensive_rankings = build_post_up_defensive_rankings()
+
+    player_stat = next(
+        (s for s in offensive_stats if s.player.lower() == player_name.lower()),
+        None,
+    )
+    if player_stat is None:
+        return None
+
+    def_stat = defensive_rankings.get(opponent_team.upper())
+    if def_stat is None:
+        return None
+
+    edge = round(player_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.10:
+        verdict = "FAVORABLE"
+    elif edge <= -0.10:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "player":         player_stat.player,
+        "team":           player_stat.team,
+        "gp":             player_stat.gp,
+        "freq_pct":       player_stat.freq_pct,
+        "ppp":            player_stat.ppp,
+        "pts":            player_stat.pts,
+        "off_percentile": player_stat.percentile,
+        "opponent":       def_stat.team,
+        "def_ppp":        def_stat.ppp,
+        "def_freq_pct":   def_stat.freq_pct,
+        "def_percentile": def_stat.percentile,
+        "edge":           edge,
+        "verdict":        verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Offensive spot-up analytics
+# ---------------------------------------------------------------------------
+
+def build_offensive_spot_up_stats() -> List["OffensiveSpotUpStats"]:
+    """
+    Return offensive spot-up stats for approximately 75 NBA players
+    (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking.  Higher values indicate a
+    more efficient/frequent spot-up scorer.  Spot-up players catch the ball in
+    a set position (usually beyond the arc or mid-range) after a drive or pass
+    draws the defense and shoot immediately.
+    """
+    raw = [
+        # (player, team, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        # --- batch 1: elite shooters ---
+        ("Stephen Curry",            "GSW", 52, 11.4, 46.8, 1.29, 14.7, 5.2,  9.6, 54.3, 70.8,  6.5,  2.9,  4.9, 0.9, 58.7,  99.0),
+        ("Klay Thompson",            "GSW", 68, 10.8, 54.3, 1.21, 13.1, 4.8,  9.4, 51.2, 67.8,  6.2,  2.6,  4.7, 0.8, 55.3,  96.6),
+        ("Buddy Hield",              "GSW", 57,  9.5, 52.8, 1.20, 11.4, 4.3,  8.6, 50.3, 67.4,  6.0,  2.8,  4.4, 0.7, 54.5,  93.1),
+        ("Duncan Robinson",          "MIA", 57,  9.1, 50.5, 1.19, 10.8, 4.1,  8.4, 49.5, 66.0,  5.9,  2.8,  4.3, 0.7, 53.7,  89.7),
+        ("Bogdan Bogdanović",         "ATL", 52,  7.4, 42.3, 1.18,  8.7, 3.5,  6.9, 51.0, 66.1,  5.4,  3.1,  4.0, 0.6, 53.9,  86.2),
+        ("Desmond Bane",             "MEM", 55,  7.2, 42.0, 1.17,  8.4, 3.4,  6.8, 50.3, 64.7,  5.2,  3.0,  3.9, 0.6, 53.2,  82.8),
+        ("Kentavious Caldwell-Pope",  "ORL", 55,  6.8, 43.1, 1.16,  7.9, 3.2,  6.6, 48.8, 64.5,  5.0,  3.1,  3.7, 0.6, 52.9,  79.3),
+        ("Joe Harris",               "BKN", 55,  7.0, 47.9, 1.15,  8.1, 3.2,  6.7, 48.0, 63.7,  4.9,  3.0,  3.7, 0.6, 52.2,  75.9),
+        ("Seth Curry",               "BKN", 47,  7.3, 49.0, 1.16,  8.5, 3.4,  7.2, 47.2, 62.8,  4.8,  3.2,  3.7, 0.5, 51.5,  72.4),
+        ("Michael Porter Jr.",       "DEN", 55,  6.4, 31.9, 1.17,  7.5, 3.0,  5.9, 51.1, 65.3,  5.1,  3.0,  3.8, 0.6, 54.0,  79.3),
+        ("Luke Kennard",             "LAC", 60,  6.6, 54.3, 1.15,  7.6, 3.0,  6.5, 46.2, 62.9,  4.9,  3.1,  3.6, 0.5, 51.8,  72.4),
+        ("Jordan Poole",             "WAS", 56,  6.3, 35.0, 1.13,  7.1, 2.9,  6.4, 45.8, 60.6,  4.8,  3.4,  3.6, 0.5, 50.1,  65.5),
+        ("Ty Jerome",                "CLE", 55,  6.0, 40.2, 1.14,  6.8, 2.7,  6.0, 45.8, 61.0,  4.7,  3.3,  3.5, 0.5, 50.3,  65.5),
+        ("Sam Hauser",               "BOS", 56,  6.1, 43.9, 1.14,  7.0, 2.7,  6.0, 45.6, 61.5,  4.7,  3.2,  3.5, 0.5, 50.4,  65.5),
+        ("Khris Middleton",          "MIL", 55,  5.7, 27.8, 1.12,  6.4, 2.6,  5.7, 45.4, 59.6,  4.7,  3.3,  3.5, 0.5, 49.6,  58.6),
+        ("Kevin Durant",             "PHX", 35,  5.1, 21.5, 1.16,  5.9, 2.4,  4.7, 50.7, 64.1,  5.3,  3.0,  3.8, 0.6, 53.8,  72.4),
+        ("Jaylen Brown",             "BOS", 56,  5.3, 17.6, 1.11,  5.9, 2.5,  5.5, 45.4, 58.6,  4.6,  3.5,  3.4, 0.5, 49.3,  55.2),
+        ("Andrew Wiggins",           "GSW", 27,  5.4, 25.7, 1.13,  6.1, 2.5,  5.4, 46.5, 60.6,  4.8,  3.2,  3.6, 0.5, 50.9,  58.6),
+        ("Mikal Bridges",            "NYK", 55,  5.0, 24.5, 1.12,  5.6, 2.3,  5.2, 44.4, 59.8,  4.6,  3.4,  3.5, 0.5, 49.2,  55.2),
+        ("Jayson Tatum",             "BOS", 56,  4.8, 15.8, 1.10,  5.3, 2.2,  5.1, 43.9, 57.4,  4.6,  3.5,  3.4, 0.5, 49.1,  51.7),
+        # --- batch 2: volume spot-up shooters ---
+        ("CJ McCollum",              "NOP", 58,  5.8, 33.1, 1.10,  6.4, 2.7,  6.1, 44.0, 57.6,  4.6,  3.5,  3.4, 0.5, 49.2,  48.3),
+        ("OG Anunoby",               "NYK", 50,  5.2, 22.8, 1.11,  5.8, 2.4,  5.4, 44.3, 58.7,  4.7,  3.4,  3.5, 0.5, 49.5,  51.7),
+        ("Dorian Finney-Smith",      "BKN", 56,  5.1, 35.0, 1.09,  5.6, 2.3,  5.5, 41.8, 56.8,  4.4,  3.6,  3.3, 0.5, 47.6,  44.8),
+        ("Josh Hart",                "NYK", 55,  4.8, 22.6, 1.10,  5.3, 2.2,  5.0, 44.8, 57.8,  4.6,  3.4,  3.4, 0.5, 49.3,  48.3),
+        ("Dillon Brooks",            "HOU", 56,  5.0, 26.3, 1.08,  5.4, 2.3,  5.4, 42.1, 56.3,  4.3,  3.7,  3.2, 0.5, 47.3,  41.4),
+        ("Saddiq Bey",               "NOP",  6,  4.7, 34.4, 1.10,  5.2, 2.2,  4.9, 44.1, 58.6,  4.6,  3.4,  3.4, 0.5, 49.2,  48.3),
+        ("Jalen McDaniels",          "TOR", 47,  4.5, 30.8, 1.09,  4.9, 2.1,  4.9, 42.9, 57.0,  4.4,  3.5,  3.3, 0.5, 48.1,  44.8),
+        ("Reggie Bullock",           "LAL", 43,  4.6, 41.6, 1.07,  4.9, 2.0,  4.8, 41.9, 56.6,  4.3,  3.6,  3.2, 0.5, 47.5,  41.4),
+        ("Josh Richardson",          "MIA", 45,  4.4, 32.6, 1.08,  4.8, 2.0,  4.7, 42.1, 56.4,  4.4,  3.6,  3.3, 0.5, 47.6,  41.4),
+        ("Royce O'Neale",            "HOU", 57,  4.5, 37.4, 1.06,  4.8, 2.0,  4.9, 41.0, 55.2,  4.2,  3.7,  3.1, 0.5, 46.8,  37.9),
+        ("Danny Green",              "PHI", 26,  4.3, 48.4, 1.07,  4.6, 1.9,  4.6, 41.8, 56.5,  4.3,  3.6,  3.2, 0.5, 47.4,  41.4),
+        ("Pat Connaughton",          "MIL", 55,  4.4, 36.3, 1.06,  4.7, 1.9,  4.6, 41.4, 55.8,  4.2,  3.6,  3.2, 0.5, 47.1,  37.9),
+        ("Gary Harris",              "ORL", 43,  4.3, 39.3, 1.07,  4.6, 1.9,  4.5, 42.0, 56.5,  4.3,  3.6,  3.2, 0.5, 47.6,  41.4),
+        ("Max Strus",                "CLE", 57,  4.4, 34.7, 1.07,  4.7, 1.9,  4.6, 41.8, 56.5,  4.3,  3.6,  3.2, 0.5, 47.4,  41.4),
+        ("Goga Bitadze",             "ORL", 30,  2.8, 17.9, 1.08,  3.0, 1.3,  2.8, 46.3, 61.5,  4.5,  3.4,  3.4, 0.5, 51.2,  48.3),
+        # --- batch 3: mid-tier shooters ---
+        ("Patrick Beverley",         "PHI", 32,  3.9, 38.6, 1.05,  4.1, 1.8,  4.2, 41.5, 56.1,  4.1,  3.7,  3.1, 0.5, 46.9,  34.5),
+        ("Anfernee Simons",          "POR", 55,  4.0, 21.6, 1.07,  4.3, 1.9,  4.3, 43.0, 57.1,  4.3,  3.6,  3.2, 0.5, 48.3,  41.4),
+        ("Caris LeVert",             "CLE", 53,  3.7, 20.3, 1.06,  3.9, 1.7,  4.0, 42.3, 56.5,  4.2,  3.6,  3.1, 0.5, 47.5,  37.9),
+        ("Marcus Morris Sr.",        "LAC", 50,  3.7, 27.0, 1.05,  3.9, 1.7,  4.1, 41.3, 55.9,  4.1,  3.7,  3.1, 0.5, 46.7,  34.5),
+        ("Derrick White",            "BOS", 57,  3.8, 22.1, 1.06,  4.0, 1.7,  4.0, 42.2, 56.6,  4.2,  3.6,  3.2, 0.5, 47.5,  37.9),
+        ("Jae'Sean Tate",            "HOU", 56,  3.5, 20.1, 1.04,  3.6, 1.6,  3.8, 41.8, 56.1,  4.1,  3.7,  3.1, 0.5, 46.8,  34.5),
+        ("Terance Mann",             "LAC", 55,  3.6, 25.5, 1.05,  3.8, 1.6,  3.8, 42.0, 56.3,  4.2,  3.6,  3.1, 0.5, 47.2,  34.5),
+        ("Miles Bridges",            "CHA", 55,  3.5, 18.0, 1.06,  3.7, 1.6,  3.8, 42.6, 56.8,  4.3,  3.6,  3.2, 0.5, 47.6,  37.9),
+        ("Donte DiVincenzo",         "NYK", 53,  3.8, 28.9, 1.07,  4.1, 1.7,  3.9, 43.3, 57.9,  4.3,  3.5,  3.2, 0.5, 48.3,  41.4),
+        ("Terrence Ross",            "PHX", 32,  3.6, 35.3, 1.05,  3.8, 1.6,  3.9, 41.2, 55.8,  4.1,  3.7,  3.1, 0.5, 46.7,  34.5),
+        ("Kyle Kuzma",               "WAS", 55,  3.4, 17.1, 1.05,  3.6, 1.5,  3.6, 41.8, 55.9,  4.1,  3.6,  3.1, 0.5, 46.8,  34.5),
+        ("Harrison Barnes",          "SAC", 26,  3.5, 19.7, 1.05,  3.7, 1.5,  3.7, 41.6, 55.7,  4.1,  3.6,  3.1, 0.5, 46.6,  34.5),
+        ("Josh Green",               "DAL", 55,  3.3, 24.2, 1.04,  3.4, 1.5,  3.7, 40.9, 55.4,  4.0,  3.7,  3.0, 0.5, 46.3,  31.0),
+        ("Jalen Green",              "HOU", 55,  3.4, 14.9, 1.05,  3.6, 1.5,  3.6, 41.7, 56.0,  4.1,  3.6,  3.1, 0.5, 46.9,  34.5),
+        ("Keldon Johnson",           "SAS", 57,  3.4, 19.0, 1.04,  3.5, 1.5,  3.7, 40.6, 55.0,  4.0,  3.7,  3.0, 0.5, 46.1,  31.0),
+        # --- batch 4: role players and rookies ---
+        ("Zaccharie Risacher",       "ATL", 59,  3.1, 15.3, 1.05,  3.3, 1.4,  3.4, 41.5, 56.1,  4.1,  3.7,  3.1, 0.5, 46.7,  34.5),
+        ("Stephon Castle",           "SAS", 46,  2.9, 16.5, 1.03,  3.0, 1.3,  3.2, 40.7, 55.1,  4.0,  3.7,  3.0, 0.5, 46.3,  27.6),
+        ("Gradey Dick",              "TOR", 55,  3.0, 24.0, 1.04,  3.1, 1.3,  3.2, 41.1, 55.5,  4.0,  3.7,  3.0, 0.5, 46.5,  31.0),
+        ("Victor Wembanyama",        "SAS", 43,  2.8, 12.9, 1.06,  3.0, 1.3,  3.0, 42.6, 57.0,  4.2,  3.6,  3.1, 0.5, 47.9,  37.9),
+        ("Derik Queen",              "NOP", 57,  2.5, 18.8, 1.03,  2.6, 1.1,  2.9, 40.4, 55.1,  4.0,  3.7,  3.0, 0.5, 46.2,  27.6),
+        ("Cason Wallace",            "OKC",  4,  2.7, 30.8, 1.04,  2.8, 1.2,  2.9, 41.2, 55.6,  4.0,  3.7,  3.0, 0.5, 46.5,  31.0),
+        ("Dylan Harper",             "SAS", 44,  2.6, 23.2, 1.04,  2.7, 1.2,  2.8, 41.4, 55.8,  4.1,  3.7,  3.1, 0.5, 46.7,  31.0),
+        ("Ace Bailey",               "UTA", 51,  2.5, 21.1, 1.03,  2.6, 1.1,  2.8, 40.6, 55.0,  4.0,  3.7,  3.0, 0.5, 46.2,  27.6),
+        ("Bub Carrington",           "WAS", 55,  2.4, 19.1, 1.03,  2.5, 1.1,  2.7, 40.8, 55.1,  4.0,  3.7,  3.0, 0.5, 46.2,  27.6),
+        ("Max Christie",             "DAL", 50,  2.7, 24.7, 1.04,  2.8, 1.2,  2.9, 41.3, 55.7,  4.1,  3.7,  3.1, 0.5, 46.6,  31.0),
+        ("Jaden Ivey",               "DET",  8,  2.5, 27.9, 1.03,  2.6, 1.1,  2.8, 40.5, 54.9,  4.0,  3.7,  3.0, 0.5, 46.1,  27.6),
+        ("Ryan Nembhard",            "DAL", 36,  2.6, 29.2, 1.04,  2.7, 1.2,  2.8, 41.6, 56.0,  4.1,  3.7,  3.1, 0.5, 46.8,  31.0),
+        ("Rob Dillingham",           "MIN",  5,  2.3, 43.4, 1.03,  2.4, 1.0,  2.6, 40.3, 54.8,  3.9,  3.7,  3.0, 0.5, 46.0,  27.6),
+        ("Ajay Mitchell",            "OKC", 38,  2.4, 16.5, 1.03,  2.5, 1.1,  2.7, 40.8, 55.1,  4.0,  3.7,  3.0, 0.5, 46.2,  27.6),
+        ("Will Riley",               "WAS", 47,  2.3, 25.8, 1.03,  2.4, 1.0,  2.6, 40.5, 54.9,  4.0,  3.7,  3.0, 0.5, 46.1,  27.6),
+        ("Daniss Jenkins",           "DET", 46,  2.2, 22.7, 1.02,  2.2, 1.0,  2.6, 39.6, 53.9,  3.9,  3.8,  2.9, 0.5, 45.5,  24.1),
+        ("Caleb Love",               "POR",  3,  2.3, 17.7, 1.03,  2.4, 1.0,  2.6, 40.2, 54.7,  4.0,  3.7,  3.0, 0.5, 46.0,  27.6),
+        ("Kel'el Ware",              "MIA", 44,  2.1, 12.2, 1.02,  2.1, 0.9,  2.4, 39.8, 54.1,  3.9,  3.8,  2.9, 0.5, 45.7,  24.1),
+        ("Jonathan Kuminga",         "GSW", 20,  2.2, 16.0, 1.01,  2.2, 1.0,  2.6, 38.4, 52.6,  3.7,  3.9,  2.8, 0.5, 44.4,  20.7),
+    ]
+
+    stats: List[OffensiveSpotUpStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(OffensiveSpotUpStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_offensive_spot_up(
+    stats: Optional[List["OffensiveSpotUpStats"]] = None,
+) -> List["OffensiveSpotUpStats"]:
+    """
+    Return all players sorted from best to worst spot-up scorer
+    (highest percentile first).
+
+    If *stats* is not provided, the full dataset is used.
+    """
+    if stats is None:
+        stats = build_offensive_spot_up_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_spot_up_player_scorers(
+    spot_up_stats: Optional[List["OffensiveSpotUpStats"]] = None,
+    opponent_team: Optional[str] = None,
+    spot_up_defensive_rankings: Optional[Dict[str, "DefensiveSpotUpStats"]] = None,
+    min_freq_pct: float = 20.0,
+    min_ppp: float = 1.05,
+) -> List[Dict]:
+    """
+    Identify players who are high-volume, efficient spot-up scorers.
+
+    When *opponent_team* and *spot_up_defensive_rankings* are provided the
+    results are further annotated with the opponent's defensive PPP and
+    percentile.
+
+    Returns a list of dicts sorted by spot-up frequency % (highest first),
+    each containing:
+      - "player"        : player name
+      - "team"          : player's team
+      - "freq_pct"      : spot-up frequency %
+      - "ppp"           : player's spot-up PPP
+      - "pts"           : spot-up points per game
+      - "percentile"    : player's offensive spot-up percentile
+      - "def_ppp"       : opponent's spot-up defensive PPP (if supplied)
+      - "def_percentile": opponent's spot-up defensive percentile (if supplied)
+    """
+    if spot_up_stats is None:
+        spot_up_stats = build_offensive_spot_up_stats()
+
+    def_stats = None
+    if opponent_team and spot_up_defensive_rankings:
+        def_stats = spot_up_defensive_rankings.get(opponent_team)
+
+    results = []
+    for s in spot_up_stats:
+        if s.freq_pct < min_freq_pct:
+            continue
+        if s.ppp < min_ppp:
+            continue
+        entry: Dict = {
+            "player":         s.player,
+            "team":           s.team,
+            "freq_pct":       s.freq_pct,
+            "ppp":            s.ppp,
+            "pts":            s.pts,
+            "percentile":     s.percentile,
+            "def_ppp":        def_stats.ppp if def_stats else None,
+            "def_percentile": def_stats.percentile if def_stats else None,
+        }
+        results.append(entry)
+
+    results.sort(key=lambda r: r["freq_pct"], reverse=True)
+    return results
+
+
+def predict_spot_up_matchup(
+    player_name: str,
+    opponent_team: str,
+    offensive_stats: Optional[List["OffensiveSpotUpStats"]] = None,
+    defensive_rankings: Optional[Dict[str, "DefensiveSpotUpStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head spot-up matchup prediction for *player_name*
+    against *opponent_team*'s spot-up defense.
+
+    Parameters
+    ----------
+    player_name:
+        Exact player name (case-insensitive) as it appears in the offensive
+        spot-up dataset (e.g. ``"Stephen Curry"``).
+    opponent_team:
+        Three-letter team abbreviation for the defending team (e.g. ``"MIL"``).
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_rankings:
+        Pre-built ``{team: DefensiveSpotUpStats}`` mapping; defaults to the
+        full 30-team dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or team cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"player"``         : player name
+        - ``"team"``           : player's team abbreviation
+        - ``"gp"``             : games played
+        - ``"freq_pct"``       : player's spot-up frequency %
+        - ``"ppp"``            : player's spot-up PPP
+        - ``"pts"``            : player's spot-up points per game
+        - ``"off_percentile"`` : player's offensive spot-up percentile
+        - ``"opponent"``       : opponent team abbreviation
+        - ``"def_ppp"``        : opponent's spot-up PPP allowed
+        - ``"def_freq_pct"``   : opponent's spot-up frequency allowed %
+        - ``"def_percentile"`` : opponent's spot-up defensive percentile
+        - ``"edge"``           : player PPP − opponent defensive PPP
+        - ``"verdict"``        : ``"FAVORABLE"``, ``"NEUTRAL"``, or ``"TOUGH"``
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_spot_up_stats()
+    if defensive_rankings is None:
+        defensive_rankings = build_spot_up_defensive_rankings()
 
     player_stat = next(
         (s for s in offensive_stats if s.player.lower() == player_name.lower()),
