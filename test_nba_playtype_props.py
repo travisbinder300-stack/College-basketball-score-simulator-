@@ -1625,7 +1625,7 @@ class TestBuildOffensiveIsolationStats(unittest.TestCase):
         self.assertIsInstance(self.stats, list)
 
     def test_fifty_players_present(self):
-        self.assertEqual(len(self.stats), 150)
+        self.assertEqual(len(self.stats), 200)
 
     def test_all_items_are_offensive_isolation_stats(self):
         for s in self.stats:
@@ -1703,6 +1703,55 @@ class TestBuildOffensiveIsolationStats(unittest.TestCase):
         self.assertAlmostEqual(ace.ppp, 0.67)
         self.assertAlmostEqual(ace.tov_freq_pct, 15.2)
         self.assertAlmostEqual(ace.percentile, 12.9)
+
+    def test_batch4_players_present(self):
+        """All 50 batch-4 isolation players are present in the dataset."""
+        names = {s.player for s in self.stats}
+        expected = {
+            "Dennis Schröder", "Caris LeVert", "Day'Ron Sharpe", "Bruce Brown",
+            "Marcus Smart", "Jaden McDaniels", "Jalen Green", "Will Riley",
+            "Jaylen Wells", "Jordan Clarkson", "Collin Gillespie", "Oso Ighodaro",
+            "Scoot Henderson", "Jose Alvarado", "Jaden Ivey", "Kobe Sanders",
+            "Mikal Bridges", "Khris Middleton", "Naz Reid", "Bilal Coulibaly",
+            "Anfernee Simons", "Tristan Vukcevic", "Ousmane Dieng", "Kyle Anderson",
+            "Miles McBride", "Trae Young", "Tobias Harris", "Josh Hart",
+            "Buddy Hield", "Jalen Pickett", "Devin Carter", "Rob Dillingham",
+            "Kentavious Caldwell-Pope", "Isaac Okoro", "RJ Barrett", "Nolan Traore",
+            "Herbert Jones", "T.J. McConnell", "Jonas Valančiūnas", "Onyeka Okongwu",
+            "Ronald Holland II", "Nique Clifford", "Cole Anthony", "Cam Spencer",
+            "Pat Spencer", "Ayo Dosunmu", "Myles Turner", "Jamaree Bouyea",
+            "Jarrett Allen",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_scoot_henderson_fields(self):
+        """Scoot Henderson (POR, 9 GP) batch-4 entry has correct stats."""
+        scoot = next(s for s in self.stats if s.player == "Scoot Henderson")
+        self.assertEqual(scoot.team, "POR")
+        self.assertEqual(scoot.gp, 9)
+        self.assertAlmostEqual(scoot.ppp, 1.42)
+        self.assertAlmostEqual(scoot.ft_freq_pct, 33.3)
+        self.assertAlmostEqual(scoot.percentile, 98.4)
+
+    def test_collin_sexton_chi_fields(self):
+        """Collin Sexton (CHI, 8 GP) batch-4 entry has correct stats."""
+        sexton = next(
+            s for s in self.stats if s.player == "Collin Sexton" and s.team == "CHI"
+        )
+        self.assertEqual(sexton.gp, 8)
+        self.assertAlmostEqual(sexton.ppp, 1.50)
+        self.assertAlmostEqual(sexton.fg_pct, 66.7)
+        self.assertAlmostEqual(sexton.percentile, 99.6)
+
+    def test_jarrett_allen_fields(self):
+        """Jarrett Allen (CLE) batch-4 entry has correct stats."""
+        allen = next(s for s in self.stats if s.player == "Jarrett Allen")
+        self.assertEqual(allen.team, "CLE")
+        self.assertEqual(allen.gp, 47)
+        self.assertAlmostEqual(allen.ppp, 0.86)
+        self.assertAlmostEqual(allen.tov_freq_pct, 28.6)
+        self.assertAlmostEqual(allen.percentile, 47.7)
 
 
 class TestRankPlayersByOffensiveIsolation(unittest.TestCase):
