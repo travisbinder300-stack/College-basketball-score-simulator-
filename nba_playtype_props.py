@@ -2146,6 +2146,29 @@ def _print_analysis(result: Dict) -> None:
     print(f"{'=' * 60}\n")
 
 
+def _print_transition_matchups(
+    matchups: List[Dict],
+    title: str = "Top Offensive Transition Matchups vs Weak Transition Defenses",
+) -> None:
+    """Pretty-print the results of :func:`match_all_transition_matchups`."""
+    print(f"\n{'=' * 72}")
+    print(f"  {title}")
+    print(f"{'=' * 72}")
+    print(
+        f"  {'#':>3}  {'Player':<25} {'Tm':<4}  {'Off%':>5}  {'PPP':>5}"
+        f"  {'vs':<4}  {'DefPPP':>6}  {'Def%':>5}  {'Edge':>6}"
+    )
+    print(f"  {'-' * 68}")
+    for i, m in enumerate(matchups, 1):
+        print(
+            f"  {i:>3}. {m['player']:<25} {m['team']:<4}  "
+            f"{m['off_percentile']:>5.1f}  {m['ppp']:>5.2f}  "
+            f"{m['opponent']:<4}  {m['def_ppp']:>6.2f}  "
+            f"{m['def_percentile']:>5.1f}  {m['edge']:>+6.3f}"
+        )
+    print(f"{'=' * 72}\n")
+
+
 def main() -> None:
     players = build_sample_players()
     defenses = build_sample_defenses()
@@ -2167,6 +2190,10 @@ def main() -> None:
     curry = next(p for p in players if "Curry" in p.name)
     result = analyze_matchup(curry, defense_map["OKC"], players)
     _print_analysis(result)
+
+    # Transition matchups: top offensive players vs weak transition defenses
+    matchups = match_all_transition_matchups(top_n=25, max_def_percentile=40.0)
+    _print_transition_matchups(matchups)
 
 
 if __name__ == "__main__":
