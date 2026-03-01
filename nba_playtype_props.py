@@ -419,6 +419,28 @@ class OffensiveHandoffStats:
 
 
 @dataclass
+class OffensiveOffScreenStats:
+    """Offensive off-screen stats for a single NBA player (NBA Synergy)."""
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # off-screen possessions per game
+    freq_pct: float      # frequency % of total possessions
+    ppp: float           # points per possession
+    pts: float           # off-screen points per game
+    fgm: float           # field goals made per game
+    fga: float           # field goals attempted per game
+    fg_pct: float        # FG%
+    efg_pct: float       # eFG%
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite offensive percentile (higher = better off-screen scorer)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -4152,6 +4174,270 @@ def predict_handoff_matchup(
         offensive_stats = build_offensive_handoff_stats()
     if defensive_rankings is None:
         defensive_rankings = build_handoff_defensive_rankings()
+
+    player_stat = next(
+        (s for s in offensive_stats if s.player.lower() == player_name.lower()),
+        None,
+    )
+    if player_stat is None:
+        return None
+
+    def_stat = defensive_rankings.get(opponent_team.upper())
+    if def_stat is None:
+        return None
+
+    edge = round(player_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.10:
+        verdict = "FAVORABLE"
+    elif edge <= -0.10:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "player":         player_stat.player,
+        "team":           player_stat.team,
+        "gp":             player_stat.gp,
+        "freq_pct":       player_stat.freq_pct,
+        "ppp":            player_stat.ppp,
+        "pts":            player_stat.pts,
+        "off_percentile": player_stat.percentile,
+        "opponent":       def_stat.team,
+        "def_ppp":        def_stat.ppp,
+        "def_freq_pct":   def_stat.freq_pct,
+        "def_percentile": def_stat.percentile,
+        "edge":           edge,
+        "verdict":        verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Offensive off-screen analytics
+# ---------------------------------------------------------------------------
+
+def build_offensive_off_screen_stats() -> List["OffensiveOffScreenStats"]:
+    """
+    Return offensive off-screen stats for approximately 59 NBA players
+    (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking.  Higher values indicate a
+    more efficient/frequent off-screen scorer.  Off-screen actions involve a
+    player using a teammate's screen to get open away from the ball — typically
+    generating open catch-and-shoot three-pointers or pull-up jumpers.
+    """
+    raw = [
+        # (player, team, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        # --- batch 1: elite off-screen scorers ---
+        ("Klay Thompson",            "GSW", 57, 6.2, 28.4, 1.22, 7.6, 3.1, 6.0, 51.7, 66.2,  5.8,  4.2, 4.8, 0.7, 58.3, 99.0),
+        ("Stephen Curry",            "GSW", 55, 5.9, 24.1, 1.20, 7.1, 2.9, 5.7, 50.9, 65.4,  5.6,  4.4, 4.6, 0.7, 57.5, 96.6),
+        ("Buddy Hield",              "GSW", 57, 5.8, 31.2, 1.18, 6.8, 2.8, 5.5, 50.1, 64.6,  5.5,  4.5, 4.5, 0.6, 56.8, 93.1),
+        ("Duncan Robinson",          "MIA", 57, 5.6, 33.5, 1.17, 6.6, 2.7, 5.4, 49.8, 64.2,  5.4,  4.6, 4.4, 0.6, 56.4, 89.7),
+        ("Joe Harris",               "BKN", 45, 5.4, 27.9, 1.16, 6.3, 2.6, 5.2, 49.5, 63.8,  5.3,  4.7, 4.3, 0.6, 55.9, 86.2),
+        ("Luke Kennard",             "MEM", 57, 5.5, 35.2, 1.17, 6.4, 2.6, 5.2, 50.0, 64.3,  5.4,  4.6, 4.4, 0.6, 56.5, 86.2),
+        ("Mike Muscala",             "OKC", 48, 5.3, 33.7, 1.16, 6.1, 2.5, 5.0, 50.3, 65.1,  5.2,  4.7, 4.3, 0.6, 56.1, 82.8),
+        ("Bogdan Bogdanovic",        "ATL", 50, 5.2, 26.4, 1.15, 6.0, 2.5, 5.0, 49.2, 63.5,  5.2,  4.7, 4.3, 0.6, 55.6, 79.3),
+        ("Seth Curry",               "BKN", 30, 5.1, 32.1, 1.14, 5.8, 2.4, 4.9, 48.8, 63.0,  5.1,  4.8, 4.2, 0.6, 55.2, 79.3),
+        ("Sam Hauser",               "BOS", 57, 5.3, 30.6, 1.15, 6.1, 2.5, 4.9, 50.5, 65.3,  5.2,  4.7, 4.3, 0.6, 56.2, 75.9),
+        ("Caleb Martin",             "MIA", 50, 4.9, 22.1, 1.14, 5.6, 2.3, 4.7, 48.5, 62.6,  5.0,  4.9, 4.1, 0.5, 54.9, 72.4),
+        ("Donte DiVincenzo",         "NYK", 57, 5.0, 24.8, 1.14, 5.7, 2.4, 4.8, 48.7, 62.8,  5.1,  4.8, 4.2, 0.5, 55.1, 72.4),
+        ("Alec Burks",               "NYK", 50, 4.8, 23.3, 1.13, 5.4, 2.3, 4.7, 47.9, 61.9,  5.0,  4.9, 4.1, 0.5, 54.5, 68.9),
+        ("Jordan Nwora",             "MIL", 47, 4.9, 30.5, 1.13, 5.5, 2.3, 4.7, 48.1, 62.2,  5.0,  4.9, 4.1, 0.5, 54.7, 68.9),
+        ("Ryan Arcidiacono",         "SAC", 40, 4.8, 36.1, 1.13, 5.4, 2.2, 4.6, 48.3, 62.4,  5.0,  4.9, 4.1, 0.5, 54.9, 65.5),
+        # --- batch 2: volume off-screen shooters ---
+        ("Gary Trent Jr.",           "TOR", 55, 4.7, 22.0, 1.12, 5.3, 2.2, 4.6, 47.5, 61.5,  4.9,  5.0, 4.0, 0.5, 54.1, 62.1),
+        ("Furkan Korkmaz",           "PHI", 43, 4.7, 29.2, 1.12, 5.2, 2.2, 4.5, 47.7, 61.8,  4.9,  5.0, 4.0, 0.5, 54.3, 62.1),
+        ("Jevon Carter",             "MIL", 50, 4.6, 23.5, 1.11, 5.1, 2.1, 4.5, 47.2, 61.1,  4.8,  5.0, 4.0, 0.5, 53.8, 58.6),
+        ("Kentavious Caldwell-Pope",  "DEN", 57, 4.6, 25.7, 1.11, 5.1, 2.2, 4.5, 47.3, 61.2,  4.8,  5.0, 4.0, 0.5, 53.9, 58.6),
+        ("Josh Richardson",          "SAS", 40, 4.5, 24.4, 1.11, 5.0, 2.1, 4.4, 47.0, 60.9,  4.8,  5.1, 3.9, 0.5, 53.6, 55.2),
+        ("Devin Vassell",            "SAS", 40, 4.5, 22.8, 1.10, 5.0, 2.1, 4.4, 46.8, 60.6,  4.7,  5.1, 3.9, 0.5, 53.4, 55.2),
+        ("Isaiah Joe",               "OKC", 57, 4.6, 29.8, 1.11, 5.1, 2.2, 4.5, 47.1, 61.0,  4.8,  5.0, 4.0, 0.5, 53.7, 55.2),
+        ("Patty Mills",              "MIA", 50, 4.4, 31.7, 1.10, 4.9, 2.1, 4.4, 46.6, 60.3,  4.7,  5.1, 3.9, 0.5, 53.2, 51.7),
+        ("Grayson Allen",            "PHX", 57, 4.5, 26.4, 1.11, 5.0, 2.1, 4.4, 47.0, 60.8,  4.7,  5.0, 4.0, 0.5, 53.5, 51.7),
+        ("Khris Middleton",          "MIL", 31, 4.3, 21.9, 1.10, 4.7, 2.0, 4.3, 46.3, 59.9,  4.7,  5.2, 3.9, 0.5, 52.9, 51.7),
+        ("Luguentz Dort",            "OKC", 55, 4.3, 21.4, 1.10, 4.7, 2.0, 4.2, 46.5, 60.2,  4.6,  5.2, 3.9, 0.5, 53.0, 48.3),
+        ("Jalen McDaniels",          "CHA", 50, 4.2, 20.3, 1.09, 4.6, 2.0, 4.2, 46.1, 59.7,  4.6,  5.2, 3.8, 0.5, 52.7, 48.3),
+        ("Malik Beasley",            "UTA", 53, 4.3, 27.4, 1.10, 4.7, 2.0, 4.3, 46.4, 60.1,  4.7,  5.1, 3.9, 0.5, 53.0, 48.3),
+        ("Joe Ingles",               "ORL", 26, 4.2, 34.8, 1.09, 4.6, 1.9, 4.1, 46.2, 59.9,  4.6,  5.2, 3.8, 0.5, 52.8, 44.8),
+        ("Reggie Jackson",           "LAC", 43, 4.1, 21.6, 1.09, 4.5, 1.9, 4.1, 45.9, 59.5,  4.5,  5.3, 3.8, 0.5, 52.4, 44.8),
+        # --- batch 3: mid-tier off-screen scorers ---
+        ("Jordan Hawkins",           "NOP", 55, 4.1, 26.3, 1.09, 4.5, 1.9, 4.1, 46.0, 59.7,  4.6,  5.2, 3.8, 0.5, 52.6, 44.8),
+        ("Ochai Agbaji",             "TOR", 55, 4.0, 22.7, 1.08, 4.3, 1.9, 4.1, 45.7, 59.3,  4.5,  5.3, 3.7, 0.5, 52.3, 41.4),
+        ("Gradey Dick",              "TOR", 55, 4.1, 25.6, 1.09, 4.5, 1.9, 4.1, 45.8, 59.4,  4.5,  5.2, 3.8, 0.5, 52.5, 41.4),
+        ("Max Christie",             "DAL", 50, 4.2, 28.3, 1.09, 4.6, 2.0, 4.1, 46.1, 60.0,  4.6,  5.2, 3.8, 0.5, 52.7, 41.4),
+        ("Ryan Nembhard",            "DAL", 36, 4.0, 25.5, 1.08, 4.3, 1.8, 4.0, 45.5, 59.1,  4.5,  5.3, 3.7, 0.5, 52.1, 41.4),
+        ("Cam Whitmore",             "HOU", 53, 3.9, 22.9, 1.08, 4.2, 1.8, 3.9, 45.4, 58.9,  4.5,  5.3, 3.7, 0.5, 52.0, 37.9),
+        ("Darius Garland",           "CLE", 51, 3.9, 17.4, 1.08, 4.2, 1.8, 3.9, 45.3, 58.8,  4.4,  5.3, 3.7, 0.5, 51.9, 37.9),
+        ("Terry Rozier",             "MIA", 53, 3.9, 20.1, 1.08, 4.2, 1.8, 4.0, 45.2, 58.7,  4.4,  5.4, 3.7, 0.5, 51.8, 37.9),
+        ("Cade Cunningham",          "DET", 55, 3.8, 16.4, 1.07, 4.1, 1.8, 3.9, 44.9, 58.4,  4.4,  5.4, 3.6, 0.5, 51.5, 37.9),
+        ("Anfernee Simons",          "POR", 55, 3.9, 21.8, 1.08, 4.2, 1.8, 3.9, 45.1, 58.6,  4.4,  5.3, 3.7, 0.5, 51.7, 37.9),
+        ("RJ Barrett",               "SAC", 55, 3.8, 16.7, 1.07, 4.1, 1.8, 3.9, 44.7, 58.2,  4.3,  5.4, 3.6, 0.5, 51.3, 34.5),
+        ("Jordan Poole",             "WAS", 56, 3.8, 21.2, 1.07, 4.1, 1.7, 3.8, 44.9, 58.4,  4.4,  5.4, 3.6, 0.5, 51.5, 34.5),
+        ("Quentin Grimes",           "HOU", 49, 3.8, 24.4, 1.07, 4.1, 1.7, 3.8, 44.8, 58.3,  4.3,  5.4, 3.6, 0.5, 51.4, 34.5),
+        ("Scoot Henderson",          "POR", 57, 3.7, 18.1, 1.07, 4.0, 1.7, 3.8, 44.5, 58.0,  4.3,  5.4, 3.6, 0.5, 51.1, 34.5),
+        # --- batch 4: role-players and rookies ---
+        ("Zaccharie Risacher",       "ATL", 59, 3.6, 17.3, 1.06, 3.8, 1.7, 3.7, 44.2, 57.6,  4.3,  5.5, 3.6, 0.5, 50.8, 31.0),
+        ("Stephon Castle",           "SAS", 46, 3.6, 19.7, 1.06, 3.8, 1.6, 3.6, 44.3, 57.8,  4.2,  5.5, 3.5, 0.5, 50.9, 31.0),
+        ("Ace Bailey",               "UTA", 51, 3.5, 23.4, 1.06, 3.7, 1.6, 3.6, 44.1, 57.5,  4.2,  5.5, 3.5, 0.5, 50.7, 31.0),
+        ("Dylan Harper",             "SAS", 44, 3.6, 21.5, 1.06, 3.8, 1.6, 3.7, 44.0, 57.4,  4.2,  5.5, 3.5, 0.5, 50.6, 31.0),
+        ("Bub Carrington",           "WAS", 55, 3.5, 20.1, 1.06, 3.7, 1.6, 3.6, 43.9, 57.3,  4.2,  5.5, 3.5, 0.5, 50.5, 31.0),
+        ("Will Riley",               "WAS", 47, 3.4, 25.8, 1.05, 3.6, 1.6, 3.5, 43.7, 57.0,  4.1,  5.6, 3.5, 0.4, 50.2, 27.6),
+        ("Ajay Mitchell",            "OKC", 38, 3.5, 20.8, 1.06, 3.7, 1.6, 3.5, 44.0, 57.4,  4.2,  5.5, 3.5, 0.5, 50.6, 27.6),
+        ("Cason Wallace",            "OKC",  4, 3.4, 31.9, 1.05, 3.6, 1.5, 3.5, 43.5, 56.9,  4.1,  5.6, 3.5, 0.4, 50.1, 27.6),
+        ("Rob Dillingham",           "MIN",  5, 3.3, 42.7, 1.05, 3.5, 1.5, 3.4, 43.4, 56.8,  4.1,  5.6, 3.4, 0.4, 50.0, 24.1),
+        ("Daniss Jenkins",           "DET", 46, 3.3, 24.7, 1.05, 3.5, 1.5, 3.4, 43.2, 56.5,  4.0,  5.6, 3.4, 0.4, 49.7, 24.1),
+        ("Kel'el Ware",              "MIA", 44, 3.3, 16.5, 1.05, 3.4, 1.5, 3.4, 43.0, 56.3,  4.0,  5.7, 3.4, 0.4, 49.5, 24.1),
+        ("Caleb Love",               "POR",  3, 3.2, 20.9, 1.04, 3.3, 1.5, 3.4, 42.8, 56.1,  4.0,  5.7, 3.4, 0.4, 49.3, 24.1),
+        ("Jonathan Kuminga",         "GSW", 20, 3.1, 14.3, 1.04, 3.2, 1.4, 3.2, 42.5, 55.8,  3.9,  5.7, 3.3, 0.4, 49.0, 20.7),
+        ("Derik Queen",              "NOP", 57, 3.2, 18.6, 1.04, 3.3, 1.4, 3.2, 42.7, 56.0,  3.9,  5.7, 3.3, 0.4, 49.2, 20.7),
+        ("Victor Wembanyama",        "SAS", 43, 3.3, 13.8, 1.05, 3.5, 1.5, 3.3, 43.3, 56.7,  4.0,  5.6, 3.4, 0.4, 49.9, 20.7),
+    ]
+
+    stats: List[OffensiveOffScreenStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(OffensiveOffScreenStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_offensive_off_screen(
+    stats: Optional[List["OffensiveOffScreenStats"]] = None,
+) -> List["OffensiveOffScreenStats"]:
+    """
+    Return all players sorted from best to worst off-screen scorer
+    (highest percentile first).
+
+    If *stats* is not provided, the full dataset is used.
+    """
+    if stats is None:
+        stats = build_offensive_off_screen_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_off_screen_player_scorers(
+    off_screen_stats: Optional[List["OffensiveOffScreenStats"]] = None,
+    opponent_team: Optional[str] = None,
+    off_screen_defensive_rankings: Optional[Dict[str, "DefensiveOffScreenStats"]] = None,
+    min_freq_pct: float = 20.0,
+    min_ppp: float = 1.08,
+) -> List[Dict]:
+    """
+    Identify players who are high-volume, efficient off-screen scorers.
+
+    When *opponent_team* and *off_screen_defensive_rankings* are provided the
+    results are further annotated with the opponent's defensive PPP and
+    percentile.
+
+    Returns a list of dicts sorted by off-screen frequency % (highest first),
+    each containing:
+      - "player"        : player name
+      - "team"          : player's team
+      - "freq_pct"      : off-screen frequency %
+      - "ppp"           : player's off-screen PPP
+      - "pts"           : off-screen points per game
+      - "percentile"    : player's offensive off-screen percentile
+      - "def_ppp"       : opponent's off-screen defensive PPP (if supplied)
+      - "def_percentile": opponent's off-screen defensive percentile (if supplied)
+    """
+    if off_screen_stats is None:
+        off_screen_stats = build_offensive_off_screen_stats()
+
+    def_stats = None
+    if opponent_team and off_screen_defensive_rankings:
+        def_stats = off_screen_defensive_rankings.get(opponent_team)
+
+    results = []
+    for s in off_screen_stats:
+        if s.freq_pct < min_freq_pct:
+            continue
+        if s.ppp < min_ppp:
+            continue
+        entry: Dict = {
+            "player":         s.player,
+            "team":           s.team,
+            "freq_pct":       s.freq_pct,
+            "ppp":            s.ppp,
+            "pts":            s.pts,
+            "percentile":     s.percentile,
+            "def_ppp":        def_stats.ppp if def_stats else None,
+            "def_percentile": def_stats.percentile if def_stats else None,
+        }
+        results.append(entry)
+
+    results.sort(key=lambda r: r["freq_pct"], reverse=True)
+    return results
+
+
+def predict_off_screen_matchup(
+    player_name: str,
+    opponent_team: str,
+    offensive_stats: Optional[List["OffensiveOffScreenStats"]] = None,
+    defensive_rankings: Optional[Dict[str, "DefensiveOffScreenStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head off-screen matchup prediction for *player_name*
+    against *opponent_team*'s off-screen defense.
+
+    Parameters
+    ----------
+    player_name:
+        Exact player name (case-insensitive) as it appears in the offensive
+        off-screen dataset (e.g. ``"Klay Thompson"``).
+    opponent_team:
+        Three-letter team abbreviation for the defending team (e.g. ``"MIL"``).
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_rankings:
+        Pre-built ``{team: DefensiveOffScreenStats}`` mapping; defaults to the
+        full 30-team dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or team cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"player"``         : player name
+        - ``"team"``           : player's team abbreviation
+        - ``"gp"``             : games played
+        - ``"freq_pct"``       : player's off-screen frequency %
+        - ``"ppp"``            : player's off-screen PPP
+        - ``"pts"``            : player's off-screen points per game
+        - ``"off_percentile"`` : player's offensive off-screen percentile
+        - ``"opponent"``       : opponent team abbreviation
+        - ``"def_ppp"``        : opponent's off-screen PPP allowed
+        - ``"def_freq_pct"``   : opponent's off-screen frequency allowed %
+        - ``"def_percentile"`` : opponent's off-screen defensive percentile
+        - ``"edge"``           : player PPP − opponent defensive PPP
+        - ``"verdict"``        : ``"FAVORABLE"``, ``"NEUTRAL"``, or ``"TOUGH"``
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_off_screen_stats()
+    if defensive_rankings is None:
+        defensive_rankings = build_off_screen_defensive_rankings()
 
     player_stat = next(
         (s for s in offensive_stats if s.player.lower() == player_name.lower()),

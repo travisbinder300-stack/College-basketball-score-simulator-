@@ -23,6 +23,7 @@ from nba_playtype_props import (
     OffensivePostUpStats,
     OffensiveSpotUpStats,
     OffensiveHandoffStats,
+    OffensiveOffScreenStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -78,6 +79,10 @@ from nba_playtype_props import (
     rank_players_by_offensive_handoff,
     find_handoff_player_scorers,
     predict_handoff_matchup,
+    build_offensive_off_screen_stats,
+    rank_players_by_offensive_off_screen,
+    find_off_screen_player_scorers,
+    predict_off_screen_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -3724,6 +3729,328 @@ class TestPredictHandoffMatchup(unittest.TestCase):
         result = predict_handoff_matchup("Tyrese Haliburton", "WAS")
         self.assertIsNotNone(result)
         self.assertEqual(result["player"], "Tyrese Haliburton")
+
+
+# ===========================================================================
+# Offensive off-screen analytics tests
+# ===========================================================================
+
+class TestBuildOffensiveOffScreenStats(unittest.TestCase):
+    """Tests for build_offensive_off_screen_stats()."""
+
+    def setUp(self):
+        self.stats = build_offensive_off_screen_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 55)
+
+    def test_all_items_are_offensive_off_screen_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, OffensiveOffScreenStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_klay_thompson_fields(self):
+        """Klay Thompson data validation."""
+        klay = next(s for s in self.stats if s.player == "Klay Thompson")
+        self.assertEqual(klay.team, "GSW")
+        self.assertAlmostEqual(klay.ppp, 1.22)
+        self.assertAlmostEqual(klay.percentile, 99.0)
+
+    def test_stephen_curry_fields(self):
+        """Stephen Curry spot-check."""
+        curry = next(s for s in self.stats if s.player == "Stephen Curry")
+        self.assertEqual(curry.team, "GSW")
+        self.assertEqual(curry.gp, 55)
+        self.assertAlmostEqual(curry.ppp, 1.20)
+        self.assertAlmostEqual(curry.percentile, 96.6)
+
+    def test_batch1_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Klay Thompson", "Stephen Curry", "Buddy Hield", "Duncan Robinson",
+            "Joe Harris", "Luke Kennard", "Mike Muscala", "Bogdan Bogdanovic",
+            "Seth Curry", "Sam Hauser", "Caleb Martin", "Donte DiVincenzo",
+            "Alec Burks", "Jordan Nwora", "Ryan Arcidiacono",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-1 players: {missing}")
+
+    def test_batch2_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Gary Trent Jr.", "Furkan Korkmaz", "Jevon Carter",
+            "Kentavious Caldwell-Pope", "Josh Richardson", "Devin Vassell",
+            "Isaiah Joe", "Patty Mills", "Grayson Allen", "Khris Middleton",
+            "Luguentz Dort", "Jalen McDaniels", "Malik Beasley",
+            "Joe Ingles", "Reggie Jackson",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-2 players: {missing}")
+
+    def test_batch3_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Jordan Hawkins", "Ochai Agbaji", "Gradey Dick", "Max Christie",
+            "Ryan Nembhard", "Cam Whitmore", "Darius Garland", "Terry Rozier",
+            "Cade Cunningham", "Anfernee Simons", "RJ Barrett", "Jordan Poole",
+            "Quentin Grimes", "Scoot Henderson",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_batch4_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Zaccharie Risacher", "Stephon Castle", "Ace Bailey", "Dylan Harper",
+            "Bub Carrington", "Will Riley", "Ajay Mitchell", "Cason Wallace",
+            "Rob Dillingham", "Daniss Jenkins", "Kel'el Ware", "Caleb Love",
+            "Jonathan Kuminga", "Derik Queen", "Victor Wembanyama",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_victor_wembanyama_fields(self):
+        """Victor Wembanyama (batch-4) spot-check."""
+        vw = next(s for s in self.stats if s.player == "Victor Wembanyama")
+        self.assertEqual(vw.team, "SAS")
+        self.assertEqual(vw.gp, 43)
+        self.assertAlmostEqual(vw.ppp, 1.05)
+        self.assertAlmostEqual(vw.percentile, 20.7)
+
+    def test_sam_hauser_fields(self):
+        """Sam Hauser (batch-1) spot-check."""
+        hauser = next(s for s in self.stats if s.player == "Sam Hauser")
+        self.assertEqual(hauser.team, "BOS")
+        self.assertAlmostEqual(hauser.ppp, 1.15)
+        self.assertAlmostEqual(hauser.percentile, 75.9)
+
+
+class TestRankPlayersByOffensiveOffScreen(unittest.TestCase):
+    """Tests for rank_players_by_offensive_off_screen()."""
+
+    def setUp(self):
+        self.stats = build_offensive_off_screen_stats()
+        self.ranked = rank_players_by_offensive_off_screen(self.stats)
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_same_length_as_input(self):
+        self.assertEqual(len(self.ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        for i in range(len(self.ranked) - 1):
+            self.assertGreaterEqual(
+                self.ranked[i].percentile, self.ranked[i + 1].percentile
+            )
+
+    def test_first_has_highest_percentile(self):
+        max_pct = max(s.percentile for s in self.stats)
+        self.assertAlmostEqual(self.ranked[0].percentile, max_pct)
+
+    def test_default_dataset_used_when_none(self):
+        ranked_default = rank_players_by_offensive_off_screen()
+        self.assertGreater(len(ranked_default), 0)
+
+
+class TestFindOffScreenPlayerScorers(unittest.TestCase):
+    """Tests for find_off_screen_player_scorers()."""
+
+    def setUp(self):
+        self.off_screen_stats = build_offensive_off_screen_stats()
+        self.def_rankings = build_off_screen_defensive_rankings()
+
+    def test_returns_list(self):
+        results = find_off_screen_player_scorers(self.off_screen_stats)
+        self.assertIsInstance(results, list)
+
+    def test_all_pass_freq_threshold(self):
+        min_freq = 25.0
+        results = find_off_screen_player_scorers(self.off_screen_stats, min_freq_pct=min_freq)
+        for r in results:
+            self.assertGreaterEqual(r["freq_pct"], min_freq)
+
+    def test_all_pass_ppp_threshold(self):
+        min_ppp = 1.15
+        results = find_off_screen_player_scorers(self.off_screen_stats, min_ppp=min_ppp)
+        for r in results:
+            self.assertGreaterEqual(r["ppp"], min_ppp)
+
+    def test_sorted_by_freq_pct_descending(self):
+        results = find_off_screen_player_scorers(self.off_screen_stats)
+        for i in range(len(results) - 1):
+            self.assertGreaterEqual(results[i]["freq_pct"], results[i + 1]["freq_pct"])
+
+    def test_result_has_required_keys(self):
+        results = find_off_screen_player_scorers(self.off_screen_stats)
+        if results:
+            for k in ("player", "team", "freq_pct", "ppp", "pts",
+                      "percentile", "def_ppp", "def_percentile"):
+                self.assertIn(k, results[0].keys())
+
+    def test_def_ppp_none_when_no_opponent(self):
+        results = find_off_screen_player_scorers(self.off_screen_stats)
+        for r in results:
+            self.assertIsNone(r["def_ppp"])
+            self.assertIsNone(r["def_percentile"])
+
+    def test_def_ppp_populated_with_opponent(self):
+        results = find_off_screen_player_scorers(
+            self.off_screen_stats, "WAS", self.def_rankings
+        )
+        for r in results:
+            self.assertIsNotNone(r["def_ppp"])
+            self.assertIsNotNone(r["def_percentile"])
+
+    def test_klay_in_top_scorers(self):
+        results = find_off_screen_player_scorers(
+            self.off_screen_stats, min_freq_pct=25.0, min_ppp=1.15
+        )
+        players = [r["player"] for r in results]
+        self.assertIn("Klay Thompson", players)
+
+
+class TestPredictOffScreenMatchup(unittest.TestCase):
+    """Tests for predict_off_screen_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_off_screen_stats()
+        self.def_rankings = build_off_screen_defensive_rankings()
+
+    def test_returns_dict_for_known_player_and_team(self):
+        result = predict_off_screen_matchup(
+            "Klay Thompson", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = predict_off_screen_matchup(
+            "Klay Thompson", "WAS", self.off_stats, self.def_rankings
+        )
+        for k in ("player", "team", "gp", "freq_pct", "ppp", "pts",
+                  "off_percentile", "opponent", "def_ppp", "def_freq_pct",
+                  "def_percentile", "edge", "verdict"):
+            self.assertIn(k, result)
+
+    def test_player_and_opponent_fields(self):
+        result = predict_off_screen_matchup(
+            "Klay Thompson", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["player"], "Klay Thompson")
+        self.assertEqual(result["opponent"], "WAS")
+
+    def test_verdict_favorable_for_large_positive_edge(self):
+        """A top off-screen scorer vs a weak off-screen defense → FAVORABLE."""
+        strong_player = OffensiveOffScreenStats(
+            player="Elite Shooter", team="TST", gp=55,
+            poss=5.5, freq_pct=28.0, ppp=1.28, pts=7.0,
+            fgm=2.8, fga=5.5, fg_pct=51.0, efg_pct=66.0,
+            ft_freq_pct=5.5, tov_freq_pct=4.0, sf_freq_pct=4.5,
+            and_one_freq_pct=0.7, score_freq_pct=60.0, percentile=95.0,
+        )
+        from nba_playtype_props import DefensiveOffScreenStats
+        weak_def = {"ZZZ": DefensiveOffScreenStats(
+            team="ZZZ", gp=55, poss=5.0, freq_pct=14.0, ppp=1.00,
+            pts=5.0, fgm=2.0, fga=4.0, fg_pct=50.0, efg_pct=64.0,
+            ft_freq_pct=5.0, tov_freq_pct=5.0, sf_freq_pct=4.0,
+            and_one_freq_pct=0.5, score_freq_pct=56.0, percentile=4.0,
+        )}
+        result = predict_off_screen_matchup(
+            "Elite Shooter", "ZZZ", [strong_player], weak_def
+        )
+        # edge = 1.28 - 1.00 = 0.28 → FAVORABLE
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    def test_verdict_tough_for_large_negative_edge(self):
+        """A below-average off-screen scorer vs elite off-screen defense → TOUGH."""
+        weak_player = OffensiveOffScreenStats(
+            player="Cold Shooter", team="TST", gp=55,
+            poss=2.5, freq_pct=16.0, ppp=0.88, pts=2.2,
+            fgm=0.9, fga=2.6, fg_pct=34.0, efg_pct=44.0,
+            ft_freq_pct=4.0, tov_freq_pct=8.0, sf_freq_pct=3.2,
+            and_one_freq_pct=0.3, score_freq_pct=40.0, percentile=8.0,
+        )
+        from nba_playtype_props import DefensiveOffScreenStats
+        elite_def = {"ZZZ": DefensiveOffScreenStats(
+            team="ZZZ", gp=55, poss=4.0, freq_pct=10.0, ppp=1.12,
+            pts=4.5, fgm=1.8, fga=3.6, fg_pct=50.0, efg_pct=65.0,
+            ft_freq_pct=5.0, tov_freq_pct=4.5, sf_freq_pct=3.9,
+            and_one_freq_pct=0.5, score_freq_pct=58.0, percentile=97.0,
+        )}
+        result = predict_off_screen_matchup(
+            "Cold Shooter", "ZZZ", [weak_player], elite_def
+        )
+        # edge = 0.88 - 1.12 = -0.24 → TOUGH
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        avg_player = OffensiveOffScreenStats(
+            player="Avg Shooter", team="TST", gp=55,
+            poss=4.0, freq_pct=22.0, ppp=1.10, pts=4.4,
+            fgm=1.8, fga=3.8, fg_pct=47.0, efg_pct=61.0,
+            ft_freq_pct=5.0, tov_freq_pct=5.0, sf_freq_pct=4.0,
+            and_one_freq_pct=0.5, score_freq_pct=54.0, percentile=48.0,
+        )
+        from nba_playtype_props import DefensiveOffScreenStats
+        avg_def = {"ZZZ": DefensiveOffScreenStats(
+            team="ZZZ", gp=55, poss=4.5, freq_pct=12.0, ppp=1.08,
+            pts=4.9, fgm=1.9, fga=3.8, fg_pct=50.0, efg_pct=64.0,
+            ft_freq_pct=5.2, tov_freq_pct=4.8, sf_freq_pct=4.1,
+            and_one_freq_pct=0.5, score_freq_pct=57.0, percentile=45.0,
+        )}
+        # edge = 1.10 - 1.08 = 0.02 → NEUTRAL
+        result = predict_off_screen_matchup(
+            "Avg Shooter", "ZZZ", [avg_player], avg_def
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    def test_returns_none_for_unknown_player(self):
+        result = predict_off_screen_matchup(
+            "Nobody Famous", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_team(self):
+        result = predict_off_screen_matchup(
+            "Klay Thompson", "ZZZ", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_name(self):
+        result_lower = predict_off_screen_matchup(
+            "klay thompson", "WAS", self.off_stats, self.def_rankings
+        )
+        result_upper = predict_off_screen_matchup(
+            "KLAY THOMPSON", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result_lower)
+        self.assertIsNotNone(result_upper)
+        self.assertEqual(result_lower["player"], result_upper["player"])
+
+    def test_edge_equals_ppp_minus_def_ppp(self):
+        result = predict_off_screen_matchup(
+            "Stephen Curry", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["ppp"] - result["def_ppp"], 3)
+        )
+
+    def test_default_datasets_used_when_none(self):
+        result = predict_off_screen_matchup("Klay Thompson", "WAS")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["player"], "Klay Thompson")
 
 
 if __name__ == "__main__":
