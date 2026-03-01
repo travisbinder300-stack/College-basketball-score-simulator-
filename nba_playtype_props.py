@@ -491,6 +491,34 @@ class PlayerDefensiveIsolationStats:
 
 
 @dataclass
+class PlayerDefensiveTransitionStats:
+    """Defensive transition stats for a single NBA player (NBA Synergy).
+
+    Each record reflects how *this player* performs as a transition
+    *defender* — i.e. the stats allowed when the ball-handler attacks
+    them in a transition possession.  Higher percentile = better
+    transition defender (fewer points allowed per possession).
+    """
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # transition possessions defended per game
+    freq_pct: float      # % of total possessions that are transition vs this defender
+    ppp: float           # points per possession allowed
+    pts: float           # transition points allowed per game
+    fgm: float           # FGM allowed per game
+    fga: float           # FGA allowed per game
+    fg_pct: float        # FG% allowed
+    efg_pct: float       # eFG% allowed
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite defensive percentile (higher = better transition defender)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -2241,6 +2269,268 @@ def predict_transition_matchup(
         "verdict":        verdict,
     }
 
+
+# ---------------------------------------------------------------------------
+# Player-level defensive transition analytics
+# ---------------------------------------------------------------------------
+
+def build_player_defensive_transition_stats() -> List["PlayerDefensiveTransitionStats"]:
+    """
+    Return defensive transition stats for approximately 61 NBA players
+    (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite defensive ranking.  Higher values
+    indicate a better transition defender (fewer points allowed per possession).
+    Elite transition defenders get back quickly, limit ball advancement, and
+    contest shots before the offense can set up.
+    """
+    raw = [
+        # (player, team, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        # --- batch 1: elite transition defenders (percentile 82–99) ---
+        ("Rudy Gobert",              "MIN", 72, 3.4,  8.6, 0.76, 2.6, 1.0, 2.2, 46.2, 48.0, 12.4, 16.8, 6.2, 1.2, 31.4, 99.0),
+        ("Victor Wembanyama",        "SAS", 43, 3.1,  8.1, 0.78, 2.4, 1.0, 2.2, 46.8, 48.6, 12.8, 16.4, 6.4, 1.3, 32.0, 96.5),
+        ("Evan Mobley",              "CLE", 73, 3.2,  8.4, 0.79, 2.5, 1.0, 2.3, 47.1, 49.0, 13.0, 16.0, 6.5, 1.3, 32.4, 94.0),
+        ("Anthony Davis",            "LAL", 63, 3.3,  8.2, 0.80, 2.6, 1.1, 2.4, 47.4, 49.4, 13.2, 15.6, 6.6, 1.4, 32.8, 91.4),
+        ("Bam Adebayo",              "MIA", 71, 3.5,  9.3, 0.81, 2.8, 1.1, 2.5, 47.7, 49.8, 13.4, 15.2, 6.7, 1.4, 33.2, 88.9),
+        ("Chet Holmgren",            "OKC", 65, 3.0,  8.0, 0.82, 2.5, 1.0, 2.3, 48.0, 50.2, 13.6, 14.8, 6.8, 1.4, 33.6, 86.4),
+        ("Herb Jones",               "NOP", 56, 3.6, 11.4, 0.83, 3.0, 1.2, 2.6, 48.3, 50.6, 13.8, 14.4, 6.9, 1.5, 34.0, 83.9),
+        ("Kawhi Leonard",            "LAC", 19, 2.8,  9.6, 0.83, 2.3, 0.9, 2.2, 48.4, 50.8, 13.9, 14.2, 7.0, 1.5, 34.2, 83.9),
+        # --- batch 2: good transition defenders (percentile 61–80) ---
+        ("Draymond Green",           "GSW", 68, 3.0,  9.2, 0.84, 2.5, 1.0, 2.4, 48.6, 51.0, 14.0, 14.0, 7.0, 1.5, 34.5, 81.4),
+        ("Mikal Bridges",            "NYK", 74, 4.0, 12.6, 0.85, 3.4, 1.3, 2.8, 48.8, 51.2, 14.2, 13.8, 7.1, 1.5, 34.9, 78.9),
+        ("Jalen Suggs",              "ORL", 72, 3.4, 11.0, 0.86, 2.9, 1.1, 2.6, 49.0, 51.4, 14.4, 13.6, 7.2, 1.6, 35.3, 76.3),
+        ("OG Anunoby",               "NYK", 55, 3.8, 11.8, 0.87, 3.3, 1.3, 2.7, 49.2, 51.6, 14.6, 13.4, 7.3, 1.6, 35.7, 73.8),
+        ("Al Horford",               "BOS", 66, 2.6,  6.4, 0.87, 2.3, 0.9, 2.2, 49.3, 51.8, 14.7, 13.2, 7.3, 1.6, 35.9, 73.8),
+        ("Isaiah Hartenstein",       "OKC", 66, 3.1,  8.2, 0.88, 2.7, 1.1, 2.4, 49.5, 52.0, 14.9, 13.0, 7.4, 1.6, 36.2, 71.3),
+        ("Walker Kessler",           "UTA", 69, 2.8,  7.6, 0.88, 2.5, 1.0, 2.3, 49.6, 52.2, 15.0, 12.8, 7.5, 1.7, 36.4, 71.3),
+        ("Myles Turner",             "IND", 70, 2.7,  7.4, 0.89, 2.4, 1.0, 2.4, 49.8, 52.4, 15.2, 12.6, 7.6, 1.7, 36.8, 68.8),
+        ("Jimmy Butler",             "MIA", 60, 3.2,  9.6, 0.89, 2.8, 1.1, 2.6, 49.9, 52.6, 15.3, 12.4, 7.6, 1.7, 37.0, 68.8),
+        ("Scottie Barnes",           "TOR", 72, 3.8, 10.6, 0.90, 3.4, 1.3, 2.8, 50.1, 52.8, 15.5, 12.2, 7.7, 1.7, 37.4, 66.3),
+        ("Brook Lopez",              "MIL", 71, 2.5,  6.4, 0.90, 2.3, 0.9, 2.2, 50.2, 53.0, 15.6, 12.0, 7.8, 1.8, 37.6, 66.3),
+        # --- batch 3: average transition defenders (percentile 41–60) ---
+        ("Giannis Antetokounmpo",    "MIL", 73, 4.2,  9.0, 0.91, 3.8, 1.5, 3.0, 50.4, 53.2, 15.8, 11.8, 7.8, 1.8, 38.0, 63.8),
+        ("Robert Williams III",      "POR", 29, 2.4,  7.8, 0.91, 2.2, 0.9, 2.1, 50.5, 53.4, 15.9, 11.6, 7.9, 1.8, 38.2, 63.8),
+        ("Jabari Smith Jr.",         "HOU", 66, 3.4,  9.8, 0.92, 3.1, 1.2, 2.7, 50.7, 53.6, 16.1, 11.4, 8.0, 1.8, 38.6, 61.3),
+        ("Jalen Williams",           "OKC", 70, 3.8, 11.4, 0.92, 3.5, 1.4, 2.9, 50.8, 53.8, 16.2, 11.2, 8.1, 1.9, 38.8, 61.3),
+        ("Tari Eason",               "HOU", 72, 3.2, 10.4, 0.93, 3.0, 1.2, 2.7, 51.0, 54.0, 16.4, 11.0, 8.2, 1.9, 39.2, 58.8),
+        ("Luguentz Dort",            "OKC", 67, 3.6, 12.6, 0.93, 3.3, 1.3, 2.8, 51.1, 54.2, 16.5, 10.8, 8.2, 1.9, 39.4, 58.8),
+        ("Daniel Gafford",           "DAL", 58, 2.6,  6.8, 0.94, 2.4, 1.0, 2.4, 51.3, 54.4, 16.7, 10.6, 8.3, 1.9, 39.8, 56.3),
+        ("Mark Williams",            "CHA", 40, 2.5,  7.4, 0.95, 2.4, 1.0, 2.4, 51.6, 54.8, 17.0, 10.2, 8.5, 2.0, 40.4, 53.8),
+        ("De'Anthony Melton",        "PHI", 62, 3.4, 11.6, 0.95, 3.2, 1.3, 2.7, 51.7, 55.0, 17.1, 10.0, 8.6, 2.0, 40.6, 53.8),
+        ("Kentavious Caldwell-Pope", "ORL", 70, 3.2, 10.0, 0.96, 3.1, 1.2, 2.7, 51.9, 55.2, 17.3,  9.8, 8.7, 2.0, 41.0, 51.3),
+        ("Royce O'Neale",            "PHX", 65, 3.0,  8.8, 0.96, 2.9, 1.1, 2.6, 52.0, 55.4, 17.4,  9.6, 8.8, 2.1, 41.2, 51.3),
+        ("Jonathan Kuminga",         "GSW", 20, 3.4, 10.4, 0.97, 3.3, 1.3, 2.8, 52.2, 55.6, 17.6,  9.4, 8.9, 2.1, 41.6, 48.8),
+        ("Josh Hart",                "NYK", 72, 3.2,  9.4, 0.97, 3.1, 1.2, 2.7, 52.3, 55.8, 17.7,  9.2, 9.0, 2.1, 41.8, 48.8),
+        ("Dereck Lively II",         "DAL", 70, 2.4,  6.4, 0.98, 2.4, 1.0, 2.3, 52.5, 56.0, 17.9,  9.0, 9.0, 2.1, 42.2, 46.3),
+        ("Onyeka Okongwu",           "ATL", 67, 2.3,  6.2, 0.98, 2.3, 0.9, 2.2, 52.6, 56.2, 18.0,  8.8, 9.1, 2.2, 42.4, 46.3),
+        ("Jalen Duren",              "DET", 67, 2.7,  7.4, 0.99, 2.7, 1.1, 2.5, 52.8, 56.4, 18.2,  8.6, 9.2, 2.2, 42.8, 43.8),
+        ("Julius Randle",            "MIN", 65, 3.8, 10.8, 1.00, 3.8, 1.5, 3.0, 53.1, 56.8, 18.5,  8.2, 9.4, 2.2, 43.4, 41.3),
+        ("Ivica Zubac",              "LAC", 57, 2.3,  6.2, 1.00, 2.3, 0.9, 2.2, 53.2, 57.0, 18.6,  8.0, 9.5, 2.3, 43.6, 41.3),
+        # --- batch 4: below-average transition defenders (percentile 16–39) ---
+        ("Naz Reid",                 "MIN", 74, 2.6,  7.6, 1.02, 2.7, 1.1, 2.5, 53.6, 57.4, 18.9,  7.6, 9.7, 2.3, 44.2, 38.8),
+        ("Lauri Markkanen",          "UTA", 68, 4.4, 12.0, 1.02, 4.5, 1.8, 3.3, 53.7, 57.6, 19.0,  7.4, 9.8, 2.3, 44.4, 38.8),
+        ("Karl-Anthony Towns",       "NYK", 74, 4.6, 11.6, 1.03, 4.7, 1.8, 3.4, 53.9, 57.8, 19.2,  7.2, 9.9, 2.4, 44.8, 36.3),
+        ("Bradley Beal",             "PHX", 42, 4.1, 13.0, 1.03, 4.2, 1.7, 3.3, 54.0, 58.0, 19.3,  7.0, 10.0, 2.4, 45.0, 36.3),
+        ("Pascal Siakam",            "IND", 62, 4.0, 11.2, 1.04, 4.2, 1.7, 3.2, 54.2, 58.2, 19.5,  6.8, 10.1, 2.4, 45.4, 33.8),
+        ("Devin Booker",             "PHX", 71, 4.4, 11.8, 1.04, 4.6, 1.8, 3.3, 54.3, 58.4, 19.6,  6.6, 10.2, 2.4, 45.6, 33.8),
+        ("Ja Morant",                "MEM", 53, 4.0, 10.6, 1.05, 4.2, 1.7, 3.2, 54.5, 58.6, 19.8,  6.4, 10.3, 2.5, 46.0, 31.3),
+        ("Donovan Mitchell",         "CLE", 69, 4.6, 12.6, 1.05, 4.8, 1.9, 3.4, 54.6, 58.8, 19.9,  6.2, 10.3, 2.5, 46.2, 31.3),
+        ("RJ Barrett",               "TOR", 68, 4.2, 11.4, 1.06, 4.5, 1.8, 3.3, 54.8, 59.0, 20.1,  6.0, 10.4, 2.5, 46.6, 28.8),
+        ("Trae Young",               "ATL", 72, 5.8, 17.4, 1.07, 6.2, 2.4, 3.8, 55.0, 59.2, 20.3,  5.8, 10.5, 2.5, 47.0, 26.3),
+        ("James Harden",             "LAC", 67, 5.4, 15.8, 1.07, 5.8, 2.3, 3.7, 55.1, 59.4, 20.4,  5.6, 10.6, 2.6, 47.2, 26.3),
+        ("De'Aaron Fox",             "SAC", 71, 4.4, 12.4, 1.08, 4.8, 1.9, 3.4, 55.3, 59.6, 20.6,  5.4, 10.7, 2.6, 47.6, 23.8),
+        ("Darius Garland",           "CLE", 60, 5.2, 15.0, 1.08, 5.6, 2.2, 3.6, 55.4, 59.8, 20.7,  5.2, 10.8, 2.6, 47.8, 23.8),
+        ("LeBron James",             "LAL", 71, 4.6, 10.0, 1.09, 5.0, 2.0, 3.5, 55.6, 60.0, 20.9,  5.0, 10.8, 2.6, 48.2, 21.3),
+        # --- batch 5: poor transition defenders (percentile 0–15) ---
+        ("Nikola Jokic",             "DEN", 65, 5.0, 11.4, 1.11, 5.6, 2.2, 3.6, 56.0, 60.4, 21.2,  4.6, 11.0, 2.7, 49.0, 18.8),
+        ("Luka Doncic",              "DAL", 64, 6.2, 17.0, 1.12, 6.9, 2.7, 4.0, 56.2, 60.6, 21.4,  4.4, 11.1, 2.7, 49.5, 16.3),
+        ("Jayson Tatum",             "BOS", 74, 4.8, 10.6, 1.12, 5.4, 2.1, 3.6, 56.3, 60.8, 21.5,  4.2, 11.2, 2.8, 49.7, 16.3),
+        ("Kyrie Irving",             "DAL", 63, 5.3, 14.4, 1.14, 6.0, 2.4, 3.8, 56.7, 61.2, 21.8,  3.8, 11.4, 2.8, 50.4, 13.8),
+        ("Joel Embiid",              "PHI", 39, 5.4, 12.6, 1.14, 6.2, 2.5, 3.8, 56.8, 61.4, 21.9,  3.6, 11.5, 2.9, 50.7, 13.8),
+        ("Stephen Curry",            "GSW", 72, 6.0, 17.6, 1.16, 7.0, 2.8, 4.1, 57.2, 61.8, 22.2,  3.2, 11.7, 2.9, 51.5, 11.3),
+        ("Damian Lillard",           "MIL", 69, 6.4, 18.0, 1.17, 7.5, 2.9, 4.2, 57.4, 62.0, 22.4,  3.0, 11.8, 3.0, 52.0,  8.8),
+        ("Nikola Vucevic",           "CHI", 73, 4.8, 12.6, 1.17, 5.6, 2.2, 3.7, 57.5, 62.2, 22.5,  2.8, 11.9, 3.0, 52.2,  8.8),
+        ("Zach LaVine",              "CHI", 61, 5.2, 13.8, 1.19, 6.2, 2.5, 3.9, 57.9, 62.6, 22.8,  2.4, 12.1, 3.0, 53.0,  6.3),
+        ("Russell Westbrook",        "LAC", 55, 4.8, 12.0, 1.20, 5.8, 2.3, 3.8, 58.1, 62.8, 23.0,  2.2, 12.2, 3.1, 53.4,  3.8),
+    ]
+
+    stats: List[PlayerDefensiveTransitionStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(PlayerDefensiveTransitionStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_defensive_transition(
+    stats: Optional[List["PlayerDefensiveTransitionStats"]] = None,
+) -> List["PlayerDefensiveTransitionStats"]:
+    """
+    Return all players sorted from best to worst transition defender
+    (highest percentile first).
+
+    If *stats* is not provided, the full dataset is used.
+    """
+    if stats is None:
+        stats = build_player_defensive_transition_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_transition_defenders(
+    defensive_stats: Optional[List["PlayerDefensiveTransitionStats"]] = None,
+    min_poss: float = 2.0,
+    max_ppp: float = 0.92,
+) -> List[Dict]:
+    """
+    Identify players who are high-volume, elite transition defenders.
+
+    A player is included when:
+    - They defend at least *min_poss* transition possessions per game
+      (active defender; not simply avoided).
+    - Their transition PPP allowed is at most *max_ppp* (elite or good
+      defender).
+
+    Returns a list of dicts sorted by percentile (highest first), each
+    containing:
+      - "player"      : player name
+      - "team"        : player's team
+      - "poss"        : transition possessions defended per game
+      - "freq_pct"    : % of total possessions that are transition vs this defender
+      - "ppp"         : transition PPP allowed
+      - "pts"         : transition points allowed per game
+      - "percentile"  : defensive transition percentile
+    """
+    if defensive_stats is None:
+        defensive_stats = build_player_defensive_transition_stats()
+
+    results = []
+    for s in defensive_stats:
+        if s.poss < min_poss:
+            continue
+        if s.ppp > max_ppp:
+            continue
+        results.append({
+            "player":     s.player,
+            "team":       s.team,
+            "poss":       s.poss,
+            "freq_pct":   s.freq_pct,
+            "ppp":        s.ppp,
+            "pts":        s.pts,
+            "percentile": s.percentile,
+        })
+
+    results.sort(key=lambda r: r["percentile"], reverse=True)
+    return results
+
+
+def predict_player_transition_defense_matchup(
+    offensive_player: str,
+    defensive_player: str,
+    offensive_stats: Optional[List["OffensiveTransitionStats"]] = None,
+    defensive_stats: Optional[List["PlayerDefensiveTransitionStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head transition prediction for a specific
+    offensive player running against a specific defensive player.
+
+    Parameters
+    ----------
+    offensive_player:
+        Name of the ball-handler (case-insensitive), e.g.
+        ``"Josh Hart"``.
+    defensive_player:
+        Name of the on-ball defender (case-insensitive), e.g.
+        ``"Rudy Gobert"``.
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_stats:
+        Pre-built defensive player stats list; defaults to the full dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when either player cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"offensive_player"``  : name of the ball-handler
+        - ``"off_team"``          : ball-handler's team
+        - ``"off_ppp"``           : ball-handler's transition PPP
+        - ``"off_freq_pct"``      : ball-handler's transition frequency %
+        - ``"off_percentile"``    : ball-handler's offensive transition percentile
+        - ``"defensive_player"``  : name of the on-ball defender
+        - ``"def_team"``          : defender's team
+        - ``"def_ppp"``           : PPP allowed by the defender in transition
+        - ``"def_freq_pct"``      : transition possessions % faced by the defender
+        - ``"def_percentile"``    : defender's defensive transition percentile
+        - ``"edge"``              : ball-handler PPP − defender PPP allowed
+        - ``"verdict"``           : ``"FAVORABLE"``, ``"NEUTRAL"``, or ``"TOUGH"``
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_transition_stats()
+    if defensive_stats is None:
+        defensive_stats = build_player_defensive_transition_stats()
+
+    off_stat = next(
+        (s for s in offensive_stats
+         if s.player.lower() == offensive_player.lower()),
+        None,
+    )
+    if off_stat is None:
+        return None
+
+    def_stat = next(
+        (s for s in defensive_stats
+         if s.player.lower() == defensive_player.lower()),
+        None,
+    )
+    if def_stat is None:
+        return None
+
+    edge = round(off_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.15:
+        verdict = "FAVORABLE"
+    elif edge <= -0.15:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "offensive_player": off_stat.player,
+        "off_team":         off_stat.team,
+        "off_ppp":          off_stat.ppp,
+        "off_freq_pct":     off_stat.freq_pct,
+        "off_percentile":   off_stat.percentile,
+        "defensive_player": def_stat.player,
+        "def_team":         def_stat.team,
+        "def_ppp":          def_stat.ppp,
+        "def_freq_pct":     def_stat.freq_pct,
+        "def_percentile":   def_stat.percentile,
+        "edge":             edge,
+        "verdict":          verdict,
+    }
 
 
 # ---------------------------------------------------------------------------
