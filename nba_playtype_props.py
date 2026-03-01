@@ -244,6 +244,27 @@ class DefensiveOffScreenStats:
 
 
 @dataclass
+class DefensivePutbackStats:
+    """Defensive putback stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed vs putback
+    freq_pct: float     # frequency % of putback possessions allowed
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better putback defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -1285,6 +1306,147 @@ def find_off_screen_beneficiaries(
         })
 
     results.sort(key=lambda r: r["off_screen_freq"], reverse=True)
+    return results
+
+
+def build_putback_defensive_rankings() -> Dict[str, "DefensivePutbackStats"]:
+    """
+    Return defensive putback stats for all 30 NBA teams (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger putback defense (limiting both the frequency and efficiency of
+    opponent putback possessions).
+    """
+    raw = [
+        # (team_abbr, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("BKN", 56, 5.1, 4.7, 1.04, 5.4, 2.2, 4.2, 53.0, 53.2, 12.8,  6.9, 10.8, 1.7, 52.8,  89.7),
+        ("ORL", 53, 5.5, 4.9, 1.07, 5.9, 2.5, 4.5, 56.0, 57.3, 12.3,  8.5, 11.9, 3.1, 53.6,  72.4),
+        ("NYK", 55, 5.5, 5.0, 1.05, 5.8, 2.4, 4.5, 54.1, 54.5, 11.9,  9.6, 11.2, 2.6, 52.5,  86.2),
+        ("SAS", 54, 5.4, 4.7, 1.10, 5.9, 2.5, 4.6, 54.6, 55.6, 10.3,  5.9, 10.3, 2.1, 54.8,  55.2),
+        ("LAC", 55, 5.6, 5.1, 1.06, 5.9, 2.3, 4.6, 51.2, 51.6, 12.7,  6.5, 11.8, 1.6, 52.9,  79.3),
+        ("MIL", 55, 5.5, 5.0, 1.08, 6.0, 2.4, 4.5, 54.3, 54.5, 13.8,  7.9, 12.8, 2.3, 54.9,  69.0),
+        ("CHA", 58, 5.4, 4.9, 1.06, 5.7, 2.4, 4.2, 57.0, 58.5, 12.7, 12.4, 12.1, 2.2, 53.2,  75.9),
+        ("MIN", 57, 5.8, 5.0, 1.01, 5.9, 2.5, 4.8, 52.8, 53.3, 12.4,  7.9, 11.8, 2.1, 51.7,  96.6),
+        ("LAL", 55, 5.5, 4.9, 1.13, 6.2, 2.7, 4.6, 59.4, 60.0,  9.9,  8.6,  8.9, 1.7, 57.0,  37.9),
+        ("CLE", 58, 6.1, 5.3, 1.01, 6.1, 2.4, 4.9, 49.3, 50.2, 13.4,  7.7, 11.7, 2.0, 51.0, 100.0),
+        ("TOR", 57, 6.0, 5.3, 1.05, 6.3, 2.7, 5.0, 54.8, 54.9, 10.6,  8.5, 10.0, 2.1, 53.1,  82.8),
+        ("OKC", 56, 6.3, 5.5, 1.02, 6.4, 2.6, 4.9, 54.0, 54.0, 15.6,  8.5, 14.4, 1.1, 54.7,  93.1),
+        ("DET", 55, 6.0, 5.3, 1.09, 6.6, 2.7, 4.8, 56.4, 57.1, 14.2,  9.1, 13.6, 3.6, 54.7,  65.5),
+        ("GSW", 57, 6.0, 5.3, 1.10, 6.6, 2.8, 5.1, 55.7, 56.5, 12.5,  5.5, 12.5, 2.9, 56.0,  48.3),
+        ("HOU", 56, 5.8, 5.2, 1.17, 6.8, 2.9, 4.9, 60.0, 60.5, 10.4,  7.4,  9.2, 2.1, 58.6,  17.2),
+        ("PHI", 56, 5.8, 5.1, 1.17, 6.8, 2.9, 4.9, 59.5, 60.0, 11.3,  7.0, 10.4, 2.1, 59.0,  20.7),
+        ("DEN", 58, 6.1, 5.5, 1.10, 6.8, 2.9, 5.2, 54.6, 55.3, 11.8,  5.3, 11.2, 2.5, 55.1,  51.7),
+        ("BOS", 57, 6.1, 5.6, 1.13, 6.9, 2.8, 4.9, 56.4, 56.6, 15.2,  8.0, 14.7, 4.3, 56.0,  34.5),
+        ("MEM", 55, 6.6, 5.7, 1.11, 7.3, 3.3, 5.4, 59.9, 60.4,  9.4, 10.8,  8.6, 3.0, 54.8,  44.8),
+        ("CHI", 58, 6.0, 5.2, 1.17, 6.9, 2.9, 4.9, 58.9, 59.2, 14.2,  7.2, 14.2, 2.9, 58.7,  24.1),
+        ("IND", 57, 5.9, 5.1, 1.20, 7.1, 2.9, 4.7, 62.2, 62.8, 13.7,  7.7, 13.7, 1.8, 61.0,   3.4),
+        ("POR", 58, 6.4, 5.6, 1.09, 7.0, 2.9, 5.0, 57.4, 57.8, 13.1, 10.7, 11.2, 1.1, 55.6,  62.1),
+        ("ATL", 59, 5.9, 5.1, 1.17, 6.9, 2.8, 4.7, 60.5, 61.1, 17.4,  7.7, 16.9, 4.0, 60.3,  13.8),
+        ("WAS", 55, 6.8, 5.8, 1.10, 7.5, 3.2, 5.6, 56.1, 56.5, 11.7,  7.2, 10.6, 1.3, 55.6,  58.6),
+        ("SAC", 58, 5.7, 5.0, 1.25, 7.1, 3.1, 4.9, 63.4, 63.7, 12.4,  5.7, 12.1, 3.9, 61.9,   0.0),
+        ("MIA", 57, 6.3, 5.3, 1.18, 7.4, 3.2, 5.2, 60.4, 61.4, 11.5,  9.0, 10.1, 3.9, 57.4,  10.3),
+        ("UTA", 58, 6.3, 5.4, 1.16, 7.3, 3.2, 5.2, 61.1, 61.9, 11.7,  8.4, 10.9, 2.4, 58.2,  27.6),
+        ("DAL", 55, 7.0, 6.0, 1.12, 7.9, 3.4, 5.7, 59.6, 60.0, 11.6,  8.5, 10.9, 1.3, 57.6,  41.4),
+        ("PHX", 56, 6.6, 5.8, 1.19, 7.8, 3.3, 5.4, 60.7, 61.1, 13.0,  6.5, 11.4, 2.4, 60.1,   6.9),
+        ("NOP", 58, 7.2, 6.2, 1.15, 8.3, 3.5, 6.0, 58.1, 58.7, 12.4,  7.9, 11.9, 2.9, 57.3,  31.0),
+    ]
+
+    rankings: Dict[str, DefensivePutbackStats] = {}
+    for row in raw:
+        (abbr, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensivePutbackStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_putback_defense(
+    rankings: Optional[Dict[str, "DefensivePutbackStats"]] = None,
+) -> List["DefensivePutbackStats"]:
+    """
+    Return all teams sorted from best to worst putback defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_putback_defensive_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def find_putback_beneficiaries(
+    players: List[PlayerProfile],
+    opponent_team: str,
+    putback_rankings: Optional[Dict[str, "DefensivePutbackStats"]] = None,
+    min_putback_freq: float = 0.05,
+    ppp_threshold: float = 1.00,
+) -> List[Dict]:
+    """
+    Identify players who are likely to benefit from a weak putback defense.
+
+    A player is flagged as a beneficiary when:
+    - Their putback play frequency is at least *min_putback_freq*
+    - The opposing team's putback defensive PPP allowed is >= *ppp_threshold*
+      (meaning the defense struggles to contain putback actions)
+
+    Returns a list of dicts sorted by putback frequency (highest first), each
+    containing:
+      - "player"          : player name
+      - "position"        : player position
+      - "putback_freq"    : player's putback frequency (0–1)
+      - "putback_ppp"     : player's historical putback PPP
+      - "def_ppp"         : opponent's putback defensive PPP allowed
+      - "def_percentile"  : opponent's putback defensive percentile (lower = weaker)
+      - "edge"            : player putback PPP minus opponent defensive PPP
+    """
+    if putback_rankings is None:
+        putback_rankings = build_putback_defensive_rankings()
+
+    def_stats = putback_rankings.get(opponent_team)
+    if def_stats is None:
+        return []
+
+    results = []
+    for player in players:
+        pb_stats = player.play_types.get("putback")
+        if pb_stats is None:
+            continue
+        if pb_stats.frequency < min_putback_freq:
+            continue
+        if def_stats.ppp < ppp_threshold:
+            continue
+        results.append({
+            "player":         player.name,
+            "position":       player.position,
+            "putback_freq":   pb_stats.frequency,
+            "putback_ppp":    pb_stats.ppp,
+            "def_ppp":        def_stats.ppp,
+            "def_percentile": def_stats.percentile,
+            "edge":           round(pb_stats.ppp - def_stats.ppp, 3),
+        })
+
+    results.sort(key=lambda r: r["putback_freq"], reverse=True)
     return results
 
 
