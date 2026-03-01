@@ -17,6 +17,7 @@ from nba_playtype_props import (
     DefensiveOffScreenStats,
     DefensivePutbackStats,
     OffensiveTransitionStats,
+    OffensiveIsolationStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -46,6 +47,12 @@ from nba_playtype_props import (
     find_transition_scorers,
     find_transition_beneficiaries,
     match_all_transition_matchups,
+    build_offensive_isolation_stats,
+    rank_players_by_offensive_isolation,
+    find_isolation_scorers,
+    find_isolation_beneficiaries,
+    match_all_isolation_matchups,
+    predict_isolation_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -1598,6 +1605,391 @@ class TestPredictTransitionMatchup(unittest.TestCase):
     def test_edge_equals_ppp_minus_def_ppp(self):
         result = predict_transition_matchup(
             "Josh Hart", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["ppp"] - result["def_ppp"], 3)
+        )
+
+
+# ===========================================================================
+# Offensive Isolation dataset tests
+# ===========================================================================
+
+class TestBuildOffensiveIsolationStats(unittest.TestCase):
+    """Tests for build_offensive_isolation_stats()."""
+
+    def setUp(self):
+        self.stats = build_offensive_isolation_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_fifty_players_present(self):
+        self.assertEqual(len(self.stats), 50)
+
+    def test_all_items_are_offensive_isolation_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, OffensiveIsolationStats)
+
+    def test_known_players_present(self):
+        names = {s.player for s in self.stats}
+        for expected in ("James Harden", "Shai Gilgeous-Alexander",
+                         "Anthony Edwards", "Victor Wembanyama"):
+            self.assertIn(expected, names)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_harden_fields(self):
+        harden = next(s for s in self.stats if s.player == "James Harden")
+        self.assertEqual(harden.team, "LAC")
+        self.assertEqual(harden.gp, 41)
+        self.assertAlmostEqual(harden.freq_pct, 42.1)
+        self.assertAlmostEqual(harden.ppp, 1.06)
+        self.assertAlmostEqual(harden.percentile, 82.4)
+
+
+class TestRankPlayersByOffensiveIsolation(unittest.TestCase):
+    """Tests for rank_players_by_offensive_isolation()."""
+
+    def setUp(self):
+        self.stats = build_offensive_isolation_stats()
+
+    def test_returns_all_players(self):
+        ranked = rank_players_by_offensive_isolation(self.stats)
+        self.assertEqual(len(ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        ranked = rank_players_by_offensive_isolation(self.stats)
+        for i in range(len(ranked) - 1):
+            self.assertGreaterEqual(ranked[i].percentile, ranked[i + 1].percentile)
+
+    def test_pritchard_at_top(self):
+        ranked = rank_players_by_offensive_isolation(self.stats)
+        self.assertEqual(ranked[0].player, "Payton Pritchard")
+
+
+class TestFindIsolationScorers(unittest.TestCase):
+    """Tests for find_isolation_scorers()."""
+
+    def setUp(self):
+        self.iso_stats = build_offensive_isolation_stats()
+        self.def_rankings = build_defensive_isolation_rankings()
+
+    def test_returns_list(self):
+        result = find_isolation_scorers(self.iso_stats)
+        self.assertIsInstance(result, list)
+
+    def test_all_meet_freq_threshold(self):
+        result = find_isolation_scorers(self.iso_stats, min_freq_pct=15.0, min_ppp=1.00)
+        for r in result:
+            self.assertGreaterEqual(r["freq_pct"], 15.0)
+
+    def test_all_meet_ppp_threshold(self):
+        result = find_isolation_scorers(self.iso_stats, min_freq_pct=10.0, min_ppp=1.05)
+        for r in result:
+            self.assertGreater(r["ppp"], 1.05 - 1e-9)
+
+    def test_sorted_by_freq_pct_descending(self):
+        result = find_isolation_scorers(self.iso_stats, min_freq_pct=5.0, min_ppp=0.0)
+        for i in range(len(result) - 1):
+            self.assertGreaterEqual(result[i]["freq_pct"], result[i + 1]["freq_pct"])
+
+    def test_def_fields_none_without_opponent(self):
+        result = find_isolation_scorers(self.iso_stats, min_freq_pct=5.0, min_ppp=0.0)
+        for r in result:
+            self.assertIsNone(r["def_ppp"])
+            self.assertIsNone(r["def_percentile"])
+
+    def test_def_fields_populated_with_opponent(self):
+        result = find_isolation_scorers(
+            self.iso_stats,
+            opponent_team="SAS",
+            isolation_defensive_rankings=self.def_rankings,
+            min_freq_pct=5.0,
+            min_ppp=0.0,
+        )
+        for r in result:
+            self.assertIsNotNone(r["def_ppp"])
+            self.assertIsNotNone(r["def_percentile"])
+
+    def test_harden_appears_with_low_thresholds(self):
+        result = find_isolation_scorers(self.iso_stats, min_freq_pct=5.0, min_ppp=0.0)
+        players = [r["player"] for r in result]
+        self.assertIn("James Harden", players)
+
+
+class TestFindIsolationBeneficiaries(unittest.TestCase):
+    """Tests for find_isolation_beneficiaries()."""
+
+    def setUp(self):
+        self.iso_stats = build_offensive_isolation_stats()
+        self.def_rankings = build_defensive_isolation_rankings()
+
+    def test_returns_list(self):
+        result = find_isolation_beneficiaries(
+            self.iso_stats, "ATL", self.def_rankings,
+            min_freq_pct=5.0, min_ppp=0.0,
+        )
+        self.assertIsInstance(result, list)
+
+    def test_empty_for_unknown_team(self):
+        result = find_isolation_beneficiaries(
+            self.iso_stats, "ZZZ", self.def_rankings,
+        )
+        self.assertEqual(result, [])
+
+    def test_empty_for_strong_defense(self):
+        # PHX has isolation defensive percentile=100.0 → above any max_def_percentile<100
+        result = find_isolation_beneficiaries(
+            self.iso_stats, "PHX", self.def_rankings,
+            min_freq_pct=5.0, min_ppp=0.0, max_def_percentile=40.0,
+        )
+        self.assertEqual(result, [])
+
+    def test_edge_formula(self):
+        # ATL has percentile=0.0 (weakest), so it should pass the filter
+        result = find_isolation_beneficiaries(
+            self.iso_stats, "ATL", self.def_rankings,
+            min_freq_pct=5.0, min_ppp=0.0, max_def_percentile=40.0,
+        )
+        atl_ppp = self.def_rankings["ATL"].ppp
+        for r in result:
+            self.assertAlmostEqual(r["edge"], round(r["ppp"] - atl_ppp, 3))
+
+    def test_sorted_by_freq_pct_descending(self):
+        result = find_isolation_beneficiaries(
+            self.iso_stats, "ATL", self.def_rankings,
+            min_freq_pct=5.0, min_ppp=0.0, max_def_percentile=40.0,
+        )
+        for i in range(len(result) - 1):
+            self.assertGreaterEqual(result[i]["freq_pct"], result[i + 1]["freq_pct"])
+
+    def test_result_keys(self):
+        result = find_isolation_beneficiaries(
+            self.iso_stats, "ATL", self.def_rankings,
+            min_freq_pct=5.0, min_ppp=0.0, max_def_percentile=40.0,
+        )
+        if result:
+            self.assertIn("edge", result[0])
+            self.assertIn("def_ppp", result[0])
+            self.assertIn("def_percentile", result[0])
+
+
+class TestMatchAllIsolationMatchups(unittest.TestCase):
+    """Tests for match_all_isolation_matchups()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_isolation_stats()
+        self.def_rankings = build_defensive_isolation_rankings()
+
+    def test_returns_list(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=10
+        )
+        self.assertIsInstance(result, list)
+
+    def test_top_n_respected(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=10
+        )
+        self.assertLessEqual(len(result), 10)
+
+    def test_required_keys_present(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=5, max_def_percentile=100.0
+        )
+        for entry in result:
+            for key in ("player", "team", "off_percentile", "ppp",
+                        "freq_pct", "opponent", "def_ppp", "def_percentile", "edge"):
+                self.assertIn(key, entry)
+
+    def test_sorted_by_edge_descending(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=50, max_def_percentile=100.0
+        )
+        for i in range(len(result) - 1):
+            self.assertGreaterEqual(result[i]["edge"], result[i + 1]["edge"])
+
+    def test_player_not_matched_against_own_team(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=500, max_def_percentile=100.0
+        )
+        for entry in result:
+            self.assertNotEqual(entry["team"], entry["opponent"])
+
+    def test_max_def_percentile_filter(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=500, max_def_percentile=20.0
+        )
+        for entry in result:
+            self.assertLessEqual(entry["def_percentile"], 20.0)
+
+    def test_empty_when_no_weak_defenses(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=50, max_def_percentile=-1.0
+        )
+        self.assertEqual(result, [])
+
+    def test_min_off_percentile_filter(self):
+        result = match_all_isolation_matchups(
+            self.off_stats, self.def_rankings, top_n=500,
+            max_def_percentile=100.0, min_off_percentile=80.0
+        )
+        for entry in result:
+            self.assertGreaterEqual(entry["off_percentile"], 80.0)
+
+
+class TestPredictIsolationMatchup(unittest.TestCase):
+    """Tests for predict_isolation_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_isolation_stats()
+        self.def_rankings = build_defensive_isolation_rankings()
+
+    # ------------------------------------------------------------------
+    # Basic return structure
+    # ------------------------------------------------------------------
+
+    def test_returns_dict_for_valid_inputs(self):
+        result = predict_isolation_matchup(
+            "Shai Gilgeous-Alexander", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsInstance(result, dict)
+
+    def test_required_keys_present(self):
+        result = predict_isolation_matchup(
+            "Shai Gilgeous-Alexander", "SAS", self.off_stats, self.def_rankings
+        )
+        expected_keys = {
+            "player", "team", "gp", "freq_pct", "ppp", "pts",
+            "off_percentile", "opponent", "def_ppp", "def_freq_pct",
+            "def_percentile", "edge", "verdict",
+        }
+        self.assertEqual(set(result.keys()), expected_keys)
+
+    # ------------------------------------------------------------------
+    # SGA vs SAS — high-volume iso scorer vs SAS defense
+    # ------------------------------------------------------------------
+
+    def test_sga_vs_sas_player_fields(self):
+        result = predict_isolation_matchup(
+            "Shai Gilgeous-Alexander", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["player"], "Shai Gilgeous-Alexander")
+        self.assertEqual(result["team"], "OKC")
+        self.assertAlmostEqual(result["ppp"], 1.17)
+        self.assertAlmostEqual(result["off_percentile"], 91.4)
+
+    def test_sga_vs_sas_opponent_fields(self):
+        result = predict_isolation_matchup(
+            "Shai Gilgeous-Alexander", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["opponent"], "SAS")
+        self.assertAlmostEqual(result["def_ppp"], 0.92)
+
+    def test_sga_vs_sas_edge(self):
+        result = predict_isolation_matchup(
+            "Shai Gilgeous-Alexander", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(result["edge"], round(1.17 - 0.92, 3))
+
+    def test_sga_vs_sas_verdict_favorable(self):
+        result = predict_isolation_matchup(
+            "Shai Gilgeous-Alexander", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    # ------------------------------------------------------------------
+    # Harden vs SAS — lower edge (~0.14) → NEUTRAL
+    # ------------------------------------------------------------------
+
+    def test_harden_vs_sas_verdict_neutral(self):
+        result = predict_isolation_matchup(
+            "James Harden", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    # ------------------------------------------------------------------
+    # Verdict thresholds
+    # ------------------------------------------------------------------
+
+    def test_verdict_tough_when_edge_below_minus_threshold(self):
+        player = OffensiveIsolationStats(
+            player="Tough Player", team="AAA", gp=50,
+            poss=5.0, freq_pct=20.0, ppp=0.75, pts=5.0,
+            fgm=1.0, fga=2.0, fg_pct=50.0, efg_pct=50.0,
+            ft_freq_pct=10.0, tov_freq_pct=5.0, sf_freq_pct=5.0,
+            and_one_freq_pct=0.0, score_freq_pct=50.0, percentile=20.0,
+        )
+        # PHX allows 0.81 PPP → edge = 0.75 - 0.81 = -0.06 → NEUTRAL
+        # OKC allows 0.82 PPP → edge = 0.75 - 0.82 = -0.07 → NEUTRAL
+        # PHX percentile=100, let's use ATL (ppp=1.05, poor defense)... no
+        # Actually for TOUGH we need edge <= -0.15, so player ppp=0.75 vs
+        # a team that allows 0.91+, like SAS (0.92) → edge = -0.17 → TOUGH
+        result = predict_isolation_matchup(
+            "Tough Player", "SAS", [player], self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        player = OffensiveIsolationStats(
+            player="Neutral Player", team="BBB", gp=50,
+            poss=5.0, freq_pct=15.0, ppp=0.95, pts=5.0,
+            fgm=1.0, fga=2.0, fg_pct=50.0, efg_pct=50.0,
+            ft_freq_pct=10.0, tov_freq_pct=5.0, sf_freq_pct=5.0,
+            and_one_freq_pct=0.0, score_freq_pct=50.0, percentile=50.0,
+        )
+        # SAS allows 0.92 PPP → edge = 0.95 - 0.92 = 0.03 → NEUTRAL
+        result = predict_isolation_matchup(
+            "Neutral Player", "SAS", [player], self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    # ------------------------------------------------------------------
+    # Not-found cases
+    # ------------------------------------------------------------------
+
+    def test_returns_none_for_unknown_player(self):
+        result = predict_isolation_matchup(
+            "Nobody Famous", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_team(self):
+        result = predict_isolation_matchup(
+            "James Harden", "ZZZ", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    # ------------------------------------------------------------------
+    # Case-insensitive player name lookup
+    # ------------------------------------------------------------------
+
+    def test_case_insensitive_player_name(self):
+        result_lower = predict_isolation_matchup(
+            "shai gilgeous-alexander", "SAS", self.off_stats, self.def_rankings
+        )
+        result_upper = predict_isolation_matchup(
+            "SHAI GILGEOUS-ALEXANDER", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result_lower)
+        self.assertIsNotNone(result_upper)
+        self.assertEqual(result_lower["player"], result_upper["player"])
+
+    # ------------------------------------------------------------------
+    # Edge formula
+    # ------------------------------------------------------------------
+
+    def test_edge_equals_ppp_minus_def_ppp(self):
+        result = predict_isolation_matchup(
+            "Anthony Edwards", "ATL", self.off_stats, self.def_rankings
         )
         self.assertAlmostEqual(
             result["edge"], round(result["ppp"] - result["def_ppp"], 3)
