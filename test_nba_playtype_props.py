@@ -19,6 +19,7 @@ from nba_playtype_props import (
     OffensiveTransitionStats,
     OffensiveIsolationStats,
     OffensivePnrBallHandlerStats,
+    OffensivePnrManStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -58,6 +59,10 @@ from nba_playtype_props import (
     rank_players_by_offensive_pnr_ball_handler,
     find_pnr_ball_handler_scorers,
     predict_pnr_ball_handler_matchup,
+    build_offensive_pnr_man_stats,
+    rank_players_by_offensive_pnr_man,
+    find_pnr_man_scorers,
+    predict_pnr_man_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -2420,6 +2425,328 @@ class TestPredictPnrBallHandlerMatchup(unittest.TestCase):
         result = predict_pnr_ball_handler_matchup("Jalen Brunson", "SAS")
         self.assertIsNotNone(result)
         self.assertEqual(result["player"], "Jalen Brunson")
+
+
+# ===========================================================================
+# Offensive PnR roll man (screener) analytics tests
+# ===========================================================================
+
+class TestBuildOffensivePnrManStats(unittest.TestCase):
+    """Tests for build_offensive_pnr_man_stats()."""
+
+    def setUp(self):
+        self.stats = build_offensive_pnr_man_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 100)
+
+    def test_all_items_are_offensive_pnr_man_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, OffensivePnrManStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_jokic_fields(self):
+        """Nikola Jokić should be the top roll man by PPP."""
+        jokic = next(s for s in self.stats if s.player == "Nikola Jokić")
+        self.assertEqual(jokic.team, "DEN")
+        self.assertAlmostEqual(jokic.ppp, 1.43)
+        self.assertAlmostEqual(jokic.percentile, 79.3)
+
+    def test_sengun_fields(self):
+        """Alperen Sengun spot-check."""
+        sengun = next(s for s in self.stats if s.player == "Alperen Sengun")
+        self.assertEqual(sengun.team, "HOU")
+        self.assertEqual(sengun.gp, 49)
+        self.assertAlmostEqual(sengun.ppp, 1.38)
+        self.assertAlmostEqual(sengun.percentile, 75.9)
+
+    def test_known_players_present(self):
+        names = {s.player for s in self.stats}
+        for expected in (
+            "Nikola Jokić", "Alperen Sengun", "Bam Adebayo",
+            "Domantas Sabonis", "Karl-Anthony Towns", "Joel Embiid",
+            "Jarrett Allen", "Chet Holmgren",
+        ):
+            self.assertIn(expected, names)
+
+    def test_batch2_players_present(self):
+        """All batch-2 roll man players are in the dataset."""
+        names = {s.player for s in self.stats}
+        expected = {
+            "Wendell Carter Jr.", "Xavier Tillman", "Moritz Wagner", "Naz Reid",
+            "Nick Richards", "Charles Bassey", "Keyonte George",
+            "Maozinho Moreira", "Mo Bamba", "Kel'el Ware", "Paul Reed",
+            "Trayce Jackson-Davis", "Duop Reath", "Bismack Biyombo",
+            "Taj Gibson", "Aaron Nesmith", "Jericho Sims", "JaVale McGee",
+            "Mason Plumlee", "Robin Lopez",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-2 players: {missing}")
+
+    def test_batch3_players_present(self):
+        """All batch-3 roll man players are in the dataset."""
+        names = {s.player for s in self.stats}
+        expected = {
+            "Zach Collins", "Trey Lyles", "Udoka Azubuike",
+            "Willy Hernangómez", "Santi Aldama", "Montrezl Harrell",
+            "Boban Marjanović", "Goga Bitadze", "Mike Muscala",
+            "Thomas Bryant", "Drew Eubanks", "Trendon Watford",
+            "Luke Kornet", "Gary Clark", "JT Thor",
+            "Marvin Bagley III", "Ariel Hukporti", "Jaxson Hayes",
+            "Kai Jones",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_batch4_players_present(self):
+        """All batch-4 roll man players are in the dataset."""
+        names = {s.player for s in self.stats}
+        expected = {
+            "Damian Lillard", "Tony Bradley", "James Wiseman", "Killian Hayes",
+            "Christian Wood", "Brice Sensabaugh", "Efe Abanda",
+            "Moussa Diabate", "Kevon Looney", "Harry Giles III",
+            "Dario Šarić", "Keaton Wallace", "Nerlens Noel", "Justin Patton",
+            "Vit Krejci", "Usman Garuba", "Zeke Nnaji", "Saben Lee",
+            "Daishen Nix", "Chris Boucher",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_batch5_players_present(self):
+        """All batch-5 roll man players are in the dataset."""
+        names = {s.player for s in self.stats}
+        expected = {
+            "Victor Wembanyama", "Derik Queen", "Zaccharie Risacher",
+            "Isaiah Collier", "Stephon Castle", "Reed Sheppard",
+            "Rob Dillingham", "Dylan Harper", "Ace Bailey", "Bub Carrington",
+            "Jaden Ivey", "Caleb Love", "Cason Wallace", "Daniss Jenkins",
+            "Ajay Mitchell", "Will Riley", "Max Christie", "Gradey Dick",
+            "Ryan Nembhard", "Jonathan Kuminga",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-5 players: {missing}")
+
+    def test_victor_wembanyama_fields(self):
+        """Victor Wembanyama (batch-5 first entry) spot-check."""
+        vw = next(s for s in self.stats if s.player == "Victor Wembanyama")
+        self.assertEqual(vw.team, "SAS")
+        self.assertEqual(vw.gp, 43)
+        self.assertAlmostEqual(vw.ppp, 1.19)
+        self.assertAlmostEqual(vw.percentile, 44.8)
+
+    def test_luke_kornet_fields(self):
+        """Luke Kornet (batch-3 high-GP entry) spot-check."""
+        lk = next(s for s in self.stats if s.player == "Luke Kornet")
+        self.assertEqual(lk.team, "BOS")
+        self.assertEqual(lk.gp, 57)
+        self.assertAlmostEqual(lk.ppp, 1.17)
+        self.assertAlmostEqual(lk.percentile, 41.4)
+
+    def test_jonathan_kuminga_fields(self):
+        """Jonathan Kuminga (batch-5 last entry) spot-check."""
+        jk = next(s for s in self.stats if s.player == "Jonathan Kuminga")
+        self.assertEqual(jk.team, "GSW")
+        self.assertEqual(jk.gp, 20)
+        self.assertAlmostEqual(jk.ppp, 1.10)
+        self.assertAlmostEqual(jk.percentile, 24.1)
+
+
+class TestRankPlayersByOffensivePnrMan(unittest.TestCase):
+    """Tests for rank_players_by_offensive_pnr_man()."""
+
+    def setUp(self):
+        self.stats = build_offensive_pnr_man_stats()
+        self.ranked = rank_players_by_offensive_pnr_man(self.stats)
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_same_length_as_input(self):
+        self.assertEqual(len(self.ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        for i in range(len(self.ranked) - 1):
+            self.assertGreaterEqual(
+                self.ranked[i].percentile, self.ranked[i + 1].percentile
+            )
+
+    def test_first_has_highest_percentile(self):
+        max_pct = max(s.percentile for s in self.stats)
+        self.assertAlmostEqual(self.ranked[0].percentile, max_pct)
+
+    def test_default_dataset_used_when_none(self):
+        ranked_default = rank_players_by_offensive_pnr_man()
+        self.assertGreater(len(ranked_default), 0)
+
+
+class TestFindPnrManScorers(unittest.TestCase):
+    """Tests for find_pnr_man_scorers()."""
+
+    def setUp(self):
+        self.pnr_stats = build_offensive_pnr_man_stats()
+        self.def_rankings = build_pnr_man_defensive_rankings()
+
+    def test_returns_list(self):
+        results = find_pnr_man_scorers(self.pnr_stats)
+        self.assertIsInstance(results, list)
+
+    def test_all_pass_freq_threshold(self):
+        min_freq = 20.0
+        results = find_pnr_man_scorers(self.pnr_stats, min_freq_pct=min_freq)
+        for r in results:
+            self.assertGreaterEqual(r["freq_pct"], min_freq)
+
+    def test_all_pass_ppp_threshold(self):
+        min_ppp = 1.15
+        results = find_pnr_man_scorers(self.pnr_stats, min_ppp=min_ppp)
+        for r in results:
+            self.assertGreaterEqual(r["ppp"], min_ppp)
+
+    def test_sorted_by_freq_pct_descending(self):
+        results = find_pnr_man_scorers(self.pnr_stats)
+        for i in range(len(results) - 1):
+            self.assertGreaterEqual(results[i]["freq_pct"], results[i + 1]["freq_pct"])
+
+    def test_result_has_required_keys(self):
+        results = find_pnr_man_scorers(self.pnr_stats)
+        if results:
+            keys = results[0].keys()
+            for k in ("player", "team", "freq_pct", "ppp", "pts",
+                      "percentile", "def_ppp", "def_percentile"):
+                self.assertIn(k, keys)
+
+    def test_def_ppp_none_when_no_opponent(self):
+        results = find_pnr_man_scorers(self.pnr_stats)
+        for r in results:
+            self.assertIsNone(r["def_ppp"])
+            self.assertIsNone(r["def_percentile"])
+
+    def test_def_ppp_populated_with_opponent(self):
+        results = find_pnr_man_scorers(
+            self.pnr_stats, "LAL", self.def_rankings
+        )
+        for r in results:
+            self.assertIsNotNone(r["def_ppp"])
+            self.assertIsNotNone(r["def_percentile"])
+
+    def test_jokic_in_high_freq_scorers(self):
+        results = find_pnr_man_scorers(
+            self.pnr_stats, min_freq_pct=25.0, min_ppp=1.20
+        )
+        players = [r["player"] for r in results]
+        self.assertIn("Nikola Jokić", players)
+
+
+class TestPredictPnrManMatchup(unittest.TestCase):
+    """Tests for predict_pnr_man_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_pnr_man_stats()
+        self.def_rankings = build_pnr_man_defensive_rankings()
+
+    def test_returns_dict_for_known_player_and_team(self):
+        result = predict_pnr_man_matchup(
+            "Nikola Jokić", "LAL", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = predict_pnr_man_matchup(
+            "Nikola Jokić", "LAL", self.off_stats, self.def_rankings
+        )
+        for k in ("player", "team", "gp", "freq_pct", "ppp", "pts",
+                  "off_percentile", "opponent", "def_ppp", "def_freq_pct",
+                  "def_percentile", "edge", "verdict"):
+            self.assertIn(k, result)
+
+    def test_jokic_vs_lal(self):
+        """LAL allows 1.27 PPP and Jokić has 1.43 → edge = 0.16 → FAVORABLE."""
+        result = predict_pnr_man_matchup(
+            "Nikola Jokić", "LAL", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["player"], "Nikola Jokić")
+        self.assertEqual(result["opponent"], "LAL")
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    def test_verdict_tough_for_large_negative_edge(self):
+        """A weak roll man vs a strong PnR man defense should get TOUGH."""
+        weak_player = OffensivePnrManStats(
+            player="Weak Roll", team="TST", gp=50,
+            poss=3.0, freq_pct=20.0, ppp=0.90, pts=2.7,
+            fgm=1.0, fga=2.5, fg_pct=40.0, efg_pct=42.0,
+            ft_freq_pct=8.0, tov_freq_pct=8.0, sf_freq_pct=7.0,
+            and_one_freq_pct=1.0, score_freq_pct=43.0, percentile=5.0,
+        )
+        # HOU allows 0.96 PPP → edge = 0.90 - 0.96 = -0.06 → NEUTRAL
+        # DEN allows 1.02 PPP → edge = 0.90 - 1.02 = -0.12 → TOUGH
+        result = predict_pnr_man_matchup(
+            "Weak Roll", "DEN", [weak_player], self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        avg_player = OffensivePnrManStats(
+            player="Avg Roll", team="TST", gp=50,
+            poss=5.0, freq_pct=28.0, ppp=1.10, pts=5.5,
+            fgm=2.0, fga=4.0, fg_pct=50.0, efg_pct=52.0,
+            ft_freq_pct=10.0, tov_freq_pct=5.0, sf_freq_pct=9.0,
+            and_one_freq_pct=2.0, score_freq_pct=53.0, percentile=50.0,
+        )
+        # HOU allows 0.96 PPP → edge = 1.10 - 0.96 = 0.14 → FAVORABLE
+        # SAS allows 1.00 PPP → edge = 1.10 - 1.00 = 0.10 → FAVORABLE
+        # MEM allows 1.01 PPP → edge = 1.10 - 1.01 = 0.09 → NEUTRAL
+        result = predict_pnr_man_matchup(
+            "Avg Roll", "MEM", [avg_player], self.def_rankings
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    def test_returns_none_for_unknown_player(self):
+        result = predict_pnr_man_matchup(
+            "Nobody Famous", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_team(self):
+        result = predict_pnr_man_matchup(
+            "Nikola Jokić", "ZZZ", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_name(self):
+        result_lower = predict_pnr_man_matchup(
+            "nikola jokić", "SAS", self.off_stats, self.def_rankings
+        )
+        result_upper = predict_pnr_man_matchup(
+            "NIKOLA JOKIĆ", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result_lower)
+        self.assertIsNotNone(result_upper)
+        self.assertEqual(result_lower["player"], result_upper["player"])
+
+    def test_edge_equals_ppp_minus_def_ppp(self):
+        result = predict_pnr_man_matchup(
+            "Alperen Sengun", "SAS", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["ppp"] - result["def_ppp"], 3)
+        )
+
+    def test_default_datasets_used_when_none(self):
+        result = predict_pnr_man_matchup("Bam Adebayo", "SAS")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["player"], "Bam Adebayo")
 
 
 if __name__ == "__main__":

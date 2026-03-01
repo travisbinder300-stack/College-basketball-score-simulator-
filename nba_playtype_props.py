@@ -331,6 +331,28 @@ class OffensivePnrBallHandlerStats:
 
 
 @dataclass
+class OffensivePnrManStats:
+    """Offensive pick-and-roll roll man (screener) stats for a single NBA player (NBA Synergy)."""
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # PnR roll man possessions per game
+    freq_pct: float      # frequency % of total possessions
+    ppp: float           # points per possession
+    pts: float           # PnR roll man points per game
+    fgm: float           # field goals made per game
+    fga: float           # field goals attempted per game
+    fg_pct: float        # FG%
+    efg_pct: float       # eFG%
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite offensive percentile (higher = better PnR roll man)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -2635,8 +2657,8 @@ def predict_isolation_matchup(
 
 def build_offensive_pnr_ball_handler_stats() -> List["OffensivePnrBallHandlerStats"]:
     """
-    Return offensive pick-and-roll ball handler stats for 150 NBA players
-    (NBA Synergy data).
+    Return offensive pick-and-roll ball handler stats for approximately 130
+    NBA players (NBA Synergy data).
 
     Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
              FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
@@ -2928,6 +2950,320 @@ def predict_pnr_ball_handler_matchup(
         offensive_stats = build_offensive_pnr_ball_handler_stats()
     if defensive_rankings is None:
         defensive_rankings = build_pnr_ball_handler_defensive_rankings()
+
+    player_stat = next(
+        (s for s in offensive_stats if s.player.lower() == player_name.lower()),
+        None,
+    )
+    if player_stat is None:
+        return None
+
+    def_stat = defensive_rankings.get(opponent_team.upper())
+    if def_stat is None:
+        return None
+
+    edge = round(player_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.10:
+        verdict = "FAVORABLE"
+    elif edge <= -0.10:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "player":         player_stat.player,
+        "team":           player_stat.team,
+        "gp":             player_stat.gp,
+        "freq_pct":       player_stat.freq_pct,
+        "ppp":            player_stat.ppp,
+        "pts":            player_stat.pts,
+        "off_percentile": player_stat.percentile,
+        "opponent":       def_stat.team,
+        "def_ppp":        def_stat.ppp,
+        "def_freq_pct":   def_stat.freq_pct,
+        "def_percentile": def_stat.percentile,
+        "edge":           edge,
+        "verdict":        verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Offensive PnR roll man (screener) analytics
+# ---------------------------------------------------------------------------
+
+def build_offensive_pnr_man_stats() -> List["OffensivePnrManStats"]:
+    """
+    Return offensive pick-and-roll roll man (screener) stats for approximately
+    110 NBA players (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking.  Higher values indicate a
+    more efficient/frequent PnR roll man.  Roll men are typically interior
+    players (centers/power forwards) who set screens and roll to the basket.
+    """
+    raw = [
+        # (player, team, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("Nikola Jokić",             "DEN", 42,  7.8, 31.9, 1.43, 11.2,  4.2,  5.9, 71.2, 73.4, 15.8,  4.5, 15.8, 4.0, 64.7,  79.3),
+        ("Alperen Sengun",           "HOU", 49,  7.5, 33.9, 1.38, 10.4,  3.9,  6.0, 64.3, 67.3, 17.1,  4.2, 17.1, 3.6, 62.2,  75.9),
+        ("Bam Adebayo",              "MIA", 57,  6.3, 30.8, 1.30,  8.2,  3.3,  5.2, 63.1, 66.6, 14.3,  4.8, 14.3, 3.8, 58.9,  65.5),
+        ("Domantas Sabonis",         "SAC", 57,  7.2, 31.2, 1.22,  8.7,  3.5,  5.9, 59.5, 61.7, 10.9,  5.3, 10.9, 2.7, 57.1,  55.2),
+        ("Karl-Anthony Towns",       "NYK", 56,  6.1, 27.0, 1.26,  7.7,  2.9,  4.7, 61.4, 68.2, 14.5,  4.7, 14.5, 3.5, 58.5,  62.1),
+        ("Joel Embiid",              "PHI", 24,  7.3, 30.1, 1.24,  9.0,  3.4,  5.5, 61.3, 64.8, 16.4,  4.1, 15.9, 4.4, 57.7,  58.6),
+        ("Jarrett Allen",            "CLE", 58,  6.5, 28.1, 1.34,  8.7,  3.5,  5.2, 67.1, 68.9, 11.3,  4.1, 11.3, 2.2, 63.3,  72.4),
+        ("Chet Holmgren",            "OKC", 56,  5.8, 25.8, 1.28,  7.4,  3.0,  5.0, 60.0, 67.6, 11.8,  5.2, 11.8, 2.0, 59.3,  65.5),
+        ("Evan Mobley",              "CLE", 58,  5.7, 24.4, 1.27,  7.2,  2.9,  4.9, 59.2, 65.9, 12.1,  4.7, 11.7, 2.8, 58.6,  62.1),
+        ("Brook Lopez",              "MIL", 28,  4.8, 27.7, 1.30,  6.2,  2.6,  4.1, 62.7, 68.9, 11.1,  4.1, 11.1, 2.0, 61.1,  65.5),
+        ("Myles Turner",             "MIL", 51,  5.3, 34.7, 1.24,  6.6,  2.7,  4.5, 60.5, 69.4, 10.3,  4.5, 10.3, 1.7, 58.9,  55.2),
+        ("Jonas Valančiūnas",        "NOP", 55,  5.9, 35.4, 1.18,  7.0,  2.9,  5.3, 54.4, 56.6, 11.9,  5.5, 11.9, 2.5, 55.4,  41.4),
+        ("Nikola Vučević",           "BOS", 45,  5.6, 30.9, 1.16,  6.5,  2.7,  5.0, 54.5, 58.9,  9.8,  4.6,  9.8, 2.4, 54.5,  37.9),
+        ("Daniel Gafford",           "DAL", 55,  5.2, 26.5, 1.33,  6.9,  2.9,  4.3, 67.3, 69.7, 10.3,  3.5, 10.3, 2.3, 63.9,  72.4),
+        ("Rudy Gobert",              "MIN", 55,  5.0, 22.2, 1.28,  6.4,  2.8,  4.2, 66.7, 68.0,  9.8,  3.4,  9.8, 2.2, 62.8,  65.5),
+        ("Nic Claxton",              "BKN", 43,  4.9, 25.7, 1.22,  5.9,  2.5,  4.2, 59.2, 62.9, 11.1,  4.8, 11.1, 2.3, 57.5,  55.2),
+        ("Deandre Ayton",            "POR", 50,  5.8, 27.1, 1.15,  6.7,  2.7,  5.3, 50.6, 54.1,  9.6,  4.7,  9.6, 2.3, 52.1,  34.5),
+        ("Walker Kessler",           "UTA", 52,  4.8, 26.1, 1.24,  5.9,  2.5,  4.0, 62.2, 64.7,  9.7,  3.6,  9.7, 1.8, 60.6,  58.6),
+        ("Ivica Zubac",              "LAC", 55,  5.5, 28.6, 1.20,  6.6,  2.7,  4.8, 56.2, 60.0, 10.8,  4.5, 10.8, 2.2, 56.0,  48.3),
+        ("Isaiah Hartenstein",       "OKC", 56,  5.1, 22.7, 1.26,  6.4,  2.7,  4.4, 61.2, 64.7, 11.2,  4.3, 10.8, 2.5, 59.5,  62.1),
+        ("Mitchell Robinson",        "CHA", 29,  5.3, 30.5, 1.22,  6.4,  2.6,  4.3, 60.4, 62.6, 10.0,  4.0, 10.0, 1.9, 58.9,  55.2),
+        ("Clint Capela",             "ATL", 23,  5.5, 33.5, 1.16,  6.4,  2.6,  5.0, 51.8, 54.9,  9.4,  4.1,  9.4, 1.7, 54.7,  37.9),
+        ("Onyeka Okongwu",           "ATL", 53,  4.6, 28.0, 1.22,  5.6,  2.3,  4.0, 57.3, 60.8, 11.5,  4.3, 11.5, 2.2, 58.3,  55.2),
+        ("Precious Achiuwa",         "TOR", 50,  4.8, 27.0, 1.17,  5.6,  2.3,  4.3, 54.5, 57.4, 12.5,  5.1, 12.5, 3.2, 55.1,  41.4),
+        ("Jalen Duren",              "DET", 55,  5.7, 25.0, 1.10,  6.2,  2.5,  5.1, 48.9, 52.1, 12.2,  5.8, 12.2, 3.4, 50.1,  24.1),
+        ("Mark Williams",            "CHA", 35,  4.9, 28.5, 1.14,  5.6,  2.4,  4.6, 52.4, 55.6, 10.8,  4.5, 10.8, 2.6, 53.9,  34.5),
+        ("Steven Adams",             "MEM", 18,  4.8, 30.1, 1.18,  5.6,  2.4,  4.5, 53.1, 57.2, 11.4,  4.8, 11.4, 2.8, 55.8,  44.8),
+        ("Robert Williams",          "POR", 26,  4.2, 24.6, 1.22,  5.1,  2.2,  3.8, 58.0, 61.3, 11.0,  4.1, 11.0, 2.6, 58.5,  55.2),
+        ("Jusuf Nurkić",             "PHX", 32,  4.7, 26.4, 1.08,  5.1,  2.1,  4.5, 46.3, 49.9,  8.9,  5.4,  8.9, 1.8, 49.1,  20.7),
+        ("Kristaps Porziņģis",       "BOS", 32,  4.2, 19.2, 1.22,  5.1,  2.1,  3.5, 60.1, 68.0,  9.7,  5.4,  9.7, 2.2, 58.5,  55.2),
+        # --- next batch ---
+        ("Wendell Carter Jr.",       "ORL", 41,  4.5, 24.1, 1.13,  5.1,  2.2,  4.5, 48.3, 52.0, 11.2,  5.0, 11.2, 2.9, 52.3,  31.0),
+        ("Xavier Tillman",           "SAC", 50,  3.8, 26.8, 1.19,  4.5,  1.9,  3.5, 54.8, 59.2, 10.2,  4.8, 10.2, 2.0, 56.8,  44.8),
+        ("Moritz Wagner",            "ORL", 50,  4.6, 27.3, 1.11,  5.1,  2.1,  4.3, 48.3, 53.3, 11.0,  5.5, 11.0, 2.7, 51.9,  27.6),
+        ("Naz Reid",                 "MIN", 56,  4.3, 23.2, 1.20,  5.2,  2.2,  3.9, 56.8, 61.5, 11.0,  4.8, 11.0, 2.6, 57.6,  51.7),
+        ("Nick Richards",            "HOU", 52,  4.3, 24.1, 1.17,  5.0,  2.1,  4.0, 52.4, 55.1,  9.1,  4.0,  9.1, 1.7, 55.2,  41.4),
+        ("Charles Bassey",           "WAS", 28,  4.3, 31.2, 1.13,  4.8,  2.0,  3.9, 50.6, 54.7,  9.4,  4.7,  9.4, 2.1, 53.4,  31.0),
+        ("Keyonte George",           "UTA",  6,  4.0, 22.9, 1.11,  4.4,  1.8,  3.7, 48.1, 54.7,  9.7,  5.4,  9.7, 2.2, 52.7,  27.6),
+        ("Maozinho Moreira",         "CHI", 47,  3.9, 29.8, 1.14,  4.4,  1.9,  3.7, 50.8, 54.7, 10.1,  4.7, 10.1, 2.3, 53.8,  34.5),
+        ("Mo Bamba",                 "SAS", 47,  3.9, 25.7, 1.18,  4.6,  2.0,  3.7, 54.0, 58.4,  9.7,  4.5,  9.7, 2.2, 56.7,  44.8),
+        ("Kel'el Ware",              "MIA", 44,  4.1, 23.9, 1.13,  4.6,  1.9,  3.8, 50.0, 54.6, 10.5,  5.0, 10.5, 2.4, 53.0,  31.0),
+        ("Paul Reed",                "CHI", 45,  3.7, 22.3, 1.20,  4.5,  1.9,  3.5, 55.0, 58.9,  9.8,  4.3,  9.8, 1.9, 57.9,  51.7),
+        ("Trayce Jackson-Davis",     "GSW", 48,  4.4, 24.7, 1.15,  5.1,  2.1,  4.2, 50.1, 53.8, 10.4,  4.9, 10.4, 2.5, 53.5,  37.9),
+        ("Duop Reath",               "POR", 52,  4.1, 23.3, 1.14,  4.7,  2.0,  3.9, 50.7, 55.2, 10.2,  5.1, 10.2, 2.4, 53.1,  34.5),
+        ("Bismack Biyombo",          "PHX", 25,  3.5, 27.8, 1.11,  3.9,  1.6,  3.3, 49.5, 52.8,  9.3,  4.6,  9.3, 1.9, 52.6,  27.6),
+        ("Taj Gibson",               "NYK", 40,  3.4, 19.9, 1.14,  3.9,  1.7,  3.3, 50.9, 53.7,  9.2,  4.5,  9.2, 1.8, 53.2,  34.5),
+        ("Aaron Nesmith",            "IND", 43,  3.2, 15.5, 1.16,  3.7,  1.6,  3.0, 52.1, 56.5,  9.5,  4.1,  9.5, 2.0, 55.0,  37.9),
+        ("Jericho Sims",             "TOR", 29,  3.8, 30.4, 1.10,  4.2,  1.7,  3.6, 47.5, 52.0, 10.6,  5.4, 10.6, 2.5, 51.7,  27.6),
+        ("JaVale McGee",             "DAL", 43,  3.4, 22.6, 1.13,  3.9,  1.7,  3.3, 50.9, 54.3,  9.4,  4.6,  9.4, 2.1, 53.2,  31.0),
+        ("Mason Plumlee",            "LAL", 32,  3.7, 23.5, 1.10,  4.1,  1.7,  3.6, 47.4, 52.1, 10.1,  5.6, 10.1, 2.5, 51.2,  24.1),
+        ("Robin Lopez",              "WAS", 45,  3.5, 28.5, 1.12,  3.9,  1.7,  3.4, 49.5, 53.1,  9.7,  4.8,  9.7, 2.2, 52.6,  27.6),
+        # --- next batch ---
+        ("Zach Collins",             "SAS", 43,  3.2, 17.1, 1.18,  3.8,  1.6,  3.0, 54.3, 57.9,  9.9,  4.4,  9.9, 2.2, 56.8,  44.8),
+        ("Trey Lyles",               "DET", 43,  3.1, 14.9, 1.16,  3.6,  1.5,  2.9, 52.5, 56.5,  9.6,  4.3,  9.6, 2.1, 55.1,  37.9),
+        ("Udoka Azubuike",           "OKC", 32,  3.3, 22.4, 1.15,  3.8,  1.6,  3.1, 51.9, 55.2,  9.2,  4.2,  9.2, 1.9, 54.5,  34.5),
+        ("Willy Hernangómez",        "NOP", 20,  3.6, 28.0, 1.10,  3.9,  1.6,  3.4, 47.3, 51.2,  9.0,  4.8,  9.0, 2.0, 51.1,  24.1),
+        ("Santi Aldama",             "MEM", 49,  3.0, 15.5, 1.17,  3.5,  1.5,  2.8, 53.4, 57.2,  9.6,  4.0,  9.6, 2.0, 55.9,  41.4),
+        ("Montrezl Harrell",         "CHA", 33,  3.5, 21.4, 1.10,  3.9,  1.6,  3.3, 48.6, 52.2,  9.8,  5.1,  9.8, 2.3, 52.2,  24.1),
+        ("Boban Marjanović",         "HOU",  6,  3.2, 18.1, 1.19,  3.8,  1.6,  3.0, 55.0, 59.2,  9.7,  4.5,  9.7, 2.1, 57.5,  44.8),
+        ("Goga Bitadze",             "ORL", 30,  3.1, 19.8, 1.13,  3.5,  1.5,  3.0, 50.7, 54.2,  9.5,  4.9,  9.5, 2.1, 53.2,  31.0),
+        ("Mike Muscala",             "BOS", 37,  2.9, 14.6, 1.16,  3.4,  1.4,  2.7, 52.2, 56.7,  9.0,  4.2,  9.0, 1.8, 54.7,  37.9),
+        ("Thomas Bryant",            "LAL", 30,  3.3, 20.6, 1.13,  3.8,  1.6,  3.2, 49.3, 53.4,  9.7,  5.1,  9.7, 2.3, 52.4,  31.0),
+        ("Drew Eubanks",             "PHX", 33,  2.9, 18.0, 1.14,  3.3,  1.4,  2.8, 50.9, 55.1,  9.1,  4.5,  9.1, 1.9, 54.2,  34.5),
+        ("Trendon Watford",          "POR", 38,  3.0, 17.9, 1.11,  3.3,  1.4,  2.9, 48.1, 52.1,  9.3,  5.0,  9.3, 2.0, 51.7,  24.1),
+        ("Luke Kornet",              "BOS", 57,  2.9, 15.3, 1.17,  3.4,  1.4,  2.8, 52.5, 57.2,  9.4,  4.2,  9.4, 2.0, 55.8,  41.4),
+        ("Saddiq Bey",               "NOP",  6,  3.1, 22.5, 1.11,  3.4,  1.4,  3.0, 47.8, 52.7,  9.0,  5.1,  9.0, 1.9, 51.3,  24.1),
+        ("Gary Clark",               "MIA", 31,  2.8, 18.4, 1.12,  3.1,  1.3,  2.7, 48.6, 53.2,  9.2,  4.8,  9.2, 1.9, 52.7,  27.6),
+        ("JT Thor",                  "CHA", 46,  2.7, 15.1, 1.13,  3.1,  1.3,  2.6, 50.0, 55.7,  8.9,  4.7,  8.9, 1.7, 53.2,  31.0),
+        ("Marvin Bagley III",        "WAS", 37,  3.2, 18.2, 1.08,  3.5,  1.4,  3.1, 45.5, 49.9,  9.1,  5.8,  9.1, 1.9, 49.7,  17.2),
+        ("Ariel Hukporti",           "NYK", 44,  2.8, 18.9, 1.13,  3.1,  1.3,  2.7, 48.7, 53.3,  9.2,  5.0,  9.2, 2.0, 52.4,  27.6),
+        ("Jaxson Hayes",             "LAL", 40,  3.0, 17.7, 1.11,  3.3,  1.4,  2.9, 47.9, 52.7,  9.4,  5.2,  9.4, 2.1, 51.5,  24.1),
+        ("Kai Jones",                "POR", 44,  2.9, 16.9, 1.12,  3.2,  1.4,  2.8, 48.6, 53.1,  9.1,  5.1,  9.1, 1.9, 52.4,  27.6),
+        # --- next batch ---
+        ("Damian Lillard",           "MIL",  4,  2.3, 10.5, 1.21,  2.8,  1.2,  2.1, 57.4, 60.8,  8.7,  4.0,  8.7, 1.5, 57.5,  48.3),
+        ("Tony Bradley",             "SAS", 30,  2.8, 17.3, 1.12,  3.1,  1.3,  2.7, 48.2, 53.7,  9.0,  5.1,  9.0, 1.9, 52.0,  27.6),
+        ("James Wiseman",            "GSW", 22,  3.0, 18.9, 1.10,  3.3,  1.4,  3.0, 47.0, 51.3,  9.6,  5.6,  9.6, 2.1, 51.0,  24.1),
+        ("Killian Hayes",            "BKN", 30,  2.7, 16.6, 1.12,  3.0,  1.3,  2.6, 49.6, 53.3,  9.0,  4.9,  9.0, 1.9, 52.7,  27.6),
+        ("Christian Wood",           "DAL", 28,  2.9, 16.2, 1.11,  3.2,  1.4,  2.8, 49.4, 54.2,  9.3,  5.2,  9.3, 2.1, 52.4,  27.6),
+        ("Brice Sensabaugh",         "UTA",  3,  2.5, 14.3, 1.14,  2.9,  1.2,  2.4, 51.4, 56.2,  8.8,  4.7,  8.8, 1.8, 54.0,  34.5),
+        ("Efe Abanda",               "TOR", 38,  2.6, 17.6, 1.12,  2.9,  1.2,  2.5, 49.6, 55.0,  8.8,  5.0,  8.8, 1.9, 52.7,  27.6),
+        ("Moussa Diabate",           "LAC", 47,  2.7, 16.8, 1.11,  3.0,  1.2,  2.6, 48.2, 53.7,  9.1,  5.3,  9.1, 2.0, 51.8,  24.1),
+        ("Kevon Looney",             "GSW", 56,  2.5, 12.5, 1.15,  2.9,  1.2,  2.4, 51.2, 54.5,  9.0,  4.3,  9.0, 1.8, 54.5,  34.5),
+        ("Harry Giles III",          "DET", 27,  2.7, 17.5, 1.10,  3.0,  1.2,  2.6, 47.4, 52.1,  9.0,  5.5,  9.0, 1.9, 51.1,  24.1),
+        ("Dario Šarić",              "ATL", 40,  2.5, 13.8, 1.13,  2.8,  1.2,  2.4, 50.1, 55.2,  9.1,  4.8,  9.1, 2.0, 53.0,  31.0),
+        ("Keaton Wallace",           "LAC", 30,  2.4, 14.3, 1.11,  2.7,  1.1,  2.3, 49.1, 54.5,  8.8,  5.0,  8.8, 1.8, 52.3,  24.1),
+        ("Nerlens Noel",             "NYK", 22,  2.8, 15.6, 1.09,  3.0,  1.2,  2.7, 44.9, 50.4,  9.2,  6.0,  9.2, 1.9, 50.5,  20.7),
+        ("Justin Patton",            "SAC", 16,  2.5, 14.0, 1.12,  2.8,  1.2,  2.4, 50.1, 54.2,  9.0,  5.1,  9.0, 1.9, 52.6,  27.6),
+        ("Vit Krejci",               "ATL", 37,  2.2, 13.6, 1.14,  2.5,  1.1,  2.1, 52.1, 56.4,  8.9,  4.6,  8.9, 1.9, 54.3,  34.5),
+        ("Usman Garuba",             "HOU", 24,  2.4, 14.5, 1.11,  2.6,  1.1,  2.3, 48.7, 54.2,  8.9,  5.2,  8.9, 1.9, 52.1,  24.1),
+        ("Zeke Nnaji",               "DEN", 48,  2.3, 13.0, 1.13,  2.6,  1.1,  2.2, 50.7, 55.4,  8.9,  4.8,  8.9, 1.8, 53.3,  31.0),
+        ("Saben Lee",                "SAS", 28,  2.2, 13.5, 1.12,  2.5,  1.1,  2.2, 49.7, 54.1,  8.7,  5.0,  8.7, 1.8, 52.3,  24.1),
+        ("Daishen Nix",              "HOU", 33,  2.0, 13.0, 1.14,  2.3,  1.0,  2.0, 51.5, 55.8,  8.8,  4.6,  8.8, 1.8, 54.1,  34.5),
+        ("Chris Boucher",            "TOR", 48,  2.3, 13.2, 1.11,  2.5,  1.1,  2.2, 49.4, 54.0,  8.8,  5.1,  8.8, 1.8, 52.3,  24.1),
+        # --- next batch ---
+        ("Victor Wembanyama",        "SAS", 43,  3.8, 17.4, 1.19,  4.5,  1.9,  3.5, 53.0, 58.0, 10.3,  4.7, 10.3, 2.3, 55.7,  44.8),
+        ("Derik Queen",              "NOP", 57,  3.6, 27.0, 1.14,  4.1,  1.8,  3.5, 51.3, 54.7, 10.5,  5.3, 10.5, 2.5, 52.8,  34.5),
+        ("Zaccharie Risacher",       "ATL", 59,  2.7, 13.4, 1.13,  3.0,  1.3,  2.6, 50.8, 54.8,  9.5,  4.9,  9.5, 2.1, 53.2,  31.0),
+        ("Isaiah Collier",           "UTA",  2,  2.4, 19.3, 1.11,  2.7,  1.1,  2.3, 49.1, 53.7,  9.1,  5.3,  9.1, 2.0, 52.0,  24.1),
+        ("Stephon Castle",           "SAS", 46,  2.2, 12.5, 1.13,  2.5,  1.1,  2.2, 50.9, 55.7,  9.1,  4.8,  9.1, 2.0, 53.6,  31.0),
+        ("Reed Sheppard",            "HOU",  4,  2.0, 15.2, 1.14,  2.3,  1.0,  2.0, 51.0, 56.3,  8.9,  4.8,  8.9, 1.9, 54.0,  34.5),
+        ("Rob Dillingham",           "MIN",  5,  2.3, 43.6, 1.11,  2.5,  1.0,  2.2, 47.6, 53.1,  9.0,  5.5,  9.0, 1.9, 51.7,  24.1),
+        ("Dylan Harper",             "SAS", 44,  2.5, 22.2, 1.13,  2.8,  1.2,  2.4, 49.9, 54.9,  9.3,  5.0,  9.3, 2.1, 53.1,  31.0),
+        ("Ace Bailey",               "UTA", 51,  2.1, 17.6, 1.12,  2.3,  1.0,  2.1, 49.0, 53.9,  8.9,  5.2,  8.9, 1.9, 52.4,  27.6),
+        ("Bub Carrington",           "WAS", 55,  1.9, 15.1, 1.13,  2.1,  0.9,  1.9, 49.5, 55.2,  8.9,  5.1,  8.9, 1.9, 53.0,  31.0),
+        ("Jaden Ivey",               "DET",  8,  2.2, 24.5, 1.11,  2.4,  1.0,  2.1, 48.7, 53.6,  9.0,  5.5,  9.0, 1.9, 52.1,  24.1),
+        ("Caleb Love",               "POR",  3,  2.0, 15.5, 1.11,  2.2,  1.0,  2.0, 49.3, 53.9,  8.8,  5.3,  8.8, 1.8, 52.4,  24.1),
+        ("Cason Wallace",            "OKC",  4,  1.9, 21.7, 1.13,  2.2,  0.9,  1.9, 50.1, 55.3,  8.9,  4.9,  8.9, 1.9, 53.2,  31.0),
+        ("Daniss Jenkins",           "DET", 46,  1.8, 18.5, 1.11,  2.0,  0.9,  1.8, 48.7, 53.5,  8.8,  5.3,  8.8, 1.8, 52.1,  24.1),
+        ("Ajay Mitchell",            "OKC", 38,  1.9, 13.1, 1.12,  2.1,  0.9,  1.9, 49.2, 54.1,  8.9,  5.1,  8.9, 1.9, 52.7,  27.6),
+        ("Will Riley",               "WAS", 47,  1.7, 19.1, 1.11,  1.9,  0.8,  1.7, 48.7, 53.7,  8.8,  5.3,  8.8, 1.8, 52.2,  24.1),
+        ("Max Christie",             "DAL", 50,  1.7, 15.6, 1.12,  1.9,  0.8,  1.7, 49.0, 54.2,  8.8,  5.1,  8.8, 1.8, 52.5,  27.6),
+        ("Gradey Dick",              "TOR", 55,  1.6, 12.8, 1.11,  1.8,  0.8,  1.6, 49.1, 53.5,  8.7,  5.2,  8.7, 1.8, 52.1,  24.1),
+        ("Ryan Nembhard",            "DAL", 36,  1.8, 20.1, 1.12,  2.0,  0.9,  1.8, 49.3, 54.1,  8.8,  5.1,  8.8, 1.8, 52.7,  27.6),
+        ("Jonathan Kuminga",         "GSW", 20,  2.4, 17.4, 1.10,  2.6,  1.1,  2.3, 47.2, 52.4,  9.0,  5.7,  9.0, 1.9, 51.3,  24.1),
+    ]
+
+    stats: List[OffensivePnrManStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(OffensivePnrManStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_offensive_pnr_man(
+    stats: Optional[List["OffensivePnrManStats"]] = None,
+) -> List["OffensivePnrManStats"]:
+    """
+    Return all players sorted from best to worst PnR roll man
+    (highest percentile first).
+
+    If *stats* is not provided, the full dataset is used.
+    """
+    if stats is None:
+        stats = build_offensive_pnr_man_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_pnr_man_scorers(
+    pnr_stats: Optional[List["OffensivePnrManStats"]] = None,
+    opponent_team: Optional[str] = None,
+    pnr_defensive_rankings: Optional[Dict[str, "DefensivePnrManStats"]] = None,
+    min_freq_pct: float = 20.0,
+    min_ppp: float = 1.10,
+) -> List[Dict]:
+    """
+    Identify players who are high-volume, efficient PnR roll men.
+
+    When *opponent_team* and *pnr_defensive_rankings* are provided the
+    results are further annotated with the opponent's defensive PPP and
+    percentile.
+
+    Returns a list of dicts sorted by PnR roll man frequency %
+    (highest first), each containing:
+      - "player"        : player name
+      - "team"          : player's team
+      - "freq_pct"      : PnR roll man frequency %
+      - "ppp"           : player's PnR roll man PPP
+      - "pts"           : PnR roll man points per game
+      - "percentile"    : player's offensive PnR roll man percentile
+      - "def_ppp"       : opponent's PnR man defensive PPP (if supplied)
+      - "def_percentile": opponent's PnR man defensive percentile (if supplied)
+    """
+    if pnr_stats is None:
+        pnr_stats = build_offensive_pnr_man_stats()
+
+    def_stats = None
+    if opponent_team and pnr_defensive_rankings:
+        def_stats = pnr_defensive_rankings.get(opponent_team)
+
+    results = []
+    for s in pnr_stats:
+        if s.freq_pct < min_freq_pct:
+            continue
+        if s.ppp < min_ppp:
+            continue
+        entry: Dict = {
+            "player":         s.player,
+            "team":           s.team,
+            "freq_pct":       s.freq_pct,
+            "ppp":            s.ppp,
+            "pts":            s.pts,
+            "percentile":     s.percentile,
+            "def_ppp":        def_stats.ppp if def_stats else None,
+            "def_percentile": def_stats.percentile if def_stats else None,
+        }
+        results.append(entry)
+
+    results.sort(key=lambda r: r["freq_pct"], reverse=True)
+    return results
+
+
+def predict_pnr_man_matchup(
+    player_name: str,
+    opponent_team: str,
+    offensive_stats: Optional[List["OffensivePnrManStats"]] = None,
+    defensive_rankings: Optional[Dict[str, "DefensivePnrManStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head PnR roll man matchup prediction for *player_name*
+    against *opponent_team*'s PnR man defense.
+
+    Parameters
+    ----------
+    player_name:
+        Exact player name (case-insensitive) as it appears in the offensive
+        PnR roll man dataset (e.g. ``"Nikola Jokić"``).
+    opponent_team:
+        Three-letter team abbreviation for the defending team (e.g. ``"LAL"``).
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_rankings:
+        Pre-built ``{team: DefensivePnrManStats}`` mapping; defaults to the
+        full 30-team dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or team cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"player"``         : player name
+        - ``"team"``           : player's team abbreviation
+        - ``"gp"``             : games played
+        - ``"freq_pct"``       : player's PnR roll man frequency %
+        - ``"ppp"``            : player's PnR roll man PPP
+        - ``"pts"``            : player's PnR roll man points per game
+        - ``"off_percentile"`` : player's offensive PnR roll man percentile
+        - ``"opponent"``       : opponent team abbreviation
+        - ``"def_ppp"``        : opponent's PnR man PPP allowed
+        - ``"def_freq_pct"``   : opponent's PnR man frequency allowed %
+        - ``"def_percentile"`` : opponent's PnR man defensive percentile
+        - ``"edge"``           : player PPP − opponent defensive PPP
+        - ``"verdict"``        : ``"FAVORABLE"``, ``"NEUTRAL"``, or ``"TOUGH"``
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_pnr_man_stats()
+    if defensive_rankings is None:
+        defensive_rankings = build_pnr_man_defensive_rankings()
 
     player_stat = next(
         (s for s in offensive_stats if s.player.lower() == player_name.lower()),
