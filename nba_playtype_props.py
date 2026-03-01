@@ -405,6 +405,17 @@ def build_sample_players() -> List[PlayerProfile]:
                 "misc":             {"frequency": 0.05, "ppp": 0.92, "percentile": 52},
             },
         ),
+        _make_player_profile(
+            "Josh Hart", "SF", "NYK",
+            avg_points=9.7, avg_assists=5.0, avg_rebounds=8.2,
+            play_type_data={
+                "cut":              {"frequency": 0.30, "ppp": 1.18, "percentile": 75},
+                "spot_up":          {"frequency": 0.25, "ppp": 1.02, "percentile": 58},
+                "pnr_ball_handler": {"frequency": 0.18, "ppp": 0.92, "percentile": 48},
+                "putback":          {"frequency": 0.12, "ppp": 1.10, "percentile": 65},
+                "misc":             {"frequency": 0.15, "ppp": 0.85, "percentile": 42},
+            },
+        ),
     ]
     return players
 
@@ -459,6 +470,18 @@ def build_sample_defenses() -> List[DefensiveMatchup]:
             "cut":              {"frequency": 0.0, "ppp": 1.03, "percentile": 48},
             "putback":          {"frequency": 0.0, "ppp": 1.02, "percentile": 50},
             "misc":             {"frequency": 0.0, "ppp": 0.98, "percentile": 60},
+        }),
+        ("SAS", {
+            "isolation":        {"frequency": 0.0, "ppp": 0.92, "percentile": 66},
+            "pnr_ball_handler": {"frequency": 0.0, "ppp": 0.96, "percentile": 58},
+            "pnr_screener":     {"frequency": 0.0, "ppp": 0.98, "percentile": 54},
+            "post_up":          {"frequency": 0.0, "ppp": 0.95, "percentile": 60},
+            "spot_up":          {"frequency": 0.0, "ppp": 0.99, "percentile": 52},
+            "off_screen":       {"frequency": 0.0, "ppp": 0.97, "percentile": 56},
+            "hand_off":         {"frequency": 0.0, "ppp": 0.96, "percentile": 58},
+            "cut":              {"frequency": 0.0, "ppp": 1.02, "percentile": 46},
+            "putback":          {"frequency": 0.0, "ppp": 1.00, "percentile": 50},
+            "misc":             {"frequency": 0.0, "ppp": 0.97, "percentile": 56},
         }),
     ]
 
@@ -2189,6 +2212,11 @@ def main() -> None:
     # Example 3: Stephen Curry vs OKC (elite defense vs spot-up & off-screen)
     curry = next(p for p in players if "Curry" in p.name)
     result = analyze_matchup(curry, defense_map["OKC"], players)
+    _print_analysis(result)
+
+    # Example 4: Josh Hart vs San Antonio (mid-tier defense vs cut & putback)
+    hart = next(p for p in players if p.name == "Josh Hart")
+    result = analyze_matchup(hart, defense_map["SAS"], players)
     _print_analysis(result)
 
     # Transition matchups: top offensive players vs weak transition defenses
