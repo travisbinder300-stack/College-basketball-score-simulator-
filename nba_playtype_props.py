@@ -181,6 +181,27 @@ class DefensivePostUpStats:
 
 
 @dataclass
+class DefensiveSpotUpStats:
+    """Defensive spot-up stats for a single NBA team (NBA Synergy)."""
+    team: str
+    gp: int             # games played
+    poss: float         # possessions per game allowed vs spot-up
+    freq_pct: float     # frequency % of spot-up possessions allowed
+    ppp: float          # points per possession allowed
+    pts: float          # points per game allowed
+    fgm: float          # field goals made allowed per game
+    fga: float          # field goals attempted allowed per game
+    fg_pct: float       # FG% allowed
+    efg_pct: float      # eFG% allowed
+    ft_freq_pct: float  # free-throw frequency %
+    tov_freq_pct: float # turnover frequency %
+    sf_freq_pct: float  # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float   # NBA Synergy composite defensive percentile (higher = better spot-up defense)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -800,6 +821,147 @@ def rank_teams_by_post_up_defense(
     if rankings is None:
         rankings = build_post_up_defensive_rankings()
     return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def build_spot_up_defensive_rankings() -> Dict[str, "DefensiveSpotUpStats"]:
+    """
+    Return defensive spot-up stats for all 30 NBA teams (NBA Synergy data).
+
+    Columns: GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking. Higher values indicate a
+    stronger spot-up defense (limiting both the frequency and efficiency of
+    opponent spot-up possessions).
+    """
+    raw = [
+        # (team_abbr, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        ("ORL", 53, 24.6, 21.8, 1.06, 26.1,  8.7, 21.8, 39.8, 53.0,  7.3, 5.4, 6.8, 1.1, 41.1,  20.7),
+        ("HOU", 56, 23.7, 21.3, 1.05, 24.9,  8.7, 22.0, 39.5, 53.0,  4.5, 3.6, 4.5, 1.1, 40.1,  51.7),
+        ("DET", 55, 26.5, 23.3, 0.97, 25.7,  8.5, 23.4, 36.2, 49.3,  6.6, 6.2, 5.6, 1.1, 37.1, 100.0),
+        ("MIN", 57, 24.3, 21.1, 1.04, 25.2,  8.6, 21.8, 39.6, 52.9,  5.9, 5.2, 5.3, 0.9, 40.3,  58.6),
+        ("IND", 57, 24.2, 21.1, 1.05, 25.6,  8.9, 22.1, 40.1, 53.6,  5.4, 4.9, 4.9, 1.5, 40.4,  34.5),
+        ("CHA", 58, 25.0, 22.8, 1.03, 25.9,  8.9, 22.8, 39.3, 53.0,  4.5, 5.2, 4.1, 0.8, 39.4,  65.5),
+        ("DAL", 55, 27.4, 23.5, 1.00, 27.5,  9.7, 25.1, 38.5, 50.3,  5.4, 4.6, 5.3, 1.4, 39.1,  89.7),
+        ("SAS", 54, 26.6, 23.5, 1.06, 28.1,  9.7, 24.4, 39.8, 53.8,  5.1, 4.4, 4.9, 1.0, 40.2,  24.1),
+        ("NYK", 55, 27.5, 24.7, 1.02, 27.9,  9.4, 24.7, 38.0, 51.4,  5.8, 5.0, 5.2, 0.9, 38.9,  82.8),
+        ("PHX", 56, 27.0, 24.0, 1.02, 27.5,  9.5, 24.6, 38.6, 51.7,  5.2, 4.8, 4.8, 1.3, 39.0,  79.3),
+        ("LAC", 55, 27.3, 24.8, 1.03, 28.2,  9.7, 24.9, 38.7, 52.5,  4.7, 5.0, 4.7, 1.2, 39.0,  69.0),
+        ("POR", 58, 26.0, 22.5, 1.03, 26.9,  9.3, 23.6, 39.4, 53.1,  5.1, 5.2, 4.6, 1.0, 39.5,  62.1),
+        ("LAL", 55, 27.3, 24.5, 1.05, 28.7, 10.1, 24.7, 40.8, 54.6,  4.5, 6.0, 4.3, 1.0, 40.2,  44.8),
+        ("MIA", 57, 28.7, 24.3, 0.98, 28.2,  9.6, 25.8, 37.1, 50.2,  4.9, 5.8, 4.8, 0.7, 37.5,  96.6),
+        ("BOS", 57, 28.0, 25.8, 1.01, 28.4,  9.7, 26.0, 37.2, 51.5,  3.9, 4.4, 3.8, 1.1, 37.2,  86.2),
+        ("SAC", 58, 27.1, 23.9, 1.05, 28.6,  9.7, 24.5, 39.7, 53.5,  5.5, 5.1, 5.3, 1.0, 40.2,  37.9),
+        ("ATL", 59, 28.2, 24.4, 1.00, 28.2,  9.7, 25.7, 37.6, 50.5,  5.5, 5.0, 5.4, 1.3, 38.4,  93.1),
+        ("PHI", 56, 28.9, 25.1, 1.03, 29.7,  9.9, 25.5, 39.0, 52.8,  6.5, 6.4, 6.0, 1.0, 39.6,  72.4),
+        ("WAS", 55, 27.1, 23.1, 1.13, 30.5, 10.3, 24.7, 41.6, 56.8,  6.1, 3.6, 5.6, 1.1, 42.8,   0.0),
+        ("MEM", 55, 29.5, 25.5, 1.05, 31.0, 10.6, 26.9, 39.3, 53.6,  5.5, 5.0, 5.0, 1.6, 39.3,  48.3),
+        ("GSW", 57, 27.6, 24.3, 1.08, 29.9, 10.2, 24.9, 40.8, 54.9,  5.6, 5.0, 5.2, 0.8, 41.5,   6.9),
+        ("CLE", 58, 28.4, 24.7, 1.05, 29.8, 10.2, 25.8, 39.7, 54.4,  4.2, 5.8, 3.9, 1.0, 39.3,  41.4),
+        ("CHI", 58, 28.5, 24.8, 1.06, 30.3, 10.5, 26.0, 40.3, 54.0,  5.4, 4.7, 5.1, 1.3, 40.7,  17.2),
+        ("TOR", 57, 29.6, 26.3, 1.04, 30.9, 10.4, 26.6, 38.9, 52.2,  6.9, 5.2, 6.2, 1.8, 40.0,  55.2),
+        ("MIL", 55, 30.1, 27.0, 1.07, 32.1, 10.9, 27.2, 40.1, 54.4,  5.3, 5.3, 4.9, 0.9, 40.4,  13.8),
+        ("BKN", 56, 29.1, 26.7, 1.09, 31.6, 11.2, 26.4, 42.2, 55.7,  4.9, 5.1, 4.5, 0.9, 42.2,   3.4),
+        ("NOP", 58, 29.1, 25.0, 1.06, 30.7, 10.5, 26.5, 39.6, 53.8,  5.5, 4.7, 5.2, 1.4, 39.6,  27.6),
+        ("DEN", 58, 30.4, 27.0, 1.03, 31.2, 10.5, 27.5, 38.1, 51.6,  6.0, 4.6, 5.7, 1.2, 39.0,  75.9),
+        ("OKC", 56, 30.7, 26.7, 1.06, 32.4, 11.2, 28.1, 39.7, 54.6,  3.5, 5.7, 3.1, 0.7, 39.1,  31.0),
+        ("UTA", 58, 31.7, 27.1, 1.08, 34.3, 11.5, 28.3, 40.7, 55.1,  6.8, 5.5, 6.4, 1.5, 41.3,  10.3),
+    ]
+
+    rankings: Dict[str, DefensiveSpotUpStats] = {}
+    for row in raw:
+        (abbr, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        rankings[abbr] = DefensiveSpotUpStats(
+            team=abbr,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        )
+    return rankings
+
+
+def rank_teams_by_spot_up_defense(
+    rankings: Optional[Dict[str, "DefensiveSpotUpStats"]] = None,
+) -> List["DefensiveSpotUpStats"]:
+    """
+    Return all teams sorted from best to worst spot-up defense
+    (highest percentile first).
+
+    If *rankings* is not provided, the full league data is used.
+    """
+    if rankings is None:
+        rankings = build_spot_up_defensive_rankings()
+    return sorted(rankings.values(), key=lambda s: s.percentile, reverse=True)
+
+
+def find_spot_up_beneficiaries(
+    players: List[PlayerProfile],
+    opponent_team: str,
+    spot_up_rankings: Optional[Dict[str, "DefensiveSpotUpStats"]] = None,
+    min_spot_up_freq: float = 0.10,
+    ppp_threshold: float = 1.03,
+) -> List[Dict]:
+    """
+    Identify players who are likely to benefit from a weak spot-up defense.
+
+    A player is flagged as a beneficiary when:
+    - Their spot-up play frequency is at least *min_spot_up_freq*
+    - The opposing team's spot-up defensive PPP allowed is >= *ppp_threshold*
+      (meaning the defense struggles to contain spot-up shooters)
+
+    Returns a list of dicts sorted by spot-up frequency (highest first), each
+    containing:
+      - "player"        : player name
+      - "position"      : player position
+      - "spot_up_freq"  : player's spot-up frequency (0–1)
+      - "spot_up_ppp"   : player's historical spot-up PPP
+      - "def_ppp"       : opponent's spot-up defensive PPP allowed
+      - "def_percentile": opponent's spot-up defensive percentile (lower = weaker)
+      - "edge"          : player spot-up PPP minus opponent defensive PPP
+    """
+    if spot_up_rankings is None:
+        spot_up_rankings = build_spot_up_defensive_rankings()
+
+    def_stats = spot_up_rankings.get(opponent_team)
+    if def_stats is None:
+        return []
+
+    results = []
+    for player in players:
+        su_stats = player.play_types.get("spot_up")
+        if su_stats is None:
+            continue
+        if su_stats.frequency < min_spot_up_freq:
+            continue
+        if def_stats.ppp < ppp_threshold:
+            continue
+        results.append({
+            "player":         player.name,
+            "position":       player.position,
+            "spot_up_freq":   su_stats.frequency,
+            "spot_up_ppp":    su_stats.ppp,
+            "def_ppp":        def_stats.ppp,
+            "def_percentile": def_stats.percentile,
+            "edge":           round(su_stats.ppp - def_stats.ppp, 3),
+        })
+
+    results.sort(key=lambda r: r["spot_up_freq"], reverse=True)
+    return results
 
 
 # ---------------------------------------------------------------------------

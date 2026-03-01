@@ -12,6 +12,7 @@ from nba_playtype_props import (
     DefensivePnrBallHandlerStats,
     DefensivePnrManStats,
     DefensivePostUpStats,
+    DefensiveSpotUpStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -24,6 +25,9 @@ from nba_playtype_props import (
     rank_teams_by_pnr_man_defense,
     build_post_up_defensive_rankings,
     rank_teams_by_post_up_defense,
+    build_spot_up_defensive_rankings,
+    rank_teams_by_spot_up_defense,
+    find_spot_up_beneficiaries,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -593,6 +597,135 @@ class TestRankTeamsByPostUpDefense(unittest.TestCase):
         ranked_subset = rank_teams_by_post_up_defense(subset)
         self.assertEqual(len(ranked_subset), 2)
         self.assertEqual(ranked_subset[0].team, "DET")
+
+
+class TestSpotUpDefensiveRankings(unittest.TestCase):
+    def setUp(self):
+        self.rankings = build_spot_up_defensive_rankings()
+
+    def test_all_thirty_teams_present(self):
+        self.assertEqual(len(self.rankings), 30)
+
+    def test_known_team_abbrevs_present(self):
+        for abbr in ("DET", "MIA", "BOS", "DAL", "WAS", "UTA"):
+            self.assertIn(abbr, self.rankings)
+
+    def test_stats_dataclass_fields(self):
+        det = self.rankings["DET"]
+        self.assertIsInstance(det, DefensiveSpotUpStats)
+        self.assertEqual(det.team, "DET")
+        self.assertAlmostEqual(det.ppp, 0.97)
+        self.assertAlmostEqual(det.percentile, 100.0)
+
+    def test_best_spot_up_defense_highest_percentile(self):
+        """Detroit Pistons should have the highest percentile (100)."""
+        det = self.rankings["DET"]
+        self.assertAlmostEqual(det.percentile, 100.0)
+
+    def test_worst_spot_up_defense_lowest_percentile(self):
+        """Washington Wizards should have the lowest percentile (0.0)."""
+        was = self.rankings["WAS"]
+        self.assertAlmostEqual(was.percentile, 0.0)
+
+    def test_ppp_values_are_positive(self):
+        for stats in self.rankings.values():
+            self.assertGreater(stats.ppp, 0)
+
+    def test_gp_values_are_positive_integers(self):
+        for stats in self.rankings.values():
+            self.assertIsInstance(stats.gp, int)
+            self.assertGreater(stats.gp, 0)
+
+    def test_efg_pct_greater_than_fg_pct(self):
+        """Spot-up shots include threes so EFG% should be >= FG%."""
+        for stats in self.rankings.values():
+            self.assertGreaterEqual(stats.efg_pct, stats.fg_pct)
+
+
+class TestRankTeamsBySpotUpDefense(unittest.TestCase):
+    def setUp(self):
+        self.ranked = rank_teams_by_spot_up_defense()
+
+    def test_returns_all_thirty_teams(self):
+        self.assertEqual(len(self.ranked), 30)
+
+    def test_sorted_best_to_worst(self):
+        percentiles = [s.percentile for s in self.ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+    def test_first_team_has_highest_percentile(self):
+        """Best spot-up defense (Detroit Pistons, percentile=100) comes first."""
+        self.assertEqual(self.ranked[0].team, "DET")
+
+    def test_accepts_custom_rankings_dict(self):
+        subset = {
+            "DET": build_spot_up_defensive_rankings()["DET"],
+            "MIA": build_spot_up_defensive_rankings()["MIA"],
+        }
+        ranked_subset = rank_teams_by_spot_up_defense(subset)
+        self.assertEqual(len(ranked_subset), 2)
+        self.assertEqual(ranked_subset[0].team, "DET")
+
+
+class TestFindSpotUpBeneficiaries(unittest.TestCase):
+    """Tests for find_spot_up_beneficiaries()."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.spot_up_rankings = build_spot_up_defensive_rankings()
+
+    def test_returns_list(self):
+        result = find_spot_up_beneficiaries(self.players, "WAS", self.spot_up_rankings)
+        self.assertIsInstance(result, list)
+
+    def test_empty_for_unknown_team(self):
+        result = find_spot_up_beneficiaries(self.players, "UNKNOWN", self.spot_up_rankings)
+        self.assertEqual(result, [])
+
+    def test_all_players_meet_freq_threshold(self):
+        """Every returned player should have spot-up freq >= min_spot_up_freq."""
+        min_freq = 0.10
+        result = find_spot_up_beneficiaries(
+            self.players, "WAS", self.spot_up_rankings, min_spot_up_freq=min_freq
+        )
+        for entry in result:
+            self.assertGreaterEqual(entry["spot_up_freq"], min_freq)
+
+    def test_opponent_def_ppp_populated(self):
+        result = find_spot_up_beneficiaries(self.players, "WAS", self.spot_up_rankings)
+        for entry in result:
+            self.assertAlmostEqual(
+                entry["def_ppp"], self.spot_up_rankings["WAS"].ppp
+            )
+
+    def test_sorted_by_spot_up_freq_descending(self):
+        result = find_spot_up_beneficiaries(self.players, "WAS", self.spot_up_rankings)
+        freqs = [e["spot_up_freq"] for e in result]
+        self.assertEqual(freqs, sorted(freqs, reverse=True))
+
+    def test_no_beneficiaries_for_elite_defense(self):
+        """DET (ppp=0.97) is below the default ppp_threshold=1.03 → no beneficiaries."""
+        result = find_spot_up_beneficiaries(self.players, "DET", self.spot_up_rankings)
+        self.assertEqual(result, [])
+
+    def test_result_keys(self):
+        result = find_spot_up_beneficiaries(self.players, "WAS", self.spot_up_rankings)
+        if result:
+            expected_keys = {
+                "player", "position", "spot_up_freq",
+                "spot_up_ppp", "def_ppp", "def_percentile", "edge",
+            }
+            self.assertEqual(set(result[0].keys()), expected_keys)
+
+    def test_custom_ppp_threshold(self):
+        """With a very low threshold every eligible-freq player should appear."""
+        result_low = find_spot_up_beneficiaries(
+            self.players, "WAS", self.spot_up_rankings, ppp_threshold=0.0
+        )
+        result_high = find_spot_up_beneficiaries(
+            self.players, "WAS", self.spot_up_rankings, ppp_threshold=999.0
+        )
+        self.assertGreaterEqual(len(result_low), len(result_high))
 
 
 if __name__ == "__main__":
