@@ -1648,7 +1648,7 @@ class TestBuildOffensiveIsolationStats(unittest.TestCase):
 
     def test_harden_fields(self):
         harden = next(s for s in self.stats if s.player == "James Harden")
-        self.assertEqual(harden.team, "LAC")
+        self.assertEqual(harden.team, "CLE")
         self.assertEqual(harden.gp, 41)
         self.assertAlmostEqual(harden.freq_pct, 42.1)
         self.assertAlmostEqual(harden.ppp, 1.06)
