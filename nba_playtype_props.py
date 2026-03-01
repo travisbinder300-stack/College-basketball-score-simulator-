@@ -441,6 +441,28 @@ class OffensiveOffScreenStats:
 
 
 @dataclass
+class OffensivePutbackStats:
+    """Offensive putback stats for a single NBA player (NBA Synergy)."""
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # putback possessions per game
+    freq_pct: float      # frequency % of total possessions
+    ppp: float           # points per possession
+    pts: float           # putback points per game
+    fgm: float           # field goals made per game
+    fga: float           # field goals attempted per game
+    fg_pct: float        # FG%
+    efg_pct: float       # eFG%
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite offensive percentile (higher = better putback scorer)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -4438,6 +4460,268 @@ def predict_off_screen_matchup(
         offensive_stats = build_offensive_off_screen_stats()
     if defensive_rankings is None:
         defensive_rankings = build_off_screen_defensive_rankings()
+
+    player_stat = next(
+        (s for s in offensive_stats if s.player.lower() == player_name.lower()),
+        None,
+    )
+    if player_stat is None:
+        return None
+
+    def_stat = defensive_rankings.get(opponent_team.upper())
+    if def_stat is None:
+        return None
+
+    edge = round(player_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.10:
+        verdict = "FAVORABLE"
+    elif edge <= -0.10:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "player":         player_stat.player,
+        "team":           player_stat.team,
+        "gp":             player_stat.gp,
+        "freq_pct":       player_stat.freq_pct,
+        "ppp":            player_stat.ppp,
+        "pts":            player_stat.pts,
+        "off_percentile": player_stat.percentile,
+        "opponent":       def_stat.team,
+        "def_ppp":        def_stat.ppp,
+        "def_freq_pct":   def_stat.freq_pct,
+        "def_percentile": def_stat.percentile,
+        "edge":           edge,
+        "verdict":        verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Offensive putback analytics
+# ---------------------------------------------------------------------------
+
+def build_offensive_putback_stats() -> List["OffensivePutbackStats"]:
+    """
+    Return offensive putback stats for approximately 60 NBA players
+    (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking.  Higher values indicate a
+    more efficient/frequent putback scorer.  Putback possessions occur after an
+    offensive rebound — typically close-range attempts at the rim by bigs and
+    athletic forwards.
+    """
+    raw = [
+        # (player, team, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        # --- batch 1: elite putback scorers ---
+        ("Domantas Sabonis",         "SAC", 71, 5.8, 14.2, 1.38, 8.0, 3.4, 5.5, 61.8, 67.4, 22.1, 2.2, 17.8, 3.1, 66.5, 99.0),
+        ("Nikola Jokic",             "DEN", 65, 5.6, 12.6, 1.35, 7.6, 3.2, 5.2, 61.5, 67.0, 21.8, 2.3, 17.4, 3.0, 65.9, 96.6),
+        ("Giannis Antetokounmpo",    "MIL", 73, 5.3, 11.8, 1.34, 7.1, 3.0, 5.0, 60.9, 66.3, 21.2, 2.4, 17.0, 2.9, 65.2, 93.1),
+        ("Joel Embiid",              "PHI", 39, 5.0, 13.4, 1.32, 6.6, 2.8, 4.7, 59.8, 65.2, 20.5, 2.5, 16.4, 2.8, 64.4, 89.7),
+        ("Ivica Zubac",              "LAC", 57, 4.9, 16.5, 1.31, 6.4, 2.8, 4.6, 60.2, 65.6, 20.7, 2.4, 16.7, 2.8, 64.8, 86.2),
+        ("Alperen Sengun",           "HOU", 72, 4.8, 13.9, 1.30, 6.2, 2.7, 4.5, 59.5, 64.9, 20.2, 2.5, 16.2, 2.7, 64.1, 82.8),
+        ("Karl-Anthony Towns",       "NYK", 74, 4.7, 12.1, 1.29, 6.1, 2.6, 4.4, 59.2, 64.5, 19.9, 2.6, 15.9, 2.7, 63.7, 79.3),
+        ("Bam Adebayo",              "MIA", 71, 4.6, 13.7, 1.28, 5.9, 2.5, 4.2, 59.0, 64.2, 19.6, 2.6, 15.7, 2.6, 63.4, 75.9),
+        ("Rudy Gobert",              "MIN", 72, 4.8, 17.2, 1.30, 6.2, 2.7, 4.5, 60.1, 65.5, 20.6, 2.4, 16.6, 2.8, 64.7, 75.9),
+        ("Clint Capela",             "ATL", 68, 4.7, 18.9, 1.29, 6.1, 2.7, 4.4, 60.4, 65.9, 20.9, 2.3, 16.9, 2.8, 65.1, 72.4),
+        ("Walker Kessler",           "UTA", 69, 4.9, 20.1, 1.31, 6.4, 2.8, 4.6, 60.0, 65.4, 20.5, 2.4, 16.5, 2.7, 64.6, 72.4),
+        ("Jonas Valanciunas",        "NOP", 62, 4.5, 17.6, 1.27, 5.7, 2.4, 4.2, 58.7, 63.8, 19.4, 2.7, 15.4, 2.6, 63.1, 68.9),
+        ("Daniel Gafford",           "DAL", 58, 4.4, 19.3, 1.28, 5.6, 2.5, 4.1, 59.3, 64.7, 19.9, 2.5, 16.0, 2.7, 63.9, 65.5),
+        ("Myles Turner",             "IND", 70, 4.3, 14.7, 1.26, 5.4, 2.4, 4.1, 58.4, 63.5, 19.2, 2.7, 15.2, 2.5, 62.8, 62.1),
+        ("Brook Lopez",              "MIL", 71, 4.2, 13.5, 1.25, 5.3, 2.3, 4.0, 58.1, 63.2, 18.9, 2.8, 14.9, 2.5, 62.5, 58.6),
+        # --- batch 2: strong putback scorers ---
+        ("Robert Williams III",      "POR", 29, 4.1, 21.4, 1.24, 5.1, 2.3, 3.9, 57.9, 62.9, 18.7, 2.8, 14.8, 2.4, 62.2, 55.2),
+        ("Mitchell Robinson",        "CHA", 38, 4.3, 22.7, 1.25, 5.4, 2.4, 4.0, 58.3, 63.4, 19.1, 2.7, 15.1, 2.5, 62.7, 55.2),
+        ("Kristaps Porzingis",       "BOS", 55, 4.0, 13.2, 1.23, 4.9, 2.2, 3.8, 57.6, 62.6, 18.5, 2.9, 14.6, 2.4, 61.9, 51.7),
+        ("Nikola Vucevic",           "CHI", 73, 4.2, 15.4, 1.24, 5.2, 2.3, 4.0, 57.8, 62.8, 18.6, 2.8, 14.7, 2.4, 62.1, 51.7),
+        ("Andre Drummond",           "CHI", 44, 4.5, 24.8, 1.26, 5.7, 2.5, 4.2, 59.0, 64.1, 19.8, 2.6, 15.8, 2.6, 63.3, 51.7),
+        ("Onyeka Okongwu",           "ATL", 67, 3.9, 19.8, 1.22, 4.8, 2.2, 3.7, 57.4, 62.3, 18.2, 2.9, 14.3, 2.4, 61.6, 48.3),
+        ("Mo Bamba",                 "ORL", 30, 4.0, 22.1, 1.23, 4.9, 2.2, 3.8, 57.7, 62.7, 18.4, 2.9, 14.5, 2.4, 61.8, 48.3),
+        ("Isaiah Hartenstein",       "OKC", 66, 3.9, 18.3, 1.22, 4.8, 2.2, 3.7, 57.3, 62.2, 18.1, 2.9, 14.3, 2.4, 61.5, 44.8),
+        ("Precious Achiuwa",         "NYK", 57, 3.8, 17.2, 1.21, 4.6, 2.1, 3.6, 57.1, 62.0, 17.9, 3.0, 14.1, 2.3, 61.3, 44.8),
+        ("Day'Ron Sharpe",           "BKN", 59, 4.2, 25.6, 1.24, 5.2, 2.3, 4.0, 58.2, 63.3, 19.0, 2.7, 15.0, 2.5, 62.6, 44.8),
+        ("Mark Williams",            "CHA", 40, 4.1, 23.4, 1.23, 5.0, 2.3, 3.9, 57.8, 62.8, 18.6, 2.8, 14.7, 2.4, 62.1, 41.4),
+        ("Jalen Duren",              "DET", 67, 4.3, 21.8, 1.24, 5.3, 2.4, 4.1, 58.1, 63.2, 18.9, 2.8, 14.9, 2.5, 62.5, 41.4),
+        ("Dereck Lively II",         "DAL", 70, 3.8, 19.7, 1.21, 4.6, 2.1, 3.6, 57.0, 61.8, 17.8, 3.0, 14.0, 2.3, 61.2, 41.4),
+        ("Santi Aldama",             "MEM", 67, 3.6, 15.3, 1.20, 4.3, 1.9, 3.4, 56.8, 61.6, 17.6, 3.0, 13.8, 2.3, 61.0, 37.9),
+        ("Kel'el Ware",              "MIA", 44, 3.9, 18.6, 1.22, 4.8, 2.2, 3.7, 57.2, 62.1, 18.0, 2.9, 14.2, 2.3, 61.4, 37.9),
+        # --- batch 3: mid-tier putback scorers ---
+        ("PJ Washington",            "DAL", 72, 3.5, 12.9, 1.18, 4.1, 1.8, 3.3, 56.3, 61.0, 17.1, 3.1, 13.3, 2.2, 60.4, 34.5),
+        ("Zach Collins",             "SAS", 52, 3.4, 14.8, 1.17, 4.0, 1.8, 3.2, 56.1, 60.8, 16.9, 3.2, 13.1, 2.2, 60.2, 34.5),
+        ("Keyonte George",           "UTA",  3, 3.3, 10.5, 1.16, 3.8, 1.7, 3.1, 55.9, 60.5, 16.7, 3.2, 13.0, 2.1, 59.9, 34.5),
+        ("Jalen Williams",           "OKC", 70, 3.2, 10.1, 1.15, 3.7, 1.7, 3.1, 55.7, 60.2, 16.5, 3.3, 12.8, 2.1, 59.7, 31.0),
+        ("Jabari Smith Jr.",         "HOU", 66, 3.3, 14.2, 1.16, 3.9, 1.7, 3.2, 55.8, 60.4, 16.6, 3.2, 12.9, 2.1, 59.8, 31.0),
+        ("Evan Mobley",              "CLE", 73, 3.5, 13.8, 1.18, 4.1, 1.8, 3.3, 56.2, 60.9, 17.0, 3.1, 13.2, 2.2, 60.3, 31.0),
+        ("Scottie Barnes",           "TOR", 72, 3.3, 11.4, 1.16, 3.8, 1.7, 3.1, 55.8, 60.4, 16.6, 3.2, 12.9, 2.1, 59.8, 31.0),
+        ("Jonathan Kuminga",         "GSW", 20, 3.1, 12.3, 1.14, 3.5, 1.6, 2.9, 55.3, 59.8, 16.1, 3.3, 12.5, 2.0, 59.3, 27.6),
+        ("Tari Eason",               "HOU", 72, 3.2, 14.6, 1.15, 3.7, 1.6, 3.0, 55.5, 60.1, 16.3, 3.3, 12.7, 2.1, 59.6, 27.6),
+        ("Naz Reid",                 "MIN", 74, 3.1, 13.7, 1.14, 3.5, 1.6, 2.9, 55.2, 59.7, 16.0, 3.4, 12.4, 2.0, 59.2, 27.6),
+        ("Derik Queen",              "NOP", 57, 3.3, 16.5, 1.16, 3.8, 1.7, 3.1, 55.7, 60.3, 16.5, 3.2, 12.8, 2.1, 59.7, 27.6),
+        ("Yves Missi",               "NOP", 55, 3.4, 20.2, 1.17, 4.0, 1.8, 3.2, 55.9, 60.6, 16.7, 3.2, 13.0, 2.1, 60.0, 27.6),
+        # --- batch 4: role players and rookies ---
+        ("Zaccharie Risacher",       "ATL", 59, 3.0, 11.2, 1.13, 3.4, 1.5, 2.8, 55.0, 59.5, 15.8, 3.4, 12.2, 2.0, 58.9, 24.1),
+        ("Jarace Walker",            "IND", 54, 3.0, 16.8, 1.13, 3.4, 1.5, 2.9, 54.9, 59.3, 15.7, 3.4, 12.1, 2.0, 58.8, 24.1),
+        ("Chet Holmgren",            "OKC", 65, 3.2, 12.4, 1.15, 3.7, 1.6, 3.0, 55.4, 59.9, 16.2, 3.3, 12.6, 2.0, 59.5, 24.1),
+        ("Victor Wembanyama",        "SAS", 43, 3.3, 11.6, 1.16, 3.8, 1.7, 3.1, 55.6, 60.2, 16.4, 3.3, 12.7, 2.1, 59.7, 24.1),
+        ("Trendon Watford",          "WAS", 45, 2.9, 15.3, 1.12, 3.2, 1.4, 2.7, 54.7, 59.1, 15.5, 3.5, 11.9, 1.9, 58.5, 20.7),
+        ("Bub Carrington",           "WAS", 55, 2.8, 12.1, 1.11, 3.1, 1.4, 2.7, 54.5, 58.9, 15.3, 3.5, 11.8, 1.9, 58.3, 20.7),
+        ("Stephon Castle",           "SAS", 46, 2.9, 11.4, 1.12, 3.2, 1.4, 2.7, 54.6, 59.0, 15.4, 3.5, 11.9, 1.9, 58.4, 20.7),
+        ("Ace Bailey",               "UTA", 51, 2.8, 13.9, 1.11, 3.1, 1.4, 2.6, 54.4, 58.8, 15.2, 3.6, 11.7, 1.9, 58.2, 17.2),
+        ("Dylan Harper",             "SAS", 44, 2.7, 10.8, 1.10, 3.0, 1.3, 2.6, 54.2, 58.6, 15.0, 3.6, 11.6, 1.9, 58.0, 17.2),
+        ("Donovan Clingan",          "POR", 68, 3.1, 19.4, 1.14, 3.5, 1.5, 2.9, 55.1, 59.6, 15.9, 3.4, 12.3, 2.0, 59.1, 17.2),
+        ("Ja'Kobe Walter",           "TOR", 42, 2.6, 14.5, 1.09, 2.8, 1.3, 2.5, 53.9, 58.3, 14.8, 3.7, 11.4, 1.8, 57.7, 13.8),
+        ("Tidjane Salaun",           "CHA", 30, 2.5, 18.2, 1.08, 2.7, 1.2, 2.4, 53.7, 58.1, 14.6, 3.7, 11.2, 1.8, 57.5, 13.8),
+        ("Rob Dillingham",           "MIN",  5, 2.4, 28.6, 1.07, 2.6, 1.2, 2.3, 53.4, 57.8, 14.3, 3.8, 11.0, 1.8, 57.2, 13.8),
+        ("Dalton Knecht",            "LAL", 60, 2.6, 12.7, 1.09, 2.8, 1.3, 2.5, 54.0, 58.4, 14.9, 3.6, 11.5, 1.9, 57.8, 10.3),
+        ("Tristan da Silva",         "ORL", 55, 2.5, 13.4, 1.08, 2.7, 1.2, 2.4, 53.8, 58.2, 14.7, 3.7, 11.3, 1.8, 57.6, 10.3),
+    ]
+
+    stats: List[OffensivePutbackStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(OffensivePutbackStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_offensive_putback(
+    stats: Optional[List["OffensivePutbackStats"]] = None,
+) -> List["OffensivePutbackStats"]:
+    """
+    Return all players sorted from best to worst putback scorer
+    (highest percentile first).
+
+    If *stats* is not provided, the full dataset is used.
+    """
+    if stats is None:
+        stats = build_offensive_putback_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_putback_player_scorers(
+    putback_stats: Optional[List["OffensivePutbackStats"]] = None,
+    opponent_team: Optional[str] = None,
+    putback_defensive_rankings: Optional[Dict[str, "DefensivePutbackStats"]] = None,
+    min_freq_pct: float = 12.0,
+    min_ppp: float = 1.20,
+) -> List[Dict]:
+    """
+    Identify players who are high-volume, efficient putback scorers.
+
+    When *opponent_team* and *putback_defensive_rankings* are provided the
+    results are further annotated with the opponent's defensive PPP and
+    percentile.
+
+    Returns a list of dicts sorted by putback frequency % (highest first),
+    each containing:
+      - "player"        : player name
+      - "team"          : player's team
+      - "freq_pct"      : putback frequency %
+      - "ppp"           : player's putback PPP
+      - "pts"           : putback points per game
+      - "percentile"    : player's offensive putback percentile
+      - "def_ppp"       : opponent's putback defensive PPP (if supplied)
+      - "def_percentile": opponent's putback defensive percentile (if supplied)
+    """
+    if putback_stats is None:
+        putback_stats = build_offensive_putback_stats()
+
+    def_stats = None
+    if opponent_team and putback_defensive_rankings:
+        def_stats = putback_defensive_rankings.get(opponent_team)
+
+    results = []
+    for s in putback_stats:
+        if s.freq_pct < min_freq_pct:
+            continue
+        if s.ppp < min_ppp:
+            continue
+        entry: Dict = {
+            "player":         s.player,
+            "team":           s.team,
+            "freq_pct":       s.freq_pct,
+            "ppp":            s.ppp,
+            "pts":            s.pts,
+            "percentile":     s.percentile,
+            "def_ppp":        def_stats.ppp if def_stats else None,
+            "def_percentile": def_stats.percentile if def_stats else None,
+        }
+        results.append(entry)
+
+    results.sort(key=lambda r: r["freq_pct"], reverse=True)
+    return results
+
+
+def predict_putback_matchup(
+    player_name: str,
+    opponent_team: str,
+    offensive_stats: Optional[List["OffensivePutbackStats"]] = None,
+    defensive_rankings: Optional[Dict[str, "DefensivePutbackStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head putback matchup prediction for *player_name*
+    against *opponent_team*'s putback defense.
+
+    Parameters
+    ----------
+    player_name:
+        Exact player name (case-insensitive) as it appears in the offensive
+        putback dataset (e.g. ``"Domantas Sabonis"``).
+    opponent_team:
+        Three-letter team abbreviation for the defending team (e.g. ``"LAL"``).
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_rankings:
+        Pre-built ``{team: DefensivePutbackStats}`` mapping; defaults to the
+        full 30-team dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or team cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"player"``         : player name
+        - ``"team"``           : player's team abbreviation
+        - ``"gp"``             : games played
+        - ``"freq_pct"``       : player's putback frequency %
+        - ``"ppp"``            : player's putback PPP
+        - ``"pts"``            : player's putback points per game
+        - ``"off_percentile"`` : player's offensive putback percentile
+        - ``"opponent"``       : opponent team abbreviation
+        - ``"def_ppp"``        : opponent's putback PPP allowed
+        - ``"def_freq_pct"``   : opponent's putback frequency allowed %
+        - ``"def_percentile"`` : opponent's putback defensive percentile
+        - ``"edge"``           : player PPP − opponent defensive PPP
+        - ``"verdict"``        : ``"FAVORABLE"``, ``"NEUTRAL"``, or ``"TOUGH"``
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_putback_stats()
+    if defensive_rankings is None:
+        defensive_rankings = build_putback_defensive_rankings()
 
     player_stat = next(
         (s for s in offensive_stats if s.player.lower() == player_name.lower()),

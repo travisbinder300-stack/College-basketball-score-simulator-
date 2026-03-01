@@ -24,6 +24,7 @@ from nba_playtype_props import (
     OffensiveSpotUpStats,
     OffensiveHandoffStats,
     OffensiveOffScreenStats,
+    OffensivePutbackStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -83,6 +84,10 @@ from nba_playtype_props import (
     rank_players_by_offensive_off_screen,
     find_off_screen_player_scorers,
     predict_off_screen_matchup,
+    build_offensive_putback_stats,
+    rank_players_by_offensive_putback,
+    find_putback_player_scorers,
+    predict_putback_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -4051,6 +4056,336 @@ class TestPredictOffScreenMatchup(unittest.TestCase):
         result = predict_off_screen_matchup("Klay Thompson", "WAS")
         self.assertIsNotNone(result)
         self.assertEqual(result["player"], "Klay Thompson")
+
+
+# ===========================================================================
+# Offensive putback analytics tests
+# ===========================================================================
+
+class TestBuildOffensivePutbackStats(unittest.TestCase):
+    """Tests for build_offensive_putback_stats()."""
+
+    def setUp(self):
+        self.stats = build_offensive_putback_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 55)
+
+    def test_all_items_are_offensive_putback_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, OffensivePutbackStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_domantas_sabonis_fields(self):
+        """Domantas Sabonis data validation (top putback scorer)."""
+        sab = next(s for s in self.stats if s.player == "Domantas Sabonis")
+        self.assertEqual(sab.team, "SAC")
+        self.assertAlmostEqual(sab.ppp, 1.38)
+        self.assertAlmostEqual(sab.percentile, 99.0)
+
+    def test_nikola_jokic_fields(self):
+        """Nikola Jokic spot-check."""
+        jokic = next(s for s in self.stats if s.player == "Nikola Jokic")
+        self.assertEqual(jokic.team, "DEN")
+        self.assertEqual(jokic.gp, 65)
+        self.assertAlmostEqual(jokic.ppp, 1.35)
+        self.assertAlmostEqual(jokic.percentile, 96.6)
+
+    def test_batch1_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Domantas Sabonis", "Nikola Jokic", "Giannis Antetokounmpo",
+            "Joel Embiid", "Ivica Zubac", "Alperen Sengun",
+            "Karl-Anthony Towns", "Bam Adebayo", "Rudy Gobert",
+            "Clint Capela", "Walker Kessler", "Jonas Valanciunas",
+            "Daniel Gafford", "Myles Turner", "Brook Lopez",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-1 players: {missing}")
+
+    def test_batch2_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Robert Williams III", "Mitchell Robinson", "Kristaps Porzingis",
+            "Nikola Vucevic", "Andre Drummond", "Onyeka Okongwu",
+            "Mo Bamba", "Isaiah Hartenstein", "Precious Achiuwa",
+            "Day'Ron Sharpe", "Mark Williams", "Jalen Duren",
+            "Dereck Lively II", "Santi Aldama", "Kel'el Ware",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-2 players: {missing}")
+
+    def test_batch3_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "PJ Washington", "Zach Collins", "Keyonte George",
+            "Jalen Williams", "Jabari Smith Jr.", "Evan Mobley",
+            "Scottie Barnes", "Jonathan Kuminga", "Tari Eason",
+            "Naz Reid", "Derik Queen", "Yves Missi",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_batch4_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Zaccharie Risacher", "Jarace Walker", "Chet Holmgren",
+            "Victor Wembanyama", "Trendon Watford", "Bub Carrington",
+            "Stephon Castle", "Ace Bailey", "Dylan Harper",
+            "Donovan Clingan", "Ja'Kobe Walter",
+            "Tidjane Salaun", "Rob Dillingham", "Dalton Knecht",
+            "Tristan da Silva",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_walker_kessler_fields(self):
+        """Walker Kessler (batch-1) spot-check."""
+        kessler = next(s for s in self.stats if s.player == "Walker Kessler")
+        self.assertEqual(kessler.team, "UTA")
+        self.assertEqual(kessler.gp, 69)
+        self.assertAlmostEqual(kessler.ppp, 1.31)
+        self.assertAlmostEqual(kessler.percentile, 72.4)
+
+    def test_victor_wembanyama_fields(self):
+        """Victor Wembanyama (batch-4) spot-check."""
+        vw = next(s for s in self.stats if s.player == "Victor Wembanyama")
+        self.assertEqual(vw.team, "SAS")
+        self.assertEqual(vw.gp, 43)
+        self.assertAlmostEqual(vw.ppp, 1.16)
+        self.assertAlmostEqual(vw.percentile, 24.1)
+
+    def test_no_duplicate_players(self):
+        names = [s.player for s in self.stats]
+        self.assertEqual(len(names), len(set(names)), "Duplicate player entries found")
+
+
+class TestRankPlayersByOffensivePutback(unittest.TestCase):
+    """Tests for rank_players_by_offensive_putback()."""
+
+    def setUp(self):
+        self.stats = build_offensive_putback_stats()
+        self.ranked = rank_players_by_offensive_putback(self.stats)
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_same_length_as_input(self):
+        self.assertEqual(len(self.ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        for i in range(len(self.ranked) - 1):
+            self.assertGreaterEqual(
+                self.ranked[i].percentile, self.ranked[i + 1].percentile
+            )
+
+    def test_first_has_highest_percentile(self):
+        max_pct = max(s.percentile for s in self.stats)
+        self.assertAlmostEqual(self.ranked[0].percentile, max_pct)
+
+    def test_default_dataset_used_when_none(self):
+        ranked_default = rank_players_by_offensive_putback()
+        self.assertGreater(len(ranked_default), 0)
+
+
+class TestFindPutbackPlayerScorers(unittest.TestCase):
+    """Tests for find_putback_player_scorers()."""
+
+    def setUp(self):
+        self.putback_stats = build_offensive_putback_stats()
+        self.def_rankings = build_putback_defensive_rankings()
+
+    def test_returns_list(self):
+        results = find_putback_player_scorers(self.putback_stats)
+        self.assertIsInstance(results, list)
+
+    def test_all_pass_freq_threshold(self):
+        min_freq = 18.0
+        results = find_putback_player_scorers(self.putback_stats, min_freq_pct=min_freq)
+        for r in results:
+            self.assertGreaterEqual(r["freq_pct"], min_freq)
+
+    def test_all_pass_ppp_threshold(self):
+        min_ppp = 1.28
+        results = find_putback_player_scorers(self.putback_stats, min_ppp=min_ppp)
+        for r in results:
+            self.assertGreaterEqual(r["ppp"], min_ppp)
+
+    def test_sorted_by_freq_pct_descending(self):
+        results = find_putback_player_scorers(self.putback_stats)
+        for i in range(len(results) - 1):
+            self.assertGreaterEqual(results[i]["freq_pct"], results[i + 1]["freq_pct"])
+
+    def test_result_has_required_keys(self):
+        results = find_putback_player_scorers(self.putback_stats)
+        if results:
+            for k in ("player", "team", "freq_pct", "ppp", "pts",
+                      "percentile", "def_ppp", "def_percentile"):
+                self.assertIn(k, results[0].keys())
+
+    def test_def_ppp_none_when_no_opponent(self):
+        results = find_putback_player_scorers(self.putback_stats)
+        for r in results:
+            self.assertIsNone(r["def_ppp"])
+            self.assertIsNone(r["def_percentile"])
+
+    def test_def_ppp_populated_with_opponent(self):
+        results = find_putback_player_scorers(
+            self.putback_stats, "WAS", self.def_rankings
+        )
+        for r in results:
+            self.assertIsNotNone(r["def_ppp"])
+            self.assertIsNotNone(r["def_percentile"])
+
+    def test_sabonis_in_top_scorers(self):
+        results = find_putback_player_scorers(
+            self.putback_stats, min_freq_pct=14.0, min_ppp=1.30
+        )
+        players = [r["player"] for r in results]
+        self.assertIn("Domantas Sabonis", players)
+
+
+class TestPredictPutbackMatchup(unittest.TestCase):
+    """Tests for predict_putback_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_putback_stats()
+        self.def_rankings = build_putback_defensive_rankings()
+
+    def test_returns_dict_for_known_player_and_team(self):
+        result = predict_putback_matchup(
+            "Domantas Sabonis", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = predict_putback_matchup(
+            "Domantas Sabonis", "WAS", self.off_stats, self.def_rankings
+        )
+        for k in ("player", "team", "gp", "freq_pct", "ppp", "pts",
+                  "off_percentile", "opponent", "def_ppp", "def_freq_pct",
+                  "def_percentile", "edge", "verdict"):
+            self.assertIn(k, result)
+
+    def test_player_and_opponent_fields(self):
+        result = predict_putback_matchup(
+            "Domantas Sabonis", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["player"], "Domantas Sabonis")
+        self.assertEqual(result["opponent"], "WAS")
+
+    def test_verdict_favorable_for_large_positive_edge(self):
+        """An elite putback scorer vs a weak putback defense → FAVORABLE."""
+        strong_player = OffensivePutbackStats(
+            player="Elite Rebounder", team="TST", gp=72,
+            poss=5.5, freq_pct=15.0, ppp=1.42, pts=7.8,
+            fgm=3.4, fga=5.5, fg_pct=62.0, efg_pct=68.0,
+            ft_freq_pct=22.0, tov_freq_pct=2.0, sf_freq_pct=18.0,
+            and_one_freq_pct=3.2, score_freq_pct=67.0, percentile=98.0,
+        )
+        from nba_playtype_props import DefensivePutbackStats
+        weak_def = {"ZZZ": DefensivePutbackStats(
+            team="ZZZ", gp=72, poss=5.0, freq_pct=15.0, ppp=1.05,
+            pts=5.3, fgm=2.1, fga=3.5, fg_pct=60.0, efg_pct=65.0,
+            ft_freq_pct=20.0, tov_freq_pct=2.5, sf_freq_pct=16.0,
+            and_one_freq_pct=2.5, score_freq_pct=62.0, percentile=5.0,
+        )}
+        # edge = 1.42 - 1.05 = 0.37 → FAVORABLE
+        result = predict_putback_matchup(
+            "Elite Rebounder", "ZZZ", [strong_player], weak_def
+        )
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    def test_verdict_tough_for_large_negative_edge(self):
+        """A below-average putback scorer vs elite putback defense → TOUGH."""
+        weak_player = OffensivePutbackStats(
+            player="Poor Rebounder", team="TST", gp=55,
+            poss=2.0, freq_pct=10.0, ppp=0.95, pts=1.9,
+            fgm=0.8, fga=1.8, fg_pct=44.0, efg_pct=50.0,
+            ft_freq_pct=14.0, tov_freq_pct=4.0, sf_freq_pct=10.0,
+            and_one_freq_pct=1.5, score_freq_pct=50.0, percentile=6.0,
+        )
+        from nba_playtype_props import DefensivePutbackStats
+        elite_def = {"ZZZ": DefensivePutbackStats(
+            team="ZZZ", gp=72, poss=3.5, freq_pct=10.0, ppp=1.28,
+            pts=4.5, fgm=1.8, fga=3.0, fg_pct=60.0, efg_pct=65.0,
+            ft_freq_pct=20.0, tov_freq_pct=2.0, sf_freq_pct=16.0,
+            and_one_freq_pct=2.5, score_freq_pct=63.0, percentile=96.0,
+        )}
+        # edge = 0.95 - 1.28 = -0.33 → TOUGH
+        result = predict_putback_matchup(
+            "Poor Rebounder", "ZZZ", [weak_player], elite_def
+        )
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        avg_player = OffensivePutbackStats(
+            player="Avg Rebounder", team="TST", gp=65,
+            poss=3.8, freq_pct=14.0, ppp=1.22, pts=4.6,
+            fgm=2.0, fga=3.5, fg_pct=57.0, efg_pct=62.0,
+            ft_freq_pct=18.0, tov_freq_pct=2.8, sf_freq_pct=14.5,
+            and_one_freq_pct=2.4, score_freq_pct=62.0, percentile=48.0,
+        )
+        from nba_playtype_props import DefensivePutbackStats
+        avg_def = {"ZZZ": DefensivePutbackStats(
+            team="ZZZ", gp=72, poss=4.0, freq_pct=12.0, ppp=1.20,
+            pts=4.8, fgm=1.9, fga=3.2, fg_pct=59.0, efg_pct=64.0,
+            ft_freq_pct=19.0, tov_freq_pct=2.5, sf_freq_pct=15.0,
+            and_one_freq_pct=2.5, score_freq_pct=63.0, percentile=45.0,
+        )}
+        # edge = 1.22 - 1.20 = 0.02 → NEUTRAL
+        result = predict_putback_matchup(
+            "Avg Rebounder", "ZZZ", [avg_player], avg_def
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    def test_returns_none_for_unknown_player(self):
+        result = predict_putback_matchup(
+            "Nobody Famous", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_team(self):
+        result = predict_putback_matchup(
+            "Domantas Sabonis", "ZZZ", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_name(self):
+        result_lower = predict_putback_matchup(
+            "domantas sabonis", "WAS", self.off_stats, self.def_rankings
+        )
+        result_upper = predict_putback_matchup(
+            "DOMANTAS SABONIS", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result_lower)
+        self.assertIsNotNone(result_upper)
+        self.assertEqual(result_lower["player"], result_upper["player"])
+
+    def test_edge_equals_ppp_minus_def_ppp(self):
+        result = predict_putback_matchup(
+            "Nikola Jokic", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["ppp"] - result["def_ppp"], 3)
+        )
+
+    def test_default_datasets_used_when_none(self):
+        result = predict_putback_matchup("Domantas Sabonis", "WAS")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["player"], "Domantas Sabonis")
 
 
 if __name__ == "__main__":
