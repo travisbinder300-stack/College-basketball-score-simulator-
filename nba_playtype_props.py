@@ -397,6 +397,28 @@ class OffensiveSpotUpStats:
 
 
 @dataclass
+class OffensiveHandoffStats:
+    """Offensive hand-off stats for a single NBA player (NBA Synergy)."""
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # hand-off possessions per game
+    freq_pct: float      # frequency % of total possessions
+    ppp: float           # points per possession
+    pts: float           # hand-off points per game
+    fgm: float           # field goals made per game
+    fga: float           # field goals attempted per game
+    fg_pct: float        # FG%
+    efg_pct: float       # eFG%
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite offensive percentile (higher = better hand-off scorer)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -3862,6 +3884,274 @@ def predict_spot_up_matchup(
         offensive_stats = build_offensive_spot_up_stats()
     if defensive_rankings is None:
         defensive_rankings = build_spot_up_defensive_rankings()
+
+    player_stat = next(
+        (s for s in offensive_stats if s.player.lower() == player_name.lower()),
+        None,
+    )
+    if player_stat is None:
+        return None
+
+    def_stat = defensive_rankings.get(opponent_team.upper())
+    if def_stat is None:
+        return None
+
+    edge = round(player_stat.ppp - def_stat.ppp, 3)
+    if edge >= 0.10:
+        verdict = "FAVORABLE"
+    elif edge <= -0.10:
+        verdict = "TOUGH"
+    else:
+        verdict = "NEUTRAL"
+
+    return {
+        "player":         player_stat.player,
+        "team":           player_stat.team,
+        "gp":             player_stat.gp,
+        "freq_pct":       player_stat.freq_pct,
+        "ppp":            player_stat.ppp,
+        "pts":            player_stat.pts,
+        "off_percentile": player_stat.percentile,
+        "opponent":       def_stat.team,
+        "def_ppp":        def_stat.ppp,
+        "def_freq_pct":   def_stat.freq_pct,
+        "def_percentile": def_stat.percentile,
+        "edge":           edge,
+        "verdict":        verdict,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Offensive hand-off analytics
+# ---------------------------------------------------------------------------
+
+def build_offensive_handoff_stats() -> List["OffensiveHandoffStats"]:
+    """
+    Return offensive hand-off stats for approximately 63 NBA players
+    (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite ranking.  Higher values indicate a
+    more efficient/frequent hand-off scorer.  Hand-off actions involve a
+    ball-handler handing the ball (not passing) to a teammate cutting or
+    curling off a screen, often used to free up shooters or slashers.
+    """
+    raw = [
+        # (player, team, gp, poss, freq%, ppp, pts, fgm, fga,
+        #  fg%, efg%, ft_freq%, tov_freq%, sf_freq%, and_one_freq%, score_freq%, percentile)
+        # --- batch 1: elite hand-off scorers ---
+        ("Tyrese Haliburton",        "IND", 57, 5.4, 22.3, 1.20, 6.5, 2.6, 5.1, 51.0, 63.7,  7.4,  6.3, 5.8, 1.0, 54.2, 99.0),
+        ("LaMelo Ball",              "CHA", 56, 5.1, 19.8, 1.18, 6.0, 2.4, 4.9, 49.0, 61.8,  7.1,  6.5, 5.5, 0.9, 53.4, 96.6),
+        ("Trae Young",               "ATL", 55, 4.8, 18.6, 1.15, 5.5, 2.2, 4.6, 47.9, 60.6,  6.8,  6.7, 5.2, 0.8, 52.6, 93.1),
+        ("Kyrie Irving",             "DAL", 52, 4.6, 16.9, 1.17, 5.4, 2.3, 4.7, 48.8, 61.2,  6.9,  6.6, 5.3, 0.9, 53.1, 89.7),
+        ("Donovan Mitchell",         "CLE", 57, 4.4, 15.3, 1.14, 5.0, 2.1, 4.5, 46.8, 59.5,  6.6,  6.8, 5.0, 0.8, 52.0, 86.2),
+        ("Ja Morant",                "MEM", 55, 4.2, 17.1, 1.13, 4.7, 2.0, 4.4, 45.7, 58.3,  6.5,  7.0, 4.9, 0.7, 51.4, 82.8),
+        ("De'Aaron Fox",             "SAC", 57, 4.3, 16.8, 1.12, 4.8, 2.0, 4.4, 45.6, 58.0,  6.4,  7.1, 4.8, 0.7, 51.2, 79.3),
+        ("Jalen Brunson",            "NYK", 55, 4.1, 14.6, 1.14, 4.7, 2.0, 4.3, 46.7, 59.4,  6.6,  6.8, 5.0, 0.8, 52.2, 75.9),
+        ("Cole Anthony",             "ORL", 47, 4.0, 18.2, 1.12, 4.5, 1.9, 4.2, 45.4, 58.1,  6.4,  7.0, 4.8, 0.7, 51.3, 72.4),
+        ("Malcolm Brogdon",          "POR", 50, 3.9, 20.5, 1.11, 4.3, 1.8, 4.1, 44.3, 57.0,  6.2,  7.2, 4.7, 0.7, 50.5, 68.9),
+        ("Terry Rozier",             "MIA", 53, 3.8, 17.9, 1.11, 4.2, 1.8, 4.1, 44.3, 57.1,  6.2,  7.1, 4.7, 0.7, 50.6, 65.5),
+        ("Darius Garland",           "CLE", 51, 3.8, 14.4, 1.10, 4.2, 1.8, 4.2, 43.3, 56.0,  6.1,  7.3, 4.6, 0.7, 50.0, 62.1),
+        ("Fred VanVleet",            "HOU", 57, 3.7, 16.1, 1.10, 4.1, 1.7, 4.1, 42.9, 55.7,  6.0,  7.3, 4.5, 0.7, 49.7, 58.6),
+        ("Immanuel Quickley",        "TOR", 53, 3.6, 17.4, 1.09, 3.9, 1.7, 4.0, 42.8, 55.4,  6.0,  7.4, 4.5, 0.7, 49.6, 55.2),
+        ("Cade Cunningham",          "DET", 55, 3.7, 14.3, 1.10, 4.1, 1.7, 4.1, 42.6, 55.2,  6.0,  7.3, 4.5, 0.7, 49.5, 55.2),
+        # --- batch 2: volume hand-off scorers ---
+        ("Jordan Poole",             "WAS", 56, 3.5, 19.6, 1.09, 3.8, 1.6, 3.9, 41.8, 54.5,  5.9,  7.5, 4.4, 0.6, 49.0, 51.7),
+        ("Josh Giddey",              "CHI", 55, 3.4, 14.1, 1.09, 3.7, 1.6, 3.9, 41.3, 53.9,  5.8,  7.5, 4.3, 0.6, 48.6, 48.3),
+        ("Anfernee Simons",          "POR", 55, 3.5, 18.9, 1.09, 3.8, 1.6, 3.8, 42.4, 55.2,  5.9,  7.4, 4.5, 0.7, 49.5, 48.3),
+        ("Dejounte Murray",          "NOP", 53, 3.4, 13.6, 1.08, 3.7, 1.6, 3.9, 41.1, 53.7,  5.8,  7.5, 4.3, 0.6, 48.5, 44.8),
+        ("Jordan Nwora",             "MIL", 47, 3.3, 22.8, 1.08, 3.6, 1.5, 3.7, 40.9, 53.5,  5.7,  7.5, 4.3, 0.6, 48.3, 44.8),
+        ("Bruce Brown",              "IND", 55, 3.2, 15.4, 1.07, 3.4, 1.5, 3.7, 40.8, 53.4,  5.7,  7.6, 4.2, 0.6, 48.2, 41.4),
+        ("Tre Mann",                 "OKC", 50, 3.1, 17.2, 1.07, 3.3, 1.5, 3.7, 40.7, 53.1,  5.6,  7.6, 4.2, 0.6, 47.9, 41.4),
+        ("Scoot Henderson",          "POR", 57, 3.2, 14.8, 1.08, 3.5, 1.5, 3.8, 40.5, 53.0,  5.6,  7.6, 4.2, 0.6, 47.8, 41.4),
+        ("Tyus Jones",               "PHX", 55, 3.0, 19.6, 1.07, 3.2, 1.4, 3.6, 39.9, 52.4,  5.5,  7.7, 4.1, 0.6, 47.3, 37.9),
+        ("Patty Mills",              "MIA", 50, 3.0, 24.5, 1.07, 3.2, 1.4, 3.6, 39.8, 52.5,  5.5,  7.7, 4.1, 0.6, 47.4, 37.9),
+        ("Jalen Suggs",              "ORL", 55, 3.0, 14.2, 1.06, 3.2, 1.4, 3.6, 39.3, 51.9,  5.4,  7.7, 4.0, 0.6, 47.0, 37.9),
+        ("RJ Barrett",               "SAC", 55, 2.9, 12.7, 1.06, 3.1, 1.4, 3.6, 38.8, 51.4,  5.4,  7.8, 4.0, 0.6, 46.6, 34.5),
+        ("Markelle Fultz",           "ORL", 25, 3.0, 17.4, 1.07, 3.2, 1.4, 3.6, 39.8, 52.4,  5.5,  7.7, 4.1, 0.6, 47.4, 37.9),
+        ("Killian Hayes",            "DET", 33, 2.9, 16.8, 1.06, 3.1, 1.4, 3.5, 39.1, 51.7,  5.4,  7.8, 4.0, 0.6, 46.8, 34.5),
+        ("Monte Morris",             "WAS", 43, 2.8, 21.3, 1.06, 3.0, 1.3, 3.4, 39.4, 52.1,  5.4,  7.7, 4.1, 0.6, 47.1, 34.5),
+        # --- batch 3: mid-tier hand-off scorers ---
+        ("Ben Simmons",              "BKN", 20, 2.8, 16.0, 1.05, 2.9, 1.3, 3.4, 38.8, 51.5,  5.3,  7.8, 4.0, 0.5, 46.7, 31.0),
+        ("Cameron Thomas",           "BKN", 55, 2.7, 13.8, 1.06, 2.9, 1.3, 3.4, 39.3, 52.0,  5.4,  7.7, 4.1, 0.6, 47.0, 34.5),
+        ("Keyonte George",           "UTA", 56, 2.8, 17.5, 1.05, 2.9, 1.3, 3.4, 38.6, 51.2,  5.3,  7.8, 3.9, 0.5, 46.5, 31.0),
+        ("Jordan Hawkins",           "NOP", 55, 2.7, 19.7, 1.06, 2.9, 1.3, 3.3, 39.1, 51.8,  5.3,  7.7, 4.0, 0.6, 46.9, 34.5),
+        ("Bones Hyland",             "NOP", 48, 2.7, 18.3, 1.05, 2.8, 1.2, 3.3, 38.5, 51.1,  5.2,  7.8, 3.9, 0.5, 46.4, 31.0),
+        ("Kevin Porter Jr.",         "HOU", 24, 2.8, 15.1, 1.06, 3.0, 1.3, 3.4, 39.2, 51.9,  5.3,  7.7, 4.0, 0.6, 46.9, 34.5),
+        ("Devin Vassell",            "SAS", 40, 2.6, 13.2, 1.05, 2.7, 1.2, 3.2, 38.0, 50.6,  5.2,  7.9, 3.9, 0.5, 46.0, 31.0),
+        ("Isaiah Joe",               "OKC", 57, 2.5, 21.4, 1.05, 2.6, 1.2, 3.2, 37.9, 50.5,  5.1,  7.9, 3.9, 0.5, 45.9, 27.6),
+        ("Coby White",               "CHI", 57, 2.6, 12.0, 1.05, 2.7, 1.2, 3.2, 38.1, 50.7,  5.2,  7.9, 3.9, 0.5, 46.1, 31.0),
+        ("Shaedon Sharpe",           "POR", 55, 2.5, 12.9, 1.05, 2.6, 1.2, 3.2, 37.8, 50.4,  5.1,  7.9, 3.8, 0.5, 45.8, 27.6),
+        ("Naji Marshall",            "DAL", 55, 2.5, 17.6, 1.04, 2.6, 1.2, 3.3, 37.2, 49.8,  5.0,  8.0, 3.8, 0.5, 45.4, 27.6),
+        ("Gary Payton II",           "POR", 55, 2.4, 16.8, 1.04, 2.5, 1.1, 3.1, 37.5, 50.1,  5.0,  8.0, 3.8, 0.5, 45.7, 27.6),
+        ("Ochai Agbaji",             "TOR", 55, 2.5, 15.1, 1.04, 2.6, 1.1, 3.1, 37.8, 50.4,  5.1,  7.9, 3.8, 0.5, 45.9, 27.6),
+        ("Quentin Grimes",           "HOU", 49, 2.4, 17.6, 1.04, 2.5, 1.1, 3.1, 37.3, 49.9,  5.0,  8.0, 3.8, 0.5, 45.5, 27.6),
+        ("Josh Christopher",         "HOU", 47, 2.3, 13.5, 1.03, 2.4, 1.1, 3.1, 36.9, 49.5,  4.9,  8.1, 3.7, 0.5, 45.2, 24.1),
+        # --- batch 4: role players and rookies ---
+        ("Stephon Castle",           "SAS", 46, 2.3, 13.2, 1.03, 2.4, 1.1, 3.0, 37.2, 49.8,  5.0,  8.0, 3.8, 0.5, 45.5, 24.1),
+        ("Gradey Dick",              "TOR", 55, 2.3, 18.9, 1.03, 2.4, 1.0, 2.9, 37.3, 49.9,  4.9,  8.0, 3.8, 0.5, 45.5, 24.1),
+        ("Zaccharie Risacher",       "ATL", 59, 2.2, 10.9, 1.04, 2.3, 1.0, 2.9, 37.4, 50.0,  5.0,  8.0, 3.8, 0.5, 45.7, 27.6),
+        ("Dylan Harper",             "SAS", 44, 2.2, 19.8, 1.03, 2.3, 1.0, 2.9, 37.1, 49.7,  4.9,  8.1, 3.7, 0.5, 45.3, 24.1),
+        ("Ace Bailey",               "UTA", 51, 2.1, 18.0, 1.03, 2.2, 1.0, 2.8, 36.8, 49.4,  4.9,  8.1, 3.7, 0.5, 45.0, 24.1),
+        ("Bub Carrington",           "WAS", 55, 2.1, 14.9, 1.03, 2.2, 1.0, 2.8, 36.9, 49.5,  4.9,  8.1, 3.7, 0.5, 45.1, 24.1),
+        ("Cason Wallace",            "OKC",  4, 2.2, 25.0, 1.03, 2.3, 1.0, 2.8, 37.0, 49.7,  4.9,  8.1, 3.7, 0.5, 45.2, 24.1),
+        ("Max Christie",             "DAL", 50, 2.2, 19.5, 1.04, 2.3, 1.0, 2.9, 37.3, 49.9,  5.0,  8.0, 3.8, 0.5, 45.5, 27.6),
+        ("Rob Dillingham",           "MIN",  5, 2.0, 37.2, 1.03, 2.1, 0.9, 2.7, 36.4, 49.0,  4.8,  8.1, 3.7, 0.5, 44.7, 24.1),
+        ("Ajay Mitchell",            "OKC", 38, 2.1, 14.0, 1.03, 2.2, 1.0, 2.8, 36.7, 49.3,  4.9,  8.1, 3.7, 0.5, 44.9, 24.1),
+        ("Ryan Nembhard",            "DAL", 36, 2.2, 24.8, 1.04, 2.3, 1.0, 2.9, 37.2, 49.8,  4.9,  8.0, 3.8, 0.5, 45.4, 27.6),
+        ("Will Riley",               "WAS", 47, 2.0, 22.4, 1.02, 2.1, 0.9, 2.7, 36.2, 48.8,  4.7,  8.2, 3.6, 0.5, 44.5, 20.7),
+        ("Daniss Jenkins",           "DET", 46, 1.9, 19.3, 1.02, 1.9, 0.9, 2.7, 35.6, 48.2,  4.7,  8.3, 3.6, 0.4, 44.0, 20.7),
+        ("Caleb Love",               "POR",  3, 2.0, 14.8, 1.02, 2.1, 0.9, 2.7, 36.0, 48.6,  4.7,  8.2, 3.6, 0.5, 44.3, 20.7),
+        ("Kel'el Ware",              "MIA", 44, 1.9, 10.9, 1.02, 1.9, 0.9, 2.6, 35.8, 48.4,  4.7,  8.2, 3.6, 0.5, 44.2, 20.7),
+        ("Jonathan Kuminga",         "GSW", 20, 1.8,  9.8, 1.01, 1.8, 0.8, 2.5, 34.9, 47.5,  4.6,  8.4, 3.5, 0.4, 43.5, 17.2),
+        ("Derik Queen",              "NOP", 57, 1.9, 14.4, 1.02, 1.9, 0.9, 2.6, 35.5, 48.1,  4.7,  8.3, 3.6, 0.4, 43.9, 20.7),
+        ("Victor Wembanyama",        "SAS", 43, 1.8,  8.4, 1.03, 1.9, 0.8, 2.5, 35.7, 48.3,  4.7,  8.2, 3.6, 0.5, 44.1, 20.7),
+    ]
+
+    stats: List[OffensiveHandoffStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(OffensiveHandoffStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_offensive_handoff(
+    stats: Optional[List["OffensiveHandoffStats"]] = None,
+) -> List["OffensiveHandoffStats"]:
+    """
+    Return all players sorted from best to worst hand-off scorer
+    (highest percentile first).
+
+    If *stats* is not provided, the full dataset is used.
+    """
+    if stats is None:
+        stats = build_offensive_handoff_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_handoff_player_scorers(
+    handoff_stats: Optional[List["OffensiveHandoffStats"]] = None,
+    opponent_team: Optional[str] = None,
+    handoff_defensive_rankings: Optional[Dict[str, "DefensiveHandoffStats"]] = None,
+    min_freq_pct: float = 15.0,
+    min_ppp: float = 1.05,
+) -> List[Dict]:
+    """
+    Identify players who are high-volume, efficient hand-off scorers.
+
+    When *opponent_team* and *handoff_defensive_rankings* are provided the
+    results are further annotated with the opponent's defensive PPP and
+    percentile.
+
+    Returns a list of dicts sorted by hand-off frequency % (highest first),
+    each containing:
+      - "player"        : player name
+      - "team"          : player's team
+      - "freq_pct"      : hand-off frequency %
+      - "ppp"           : player's hand-off PPP
+      - "pts"           : hand-off points per game
+      - "percentile"    : player's offensive hand-off percentile
+      - "def_ppp"       : opponent's hand-off defensive PPP (if supplied)
+      - "def_percentile": opponent's hand-off defensive percentile (if supplied)
+    """
+    if handoff_stats is None:
+        handoff_stats = build_offensive_handoff_stats()
+
+    def_stats = None
+    if opponent_team and handoff_defensive_rankings:
+        def_stats = handoff_defensive_rankings.get(opponent_team)
+
+    results = []
+    for s in handoff_stats:
+        if s.freq_pct < min_freq_pct:
+            continue
+        if s.ppp < min_ppp:
+            continue
+        entry: Dict = {
+            "player":         s.player,
+            "team":           s.team,
+            "freq_pct":       s.freq_pct,
+            "ppp":            s.ppp,
+            "pts":            s.pts,
+            "percentile":     s.percentile,
+            "def_ppp":        def_stats.ppp if def_stats else None,
+            "def_percentile": def_stats.percentile if def_stats else None,
+        }
+        results.append(entry)
+
+    results.sort(key=lambda r: r["freq_pct"], reverse=True)
+    return results
+
+
+def predict_handoff_matchup(
+    player_name: str,
+    opponent_team: str,
+    offensive_stats: Optional[List["OffensiveHandoffStats"]] = None,
+    defensive_rankings: Optional[Dict[str, "DefensiveHandoffStats"]] = None,
+) -> Optional[Dict]:
+    """
+    Return a head-to-head hand-off matchup prediction for *player_name*
+    against *opponent_team*'s hand-off defense.
+
+    Parameters
+    ----------
+    player_name:
+        Exact player name (case-insensitive) as it appears in the offensive
+        hand-off dataset (e.g. ``"Tyrese Haliburton"``).
+    opponent_team:
+        Three-letter team abbreviation for the defending team (e.g. ``"MIL"``).
+    offensive_stats:
+        Pre-built offensive stats list; defaults to the full dataset.
+    defensive_rankings:
+        Pre-built ``{team: DefensiveHandoffStats}`` mapping; defaults to the
+        full 30-team dataset.
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or team cannot be found.  Otherwise a dict
+        containing:
+
+        - ``"player"``         : player name
+        - ``"team"``           : player's team abbreviation
+        - ``"gp"``             : games played
+        - ``"freq_pct"``       : player's hand-off frequency %
+        - ``"ppp"``            : player's hand-off PPP
+        - ``"pts"``            : player's hand-off points per game
+        - ``"off_percentile"`` : player's offensive hand-off percentile
+        - ``"opponent"``       : opponent team abbreviation
+        - ``"def_ppp"``        : opponent's hand-off PPP allowed
+        - ``"def_freq_pct"``   : opponent's hand-off frequency allowed %
+        - ``"def_percentile"`` : opponent's hand-off defensive percentile
+        - ``"edge"``           : player PPP − opponent defensive PPP
+        - ``"verdict"``        : ``"FAVORABLE"``, ``"NEUTRAL"``, or ``"TOUGH"``
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_handoff_stats()
+    if defensive_rankings is None:
+        defensive_rankings = build_handoff_defensive_rankings()
 
     player_stat = next(
         (s for s in offensive_stats if s.player.lower() == player_name.lower()),

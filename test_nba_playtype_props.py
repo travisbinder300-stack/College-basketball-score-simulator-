@@ -22,6 +22,7 @@ from nba_playtype_props import (
     OffensivePnrManStats,
     OffensivePostUpStats,
     OffensiveSpotUpStats,
+    OffensiveHandoffStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -73,6 +74,10 @@ from nba_playtype_props import (
     rank_players_by_offensive_spot_up,
     find_spot_up_player_scorers,
     predict_spot_up_matchup,
+    build_offensive_handoff_stats,
+    rank_players_by_offensive_handoff,
+    find_handoff_player_scorers,
+    predict_handoff_matchup,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -3397,6 +3402,328 @@ class TestPredictSpotUpMatchup(unittest.TestCase):
         result = predict_spot_up_matchup("Stephen Curry", "OKC")
         self.assertIsNotNone(result)
         self.assertEqual(result["player"], "Stephen Curry")
+
+
+# ===========================================================================
+# Offensive hand-off analytics tests
+# ===========================================================================
+
+class TestBuildOffensiveHandoffStats(unittest.TestCase):
+    """Tests for build_offensive_handoff_stats()."""
+
+    def setUp(self):
+        self.stats = build_offensive_handoff_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 55)
+
+    def test_all_items_are_offensive_handoff_stats(self):
+        for s in self.stats:
+            self.assertIsInstance(s, OffensiveHandoffStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_haliburton_fields(self):
+        """Tyrese Haliburton data validation."""
+        hali = next(s for s in self.stats if s.player == "Tyrese Haliburton")
+        self.assertEqual(hali.team, "IND")
+        self.assertAlmostEqual(hali.ppp, 1.20)
+        self.assertAlmostEqual(hali.percentile, 99.0)
+
+    def test_lamelo_fields(self):
+        """LaMelo Ball spot-check."""
+        lamelo = next(s for s in self.stats if s.player == "LaMelo Ball")
+        self.assertEqual(lamelo.team, "CHA")
+        self.assertEqual(lamelo.gp, 56)
+        self.assertAlmostEqual(lamelo.ppp, 1.18)
+        self.assertAlmostEqual(lamelo.percentile, 96.6)
+
+    def test_batch1_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Tyrese Haliburton", "LaMelo Ball", "Trae Young", "Kyrie Irving",
+            "Donovan Mitchell", "Ja Morant", "De'Aaron Fox", "Jalen Brunson",
+            "Cole Anthony", "Malcolm Brogdon", "Terry Rozier", "Darius Garland",
+            "Fred VanVleet", "Immanuel Quickley", "Cade Cunningham",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-1 players: {missing}")
+
+    def test_batch2_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Jordan Poole", "Josh Giddey", "Anfernee Simons", "Dejounte Murray",
+            "Jordan Nwora", "Bruce Brown", "Tre Mann", "Scoot Henderson",
+            "Tyus Jones", "Patty Mills", "Jalen Suggs", "RJ Barrett",
+            "Markelle Fultz", "Killian Hayes", "Monte Morris",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-2 players: {missing}")
+
+    def test_batch3_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Ben Simmons", "Cameron Thomas", "Keyonte George", "Jordan Hawkins",
+            "Bones Hyland", "Kevin Porter Jr.", "Devin Vassell", "Isaiah Joe",
+            "Coby White", "Shaedon Sharpe", "Naji Marshall", "Gary Payton II",
+            "Ochai Agbaji", "Quentin Grimes", "Josh Christopher",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-3 players: {missing}")
+
+    def test_batch4_players_present(self):
+        names = {s.player for s in self.stats}
+        expected = {
+            "Stephon Castle", "Gradey Dick", "Zaccharie Risacher", "Dylan Harper",
+            "Ace Bailey", "Bub Carrington", "Cason Wallace", "Max Christie",
+            "Rob Dillingham", "Ajay Mitchell", "Ryan Nembhard", "Will Riley",
+            "Daniss Jenkins", "Caleb Love", "Kel'el Ware",
+            "Jonathan Kuminga", "Derik Queen", "Victor Wembanyama",
+        }
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing batch-4 players: {missing}")
+
+    def test_victor_wembanyama_fields(self):
+        """Victor Wembanyama (batch-4) spot-check."""
+        vw = next(s for s in self.stats if s.player == "Victor Wembanyama")
+        self.assertEqual(vw.team, "SAS")
+        self.assertEqual(vw.gp, 43)
+        self.assertAlmostEqual(vw.ppp, 1.03)
+        self.assertAlmostEqual(vw.percentile, 20.7)
+
+    def test_scoot_henderson_fields(self):
+        """Scoot Henderson (batch-2) spot-check."""
+        scoot = next(s for s in self.stats if s.player == "Scoot Henderson")
+        self.assertEqual(scoot.team, "POR")
+        self.assertAlmostEqual(scoot.ppp, 1.08)
+        self.assertAlmostEqual(scoot.percentile, 41.4)
+
+
+class TestRankPlayersByOffensiveHandoff(unittest.TestCase):
+    """Tests for rank_players_by_offensive_handoff()."""
+
+    def setUp(self):
+        self.stats = build_offensive_handoff_stats()
+        self.ranked = rank_players_by_offensive_handoff(self.stats)
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_same_length_as_input(self):
+        self.assertEqual(len(self.ranked), len(self.stats))
+
+    def test_sorted_descending_by_percentile(self):
+        for i in range(len(self.ranked) - 1):
+            self.assertGreaterEqual(
+                self.ranked[i].percentile, self.ranked[i + 1].percentile
+            )
+
+    def test_first_has_highest_percentile(self):
+        max_pct = max(s.percentile for s in self.stats)
+        self.assertAlmostEqual(self.ranked[0].percentile, max_pct)
+
+    def test_default_dataset_used_when_none(self):
+        ranked_default = rank_players_by_offensive_handoff()
+        self.assertGreater(len(ranked_default), 0)
+
+
+class TestFindHandoffPlayerScorers(unittest.TestCase):
+    """Tests for find_handoff_player_scorers()."""
+
+    def setUp(self):
+        self.handoff_stats = build_offensive_handoff_stats()
+        self.def_rankings = build_handoff_defensive_rankings()
+
+    def test_returns_list(self):
+        results = find_handoff_player_scorers(self.handoff_stats)
+        self.assertIsInstance(results, list)
+
+    def test_all_pass_freq_threshold(self):
+        min_freq = 20.0
+        results = find_handoff_player_scorers(self.handoff_stats, min_freq_pct=min_freq)
+        for r in results:
+            self.assertGreaterEqual(r["freq_pct"], min_freq)
+
+    def test_all_pass_ppp_threshold(self):
+        min_ppp = 1.10
+        results = find_handoff_player_scorers(self.handoff_stats, min_ppp=min_ppp)
+        for r in results:
+            self.assertGreaterEqual(r["ppp"], min_ppp)
+
+    def test_sorted_by_freq_pct_descending(self):
+        results = find_handoff_player_scorers(self.handoff_stats)
+        for i in range(len(results) - 1):
+            self.assertGreaterEqual(results[i]["freq_pct"], results[i + 1]["freq_pct"])
+
+    def test_result_has_required_keys(self):
+        results = find_handoff_player_scorers(self.handoff_stats)
+        if results:
+            for k in ("player", "team", "freq_pct", "ppp", "pts",
+                      "percentile", "def_ppp", "def_percentile"):
+                self.assertIn(k, results[0].keys())
+
+    def test_def_ppp_none_when_no_opponent(self):
+        results = find_handoff_player_scorers(self.handoff_stats)
+        for r in results:
+            self.assertIsNone(r["def_ppp"])
+            self.assertIsNone(r["def_percentile"])
+
+    def test_def_ppp_populated_with_opponent(self):
+        results = find_handoff_player_scorers(
+            self.handoff_stats, "WAS", self.def_rankings
+        )
+        for r in results:
+            self.assertIsNotNone(r["def_ppp"])
+            self.assertIsNotNone(r["def_percentile"])
+
+    def test_haliburton_in_top_scorers(self):
+        results = find_handoff_player_scorers(
+            self.handoff_stats, min_freq_pct=20.0, min_ppp=1.15
+        )
+        players = [r["player"] for r in results]
+        self.assertIn("Tyrese Haliburton", players)
+
+
+class TestPredictHandoffMatchup(unittest.TestCase):
+    """Tests for predict_handoff_matchup()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_handoff_stats()
+        self.def_rankings = build_handoff_defensive_rankings()
+
+    def test_returns_dict_for_known_player_and_team(self):
+        result = predict_handoff_matchup(
+            "Tyrese Haliburton", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = predict_handoff_matchup(
+            "Tyrese Haliburton", "WAS", self.off_stats, self.def_rankings
+        )
+        for k in ("player", "team", "gp", "freq_pct", "ppp", "pts",
+                  "off_percentile", "opponent", "def_ppp", "def_freq_pct",
+                  "def_percentile", "edge", "verdict"):
+            self.assertIn(k, result)
+
+    def test_player_and_opponent_fields(self):
+        result = predict_handoff_matchup(
+            "Tyrese Haliburton", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertEqual(result["player"], "Tyrese Haliburton")
+        self.assertEqual(result["opponent"], "WAS")
+
+    def test_verdict_favorable_for_large_positive_edge(self):
+        """A top hand-off scorer vs a weak hand-off defense → FAVORABLE."""
+        strong_player = OffensiveHandoffStats(
+            player="Elite Handler", team="TST", gp=55,
+            poss=5.0, freq_pct=20.0, ppp=1.25, pts=6.3,
+            fgm=2.5, fga=4.8, fg_pct=52.0, efg_pct=64.0,
+            ft_freq_pct=7.0, tov_freq_pct=5.5, sf_freq_pct=5.2,
+            and_one_freq_pct=0.9, score_freq_pct=55.0, percentile=92.0,
+        )
+        from nba_playtype_props import DefensiveHandoffStats
+        weak_def = {"ZZZ": DefensiveHandoffStats(
+            team="ZZZ", gp=55, poss=4.0, freq_pct=12.0, ppp=1.00,
+            pts=4.0, fgm=1.5, fga=3.5, fg_pct=43.0, efg_pct=56.0,
+            ft_freq_pct=5.5, tov_freq_pct=6.0, sf_freq_pct=4.5,
+            and_one_freq_pct=0.6, score_freq_pct=49.0, percentile=5.0,
+        )}
+        result = predict_handoff_matchup(
+            "Elite Handler", "ZZZ", [strong_player], weak_def
+        )
+        # edge = 1.25 - 1.00 = 0.25 → FAVORABLE
+        self.assertEqual(result["verdict"], "FAVORABLE")
+
+    def test_verdict_tough_for_large_negative_edge(self):
+        """A below-average hand-off scorer vs elite hand-off defense → TOUGH."""
+        weak_player = OffensiveHandoffStats(
+            player="Cold Handler", team="TST", gp=55,
+            poss=2.5, freq_pct=14.0, ppp=0.85, pts=2.1,
+            fgm=0.8, fga=2.5, fg_pct=32.0, efg_pct=42.0,
+            ft_freq_pct=4.5, tov_freq_pct=9.0, sf_freq_pct=3.5,
+            and_one_freq_pct=0.3, score_freq_pct=38.0, percentile=6.0,
+        )
+        from nba_playtype_props import DefensiveHandoffStats
+        elite_def = {"ZZZ": DefensiveHandoffStats(
+            team="ZZZ", gp=55, poss=3.0, freq_pct=8.0, ppp=1.10,
+            pts=3.3, fgm=1.2, fga=2.8, fg_pct=43.0, efg_pct=57.0,
+            ft_freq_pct=5.0, tov_freq_pct=5.5, sf_freq_pct=4.2,
+            and_one_freq_pct=0.5, score_freq_pct=51.0, percentile=96.0,
+        )}
+        result = predict_handoff_matchup(
+            "Cold Handler", "ZZZ", [weak_player], elite_def
+        )
+        # edge = 0.85 - 1.10 = -0.25 → TOUGH
+        self.assertEqual(result["verdict"], "TOUGH")
+
+    def test_verdict_neutral_for_small_edge(self):
+        avg_player = OffensiveHandoffStats(
+            player="Avg Handler", team="TST", gp=55,
+            poss=3.0, freq_pct=16.0, ppp=1.07, pts=3.2,
+            fgm=1.3, fga=3.0, fg_pct=43.0, efg_pct=56.0,
+            ft_freq_pct=5.5, tov_freq_pct=7.0, sf_freq_pct=4.0,
+            and_one_freq_pct=0.6, score_freq_pct=49.0, percentile=40.0,
+        )
+        from nba_playtype_props import DefensiveHandoffStats
+        avg_def = {"ZZZ": DefensiveHandoffStats(
+            team="ZZZ", gp=55, poss=3.5, freq_pct=10.0, ppp=1.05,
+            pts=3.7, fgm=1.4, fga=3.2, fg_pct=44.0, efg_pct=58.0,
+            ft_freq_pct=5.3, tov_freq_pct=6.5, sf_freq_pct=4.1,
+            and_one_freq_pct=0.6, score_freq_pct=51.0, percentile=45.0,
+        )}
+        # edge = 1.07 - 1.05 = 0.02 → NEUTRAL
+        result = predict_handoff_matchup(
+            "Avg Handler", "ZZZ", [avg_player], avg_def
+        )
+        self.assertEqual(result["verdict"], "NEUTRAL")
+
+    def test_returns_none_for_unknown_player(self):
+        result = predict_handoff_matchup(
+            "Nobody Famous", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_team(self):
+        result = predict_handoff_matchup(
+            "Tyrese Haliburton", "ZZZ", self.off_stats, self.def_rankings
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_name(self):
+        result_lower = predict_handoff_matchup(
+            "tyrese haliburton", "WAS", self.off_stats, self.def_rankings
+        )
+        result_upper = predict_handoff_matchup(
+            "TYRESE HALIBURTON", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertIsNotNone(result_lower)
+        self.assertIsNotNone(result_upper)
+        self.assertEqual(result_lower["player"], result_upper["player"])
+
+    def test_edge_equals_ppp_minus_def_ppp(self):
+        result = predict_handoff_matchup(
+            "LaMelo Ball", "WAS", self.off_stats, self.def_rankings
+        )
+        self.assertAlmostEqual(
+            result["edge"], round(result["ppp"] - result["def_ppp"], 3)
+        )
+
+    def test_default_datasets_used_when_none(self):
+        result = predict_handoff_matchup("Tyrese Haliburton", "WAS")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["player"], "Tyrese Haliburton")
 
 
 if __name__ == "__main__":
