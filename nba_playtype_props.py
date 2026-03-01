@@ -648,6 +648,17 @@ def build_sample_players() -> List[PlayerProfile]:
                 "misc":             {"frequency": 0.15, "ppp": 0.85, "percentile": 42},
             },
         ),
+        _make_player_profile(
+            "Donte DiVincenzo", "SG", "NYK",
+            avg_points=15.8, avg_assists=2.8, avg_rebounds=3.4,
+            play_type_data={
+                "spot_up":          {"frequency": 0.40, "ppp": 1.14, "percentile": 78},
+                "off_screen":       {"frequency": 0.22, "ppp": 1.07, "percentile": 70},
+                "pnr_ball_handler": {"frequency": 0.18, "ppp": 0.95, "percentile": 55},
+                "cut":              {"frequency": 0.10, "ppp": 1.10, "percentile": 62},
+                "misc":             {"frequency": 0.10, "ppp": 0.88, "percentile": 44},
+            },
+        ),
     ]
     return players
 
@@ -714,6 +725,18 @@ def build_sample_defenses() -> List[DefensiveMatchup]:
             "cut":              {"frequency": 0.0, "ppp": 1.02, "percentile": 46},
             "putback":          {"frequency": 0.0, "ppp": 1.00, "percentile": 50},
             "misc":             {"frequency": 0.0, "ppp": 0.97, "percentile": 56},
+        }),
+        ("DEN", {
+            "isolation":        {"frequency": 0.0, "ppp": 0.94, "percentile": 60},
+            "pnr_ball_handler": {"frequency": 0.0, "ppp": 0.97, "percentile": 55},
+            "pnr_screener":     {"frequency": 0.0, "ppp": 0.99, "percentile": 52},
+            "post_up":          {"frequency": 0.0, "ppp": 0.96, "percentile": 58},
+            "spot_up":          {"frequency": 0.0, "ppp": 0.93, "percentile": 62},
+            "off_screen":       {"frequency": 0.0, "ppp": 0.91, "percentile": 65},
+            "hand_off":         {"frequency": 0.0, "ppp": 0.95, "percentile": 57},
+            "cut":              {"frequency": 0.0, "ppp": 1.02, "percentile": 46},
+            "putback":          {"frequency": 0.0, "ppp": 0.98, "percentile": 53},
+            "misc":             {"frequency": 0.0, "ppp": 0.95, "percentile": 55},
         }),
     ]
 
@@ -5532,6 +5555,215 @@ def analyze_matchup(
             }
             for r in props
         ],
+    }
+
+
+def explain_prop_result(
+    player_name: str,
+    prop_type: str,
+    line: float,
+    opponent_team: str,
+    players: Optional[List[PlayerProfile]] = None,
+    defenses: Optional[List[DefensiveMatchup]] = None,
+    actual: Optional[float] = None,
+) -> Optional[Dict]:
+    """
+    Explain why a player prop is projected OVER or UNDER *line* against
+    *opponent_team*, with a list of human-readable analytical reasons.
+
+    Optionally, if the actual recorded stat (*actual*) is provided, the
+    function also reports whether the actual result matched or contradicted
+    the projection.
+
+    Parameters
+    ----------
+    player_name:
+        Player name (case-insensitive match), e.g. ``"Donte DiVincenzo"``.
+    prop_type:
+        One of ``"points"``, ``"assists"``, or ``"rebounds"``.
+    line:
+        Bookmaker line, e.g. ``3.5``.
+    opponent_team:
+        Three-letter team abbreviation, e.g. ``"DEN"``.
+    players:
+        Pre-built player list; defaults to :func:`build_sample_players`.
+    defenses:
+        Pre-built defense list; defaults to :func:`build_sample_defenses`.
+    actual:
+        The actual stat recorded in the game (post-game reconciliation).
+
+    Returns
+    -------
+    dict or None
+        ``None`` when the player or defense cannot be found.  Otherwise:
+
+        - ``"player"``         : player name
+        - ``"prop_type"``      : e.g. ``"rebounds"``
+        - ``"season_avg"``     : player's season average for the prop
+        - ``"line"``           : bookmaker line
+        - ``"projection"``     : model projection
+        - ``"verdict"``        : ``"OVER"``, ``"UNDER"``, or ``"PUSH"``
+        - ``"edge"``           : projection − line
+        - ``"confidence"``     : ``"HIGH"``, ``"MEDIUM"``, or ``"LOW"``
+        - ``"multiplier"``     : matchup multiplier (>1 = favorable, <1 = tough)
+        - ``"dominant_play_types"`` : top-2 play types by frequency
+        - ``"reasons"``        : list of human-readable explanation strings
+        - ``"actual"``         : the actual stat if provided, else ``None``
+        - ``"actual_verdict"`` : ``"OVER"``/``"UNDER"``/``"PUSH"`` vs line
+                                 (only when *actual* is provided, else ``None``)
+    """
+    if players is None:
+        players = build_sample_players()
+    if defenses is None:
+        defenses = build_sample_defenses()
+
+    player = next(
+        (p for p in players if p.name.lower() == player_name.lower()), None
+    )
+    if player is None:
+        return None
+
+    defense = next(
+        (d for d in defenses if d.team.upper() == opponent_team.upper()), None
+    )
+    if defense is None:
+        return None
+
+    # Get the prop recommendation for the requested prop type
+    recs = project_props(player, defense, {prop_type: line})
+    rec = next((r for r in recs if r.prop_type == prop_type), None)
+    if rec is None:
+        return None
+
+    season_avg = getattr(player, f"avg_{prop_type}", None)
+    if season_avg is None:
+        return None
+
+    multiplier = _matchup_multiplier(player, defense)
+    dom_types = player.dominant_play_types(top_n=2)
+
+    # --- Build reasons list ---
+    reasons: List[str] = []
+
+    # 1. Season average vs line
+    avg_vs_line = round(season_avg - line, 2)
+    if avg_vs_line > 0:
+        reasons.append(
+            f"Season average ({season_avg} {prop_type}) is {avg_vs_line:+.2f} above "
+            f"the line ({line}) — baseline favors OVER."
+        )
+    elif avg_vs_line < 0:
+        reasons.append(
+            f"Season average ({season_avg} {prop_type}) is {abs(avg_vs_line):.2f} below "
+            f"the line ({line}) — baseline favors UNDER."
+        )
+    else:
+        reasons.append(
+            f"Season average ({season_avg} {prop_type}) exactly matches the line ({line})."
+        )
+
+    # 2. Matchup multiplier
+    # Thresholds of ±4 % (0.96 / 1.04) represent a meaningful half-possession
+    # edge per 25 possessions — below 0.96 is a demonstrably tight matchup,
+    # above 1.04 is demonstrably favorable; the middle band is noise.
+    if multiplier < 0.96:
+        reasons.append(
+            f"{defense.team} defense is tough for {player.name}'s play style "
+            f"(multiplier={multiplier:.3f} < 1.0 — suppresses output)."
+        )
+    elif multiplier > 1.04:
+        reasons.append(
+            f"{defense.team} defense is favorable for {player.name}'s play style "
+            f"(multiplier={multiplier:.3f} > 1.0 — boosts output)."
+        )
+    else:
+        reasons.append(
+            f"{defense.team} defense is roughly neutral for {player.name}'s play style "
+            f"(multiplier={multiplier:.3f})."
+        )
+
+    # 3. Play-type context for rebounds specifically
+    if prop_type == "rebounds":
+        perimeter_types = {"spot_up", "off_screen", "hand_off", "pnr_ball_handler"}
+        interior_types = {"post_up", "putback", "pnr_screener", "cut"}
+        dom_perimeter = [t for t in dom_types if t in perimeter_types]
+        dom_interior = [t for t in dom_types if t in interior_types]
+        if dom_perimeter:
+            reasons.append(
+                f"Dominant play types ({', '.join(dom_perimeter)}) position "
+                f"{player.name} away from the basket, limiting rebound opportunities."
+            )
+        if dom_interior:
+            reasons.append(
+                f"Interior play types ({', '.join(dom_interior)}) in the profile "
+                f"can generate some rebound chances close to the basket."
+            )
+
+        # Check opponent's post_up / putback defense — strong interior defense
+        # means fewer loose balls for perimeter players
+        interior_ppps = [
+            defense.play_types[t].ppp
+            for t in ("post_up", "putback", "pnr_screener")
+            if t in defense.play_types
+        ]
+        if interior_ppps:
+            avg_int = round(sum(interior_ppps) / len(interior_ppps), 3)
+            if avg_int < 1.0:
+                reasons.append(
+                    f"{defense.team}'s strong interior defense (avg PPP allowed "
+                    f"{avg_int:.3f} on post/putback plays) limits second-chance rebounds "
+                    f"available to perimeter players."
+                )
+
+    # 4. Determine projection verdict, then include in summary reason
+    if rec.edge > 0:
+        proj_verdict = "OVER"
+    elif rec.edge < 0:
+        proj_verdict = "UNDER"
+    else:
+        proj_verdict = "PUSH"
+
+    reasons.append(
+        f"Model projection: {rec.projection} {prop_type} "
+        f"(line {line}) → {proj_verdict}  "
+        f"[confidence: {rec.confidence}]."
+    )
+
+    # 5. Actual result reconciliation
+    actual_verdict: Optional[str] = None
+    if actual is not None:
+        actual_edge = round(actual - line, 2)
+        if actual_edge > 0:
+            actual_verdict = "OVER"
+        elif actual_edge < 0:
+            actual_verdict = "UNDER"
+        else:
+            actual_verdict = "PUSH"
+        if actual_verdict == proj_verdict:
+            reasons.append(
+                f"Actual result ({actual} {prop_type}) confirmed the projection "
+                f"({actual_verdict})."
+            )
+        else:
+            reasons.append(
+                f"Actual result ({actual} {prop_type}) went {actual_verdict}, "
+                f"contra the projection ({proj_verdict}) — variance or unmodeled factors."
+            )
+
+    return {
+        "player":              player.name,
+        "prop_type":           prop_type,
+        "season_avg":          season_avg,
+        "line":                line,
+        "projection":          rec.projection,
+        "verdict":             proj_verdict,
+        "edge":                rec.edge,
+        "confidence":          rec.confidence,
+        "multiplier":          round(multiplier, 4),
+        "dominant_play_types": dom_types,
+        "reasons":             reasons,
+        "actual":              actual,
+        "actual_verdict":      actual_verdict,
     }
 
 

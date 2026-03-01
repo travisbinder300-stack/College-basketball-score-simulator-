@@ -103,6 +103,7 @@ from nba_playtype_props import (
     _matchup_multiplier,
     project_props,
     analyze_matchup,
+    explain_prop_result,
     predict_transition_matchup,
 )
 
@@ -5087,6 +5088,273 @@ class TestPredictPlayerTransitionDefenseMatchup(unittest.TestCase):
         )
         self.assertIsNotNone(result)
         self.assertEqual(result["offensive_player"], "Josh Hart")
+
+
+# ===========================================================================
+# explain_prop_result tests
+# ===========================================================================
+
+class TestExplainPropResult(unittest.TestCase):
+    """Tests for explain_prop_result()."""
+
+    def setUp(self):
+        self.players = build_sample_players()
+        self.defenses = build_sample_defenses()
+
+    # --- basic structure ---
+
+    def test_returns_dict_for_known_player_and_defense(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, dict)
+
+    def test_result_has_required_keys(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        for key in (
+            "player", "prop_type", "season_avg", "line", "projection",
+            "verdict", "edge", "confidence", "multiplier",
+            "dominant_play_types", "reasons", "actual", "actual_verdict",
+        ):
+            self.assertIn(key, result)
+
+    def test_divincenzo_rebounds_under_35_vs_denver(self):
+        """DiVincenzo 3.5 rebounds should project UNDER vs DEN."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertEqual(result["player"], "Donte DiVincenzo")
+        self.assertEqual(result["prop_type"], "rebounds")
+        self.assertAlmostEqual(result["line"], 3.5)
+        self.assertEqual(result["verdict"], "UNDER")
+
+    def test_divincenzo_season_avg_rebounds(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertAlmostEqual(result["season_avg"], 3.4)
+
+    def test_divincenzo_projection_below_line(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertLess(result["projection"], result["line"])
+
+    def test_divincenzo_edge_is_negative(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertLess(result["edge"], 0)
+
+    def test_divincenzo_edge_equals_projection_minus_line(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertAlmostEqual(
+            result["edge"],
+            round(result["projection"] - result["line"], 1),
+        )
+
+    def test_divincenzo_multiplier_below_one(self):
+        """DEN defense is tight for a spot-up shooter like DiVincenzo."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertLess(result["multiplier"], 1.0)
+
+    def test_divincenzo_dominant_play_types_are_perimeter(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        # spot_up and off_screen are his top two
+        self.assertIn("spot_up", result["dominant_play_types"])
+
+    def test_reasons_is_nonempty_list(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsInstance(result["reasons"], list)
+        self.assertGreater(len(result["reasons"]), 0)
+
+    def test_reasons_contain_season_avg_context(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"])
+        self.assertIn("3.4", combined)          # season avg
+        self.assertIn("3.5", combined)          # line
+
+    def test_reasons_mention_perimeter_play_types(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"])
+        self.assertIn("spot_up", combined)
+
+    def test_reasons_mention_defense_name(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        combined = " ".join(result["reasons"])
+        self.assertIn("DEN", combined)
+
+    def test_actual_none_by_default(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsNone(result["actual"])
+        self.assertIsNone(result["actual_verdict"])
+
+    # --- actual result reconciliation ---
+
+    def test_actual_confirms_under(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses, actual=2.0,
+        )
+        self.assertAlmostEqual(result["actual"], 2.0)
+        self.assertEqual(result["actual_verdict"], "UNDER")
+        self.assertTrue(any("confirmed" in r for r in result["reasons"]))
+
+    def test_actual_contradicts_projection(self):
+        """Actual=6 vs projected UNDER → variance note in reasons."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses, actual=6.0,
+        )
+        self.assertEqual(result["actual_verdict"], "OVER")
+        self.assertTrue(any("contra" in r or "variance" in r for r in result["reasons"]))
+
+    def test_actual_push(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses, actual=3.5,
+        )
+        self.assertEqual(result["actual_verdict"], "PUSH")
+
+    # --- other prop types ---
+
+    def test_points_prop_over_for_curry_vs_mem(self):
+        """Curry vs MEM (bad defense) should project OVER on points."""
+        result = explain_prop_result(
+            "Stephen Curry", "points", 26.5, "MEM",
+            self.players, self.defenses,
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["verdict"], "OVER")
+        self.assertGreater(result["multiplier"], 1.0)
+
+    def test_assists_prop_returned(self):
+        result = explain_prop_result(
+            "Luka Doncic", "assists", 8.0, "OKC",
+            self.players, self.defenses,
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["prop_type"], "assists")
+        self.assertAlmostEqual(result["season_avg"], 8.2)
+
+    # --- error handling ---
+
+    def test_returns_none_for_unknown_player(self):
+        result = explain_prop_result(
+            "Unknown Player", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsNone(result)
+
+    def test_returns_none_for_unknown_defense(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "XYZ",
+            self.players, self.defenses,
+        )
+        self.assertIsNone(result)
+
+    def test_case_insensitive_player_name(self):
+        r1 = explain_prop_result(
+            "donte divincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        r2 = explain_prop_result(
+            "DONTE DIVINCENZO", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsNotNone(r1)
+        self.assertIsNotNone(r2)
+        self.assertEqual(r1["projection"], r2["projection"])
+
+    def test_case_insensitive_opponent_team(self):
+        r1 = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "den",
+            self.players, self.defenses,
+        )
+        r2 = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsNotNone(r1)
+        self.assertEqual(r1["projection"], r2["projection"])
+
+    def test_default_datasets_used_when_none(self):
+        """Passing no players/defenses should still work."""
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("player", result)
+
+    def test_verdict_over_when_projection_above_line(self):
+        result = explain_prop_result(
+            "Nikola Jokic", "rebounds", 10.0, "MEM",
+            self.players, self.defenses,
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result["verdict"], "OVER")
+        self.assertGreater(result["edge"], 0)
+
+    def test_verdict_push_when_projection_equals_line(self):
+        """Construct a scenario where projection exactly matches the line."""
+        jokic = next(p for p in self.players if p.name == "Nikola Jokic")
+        # Use his exact avg_rebounds as the line so raw projection hits it
+        line = jokic.avg_rebounds  # 12.4
+        result = explain_prop_result(
+            "Nikola Jokic", "rebounds", line, "OKC",
+            self.players, self.defenses,
+        )
+        self.assertIsNotNone(result)
+        # edge should be very small (multiplier slightly suppresses)
+        self.assertAlmostEqual(result["edge"], round(result["projection"] - line, 1))
+
+    def test_multiplier_is_float(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsInstance(result["multiplier"], float)
+
+    def test_dominant_play_types_is_list(self):
+        result = explain_prop_result(
+            "Donte DiVincenzo", "rebounds", 3.5, "DEN",
+            self.players, self.defenses,
+        )
+        self.assertIsInstance(result["dominant_play_types"], list)
+        self.assertGreater(len(result["dominant_play_types"]), 0)
 
 
 if __name__ == "__main__":
