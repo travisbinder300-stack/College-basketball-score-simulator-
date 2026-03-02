@@ -71,6 +71,7 @@ from nba_playtype_props import (
     rank_players_by_offensive_pnr_man,
     find_pnr_man_scorers,
     predict_pnr_man_matchup,
+    match_all_pnr_man_matchups,
     build_offensive_post_up_stats,
     rank_players_by_offensive_post_up,
     find_post_up_scorers,
@@ -2793,6 +2794,90 @@ class TestPredictPnrManMatchup(unittest.TestCase):
         result = predict_pnr_man_matchup("Bam Adebayo", "SAS")
         self.assertIsNotNone(result)
         self.assertEqual(result["player"], "Bam Adebayo")
+
+
+class TestMatchAllPnrManMatchups(unittest.TestCase):
+    """Tests for match_all_pnr_man_matchups()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_pnr_man_stats()
+        self.def_rankings = build_pnr_man_defensive_rankings()
+
+    def test_returns_list(self):
+        result = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=20, max_def_percentile=100.0
+        )
+        self.assertIsInstance(result, list)
+
+    def test_top_n_respected(self):
+        result = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=10, max_def_percentile=100.0
+        )
+        self.assertLessEqual(len(result), 10)
+
+    def test_required_keys_present(self):
+        result = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=5, max_def_percentile=100.0
+        )
+        self.assertGreater(len(result), 0)
+        expected_keys = {
+            "player", "team", "off_percentile", "ppp", "freq_pct",
+            "opponent", "def_ppp", "def_percentile", "edge",
+        }
+        self.assertEqual(set(result[0].keys()), expected_keys)
+
+    def test_sorted_by_edge_descending(self):
+        result = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=30, max_def_percentile=100.0
+        )
+        edges = [r["edge"] for r in result]
+        self.assertEqual(edges, sorted(edges, reverse=True))
+
+    def test_edge_formula(self):
+        result = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=30, max_def_percentile=100.0
+        )
+        for entry in result:
+            self.assertAlmostEqual(
+                entry["edge"], round(entry["ppp"] - entry["def_ppp"], 3)
+            )
+
+    def test_player_not_matched_against_own_team(self):
+        result = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=500, max_def_percentile=100.0
+        )
+        for entry in result:
+            self.assertNotEqual(entry["team"], entry["opponent"])
+
+    def test_max_def_percentile_filter(self):
+        result_all = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=500, max_def_percentile=100.0
+        )
+        result_weak = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=500, max_def_percentile=20.0
+        )
+        self.assertLessEqual(len(result_weak), len(result_all))
+        for entry in result_weak:
+            self.assertLessEqual(entry["def_percentile"], 20.0)
+
+    def test_empty_when_no_weak_defences(self):
+        result = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=50, max_def_percentile=-2.0
+        )
+        self.assertEqual(result, [])
+
+    def test_min_off_percentile_filter(self):
+        result_high = match_all_pnr_man_matchups(
+            self.off_stats, self.def_rankings, top_n=500,
+            max_def_percentile=100.0, min_off_percentile=70.0
+        )
+        for entry in result_high:
+            self.assertGreaterEqual(entry["off_percentile"], 70.0)
+
+    def test_default_datasets_used_when_none(self):
+        result = match_all_pnr_man_matchups()
+        self.assertIsInstance(result, list)
+        self.assertGreater(len(result), 0)
 
 
 # ===========================================================================
