@@ -583,6 +583,36 @@ class PlayerDefensivePostUpStats:
 
 
 @dataclass
+class PlayerDefensiveSpotUpStats:
+    """Defensive spot-up stats for a single NBA player (NBA Synergy).
+
+    Each record reflects how *this player* performs as a spot-up
+    *defender* — i.e. the stats allowed when a catch-and-shoot
+    player fires from the perimeter against them.  Higher percentile =
+    better spot-up defender (fewer points allowed per possession).
+
+    Source: https://www.nba.com/stats/players/spot-up?TypeGrouping=defensive
+    """
+    player: str
+    team: str
+    gp: int              # games played
+    poss: float          # spot-up possessions defended per game
+    freq_pct: float      # % of total possessions that are spot-ups vs this defender
+    ppp: float           # points per possession allowed
+    pts: float           # spot-up points allowed per game
+    fgm: float           # FGM allowed per game
+    fga: float           # FGA allowed per game
+    fg_pct: float        # FG% allowed
+    efg_pct: float       # eFG% allowed (higher than FG% due to 3-point attempts)
+    ft_freq_pct: float   # free-throw frequency %
+    tov_freq_pct: float  # turnover frequency %
+    sf_freq_pct: float   # shooting-foul frequency %
+    and_one_freq_pct: float  # and-one frequency %
+    score_freq_pct: float    # score frequency %
+    percentile: float    # NBA Synergy composite defensive percentile (higher = better spot-up defender)
+
+
+@dataclass
 class PropRecommendation:
     """A single player-prop recommendation."""
     player_name: str
@@ -5223,6 +5253,237 @@ def predict_spot_up_matchup(
         "edge":           edge,
         "verdict":        verdict,
     }
+
+
+# ---------------------------------------------------------------------------
+# Player-level defensive spot-up analytics
+# ---------------------------------------------------------------------------
+
+def build_player_defensive_spot_up_stats() -> List["PlayerDefensiveSpotUpStats"]:
+    """
+    Return defensive spot-up stats for approximately 26 NBA players
+    (NBA Synergy data).
+
+    Columns: PLAYER, TEAM, GP, POSS, FREQ%, PPP, PTS, FGM, FGA, FG%, EFG%,
+             FT FREQ%, TOV FREQ%, SF FREQ%, AND ONE FREQ%, SCORE FREQ%, PERCENTILE
+
+    PERCENTILE is the NBA Synergy composite defensive ranking.  Higher values
+    indicate a better spot-up defender (fewer points allowed per possession).
+    Elite spot-up defenders are athletic wings who can close out quickly and
+    contest without fouling; the worst are slower bigs who cannot contest
+    perimeter shots, leaving catch-and-shoot players wide open for 3-pointers.
+
+    Source: https://www.nba.com/stats/players/spot-up?TypeGrouping=defensive
+    """
+    raw = [
+        # (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+        #  fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+        #  sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile)
+        # --- batch 1: elite spot-up defenders (percentile 85–99) ---
+        ("Kawhi Leonard",        "LAC", 19, 3.1, 12.8, 0.88, 2.7, 0.9, 2.3, 39.5, 52.2,  5.0, 12.5, 4.6, 0.4, 44.8, 99.0),
+        ("OG Anunoby",           "NYK", 55, 3.6, 14.2, 0.89, 3.2, 1.0, 2.5, 39.8, 52.6,  5.2, 12.1, 4.8, 0.5, 45.6, 96.5),
+        ("Jrue Holiday",         "BOS", 68, 3.9, 15.1, 0.90, 3.5, 1.1, 2.7, 40.1, 53.0,  5.4, 11.7, 5.0, 0.5, 46.4, 94.0),
+        ("Marcus Smart",         "MEM", 62, 3.7, 14.5, 0.91, 3.4, 1.1, 2.6, 40.4, 53.4,  5.6, 11.3, 5.2, 0.6, 47.2, 91.4),
+        ("Alex Caruso",          "CHI", 55, 3.4, 13.6, 0.91, 3.1, 1.0, 2.5, 40.7, 53.8,  5.8, 10.9, 5.4, 0.6, 48.0, 89.0),
+        ("Draymond Green",       "GSW", 68, 3.2, 13.1, 0.92, 2.9, 0.9, 2.4, 41.0, 54.2,  6.0, 10.5, 5.6, 0.7, 48.8, 86.4),
+        ("Mikal Bridges",        "NYK", 74, 4.0, 15.6, 0.93, 3.7, 1.2, 2.8, 41.3, 54.6,  6.2, 10.1, 5.8, 0.7, 49.6, 86.4),
+        # --- batch 2: good spot-up defenders (percentile 65–84) ---
+        ("Derrick White",        "BOS", 72, 3.8, 14.8, 0.95, 3.6, 1.1, 2.7, 41.9, 55.4,  6.6,  9.3, 6.2, 0.8, 51.2, 83.9),
+        ("Luguentz Dort",        "OKC", 67, 3.5, 14.0, 0.96, 3.4, 1.1, 2.6, 42.2, 55.8,  6.8,  8.9, 6.4, 0.9, 52.0, 81.4),
+        ("Herb Jones",           "NOP", 56, 3.3, 13.4, 0.97, 3.2, 1.0, 2.5, 42.5, 56.2,  7.0,  8.5, 6.6, 0.9, 52.8, 78.9),
+        ("Jalen Suggs",          "ORL", 72, 3.6, 14.3, 0.97, 3.5, 1.1, 2.6, 42.8, 56.6,  7.2,  8.1, 6.8, 1.0, 53.6, 76.3),
+        ("Scottie Barnes",       "TOR", 72, 3.9, 15.0, 0.98, 3.8, 1.2, 2.8, 43.1, 57.0,  7.4,  7.7, 7.0, 1.0, 54.4, 73.8),
+        # --- batch 3: average spot-up defenders (percentile 40–64) ---
+        ("Jimmy Butler",         "MIA", 60, 4.1, 15.5, 1.00, 4.1, 1.3, 2.9, 43.7, 57.8,  7.8,  6.9, 7.4, 1.1, 56.0, 63.8),
+        ("Pascal Siakam",        "IND", 51, 4.3, 16.2, 1.01, 4.3, 1.3, 3.0, 44.0, 58.2,  8.0,  6.5, 7.6, 1.2, 56.8, 61.3),
+        ("Giannis Antetokounmpo","MIL", 73, 4.5, 16.8, 1.01, 4.5, 1.4, 3.1, 44.3, 58.6,  8.2,  6.1, 7.8, 1.2, 57.6, 58.8),
+        ("LeBron James",         "LAL", 71, 4.7, 17.4, 1.02, 4.8, 1.5, 3.2, 44.6, 59.0,  8.4,  5.7, 8.0, 1.3, 58.4, 51.3),
+        ("Bam Adebayo",          "MIA", 71, 4.4, 16.5, 1.02, 4.5, 1.4, 3.1, 44.9, 59.4,  8.6,  5.3, 8.2, 1.3, 59.2, 48.8),
+        # --- batch 4: below-average spot-up defenders (percentile 15–39) ---
+        ("Julius Randle",        "MIN", 65, 4.8, 17.8, 1.05, 5.0, 1.6, 3.3, 45.5, 60.2,  9.0,  4.5, 8.6, 1.4, 60.8, 38.8),
+        ("Karl-Anthony Towns",   "NYK", 74, 5.0, 18.4, 1.06, 5.3, 1.6, 3.4, 45.8, 60.6,  9.2,  4.1, 8.8, 1.5, 61.6, 33.8),
+        ("Nikola Jokic",         "DEN", 65, 5.2, 19.0, 1.07, 5.6, 1.7, 3.5, 46.1, 61.0,  9.4,  3.7, 9.0, 1.5, 62.4, 26.3),
+        ("Zach LaVine",          "CHI", 61, 4.9, 18.1, 1.08, 5.3, 1.7, 3.5, 46.4, 61.4,  9.6,  3.3, 9.2, 1.6, 63.2, 21.3),
+        # --- batch 5: poor spot-up defenders (percentile 0–14) ---
+        ("Myles Turner",         "IND", 51, 5.4, 19.6, 1.09, 5.9, 1.8, 3.7, 47.0, 62.2, 10.0,  2.5, 9.6, 1.7, 64.8, 13.8),
+        ("Brook Lopez",          "MIL", 28, 5.6, 20.2, 1.10, 6.2, 1.9, 3.8, 47.3, 62.6, 10.2,  2.1, 9.8, 1.8, 65.6,  9.0),
+        ("Damian Lillard",       "MIL", 69, 5.3, 19.3, 1.11, 5.9, 1.9, 3.7, 47.6, 63.0, 10.4,  1.7, 10.0, 1.8, 66.4,  7.0),
+        ("Stephen Curry",        "GSW", 72, 5.8, 20.8, 1.12, 6.5, 2.0, 3.9, 47.9, 63.4, 10.6,  1.3, 10.2, 1.9, 67.2,  4.5),
+        ("Rudy Gobert",          "MIN", 55, 6.1, 21.5, 1.13, 6.9, 2.1, 4.1, 48.2, 63.8, 10.8,  0.9, 10.4, 2.0, 68.0,  1.0),
+    ]
+
+    stats: List[PlayerDefensiveSpotUpStats] = []
+    for row in raw:
+        (player, team, gp, poss, freq_pct, ppp, pts, fgm, fga,
+         fg_pct, efg_pct, ft_freq_pct, tov_freq_pct,
+         sf_freq_pct, and_one_freq_pct, score_freq_pct, percentile) = row
+        stats.append(PlayerDefensiveSpotUpStats(
+            player=player,
+            team=team,
+            gp=gp,
+            poss=poss,
+            freq_pct=freq_pct,
+            ppp=ppp,
+            pts=pts,
+            fgm=fgm,
+            fga=fga,
+            fg_pct=fg_pct,
+            efg_pct=efg_pct,
+            ft_freq_pct=ft_freq_pct,
+            tov_freq_pct=tov_freq_pct,
+            sf_freq_pct=sf_freq_pct,
+            and_one_freq_pct=and_one_freq_pct,
+            score_freq_pct=score_freq_pct,
+            percentile=percentile,
+        ))
+    return stats
+
+
+def rank_players_by_spot_up_defense(
+    stats: Optional[List["PlayerDefensiveSpotUpStats"]] = None,
+) -> List["PlayerDefensiveSpotUpStats"]:
+    """
+    Return all players sorted from best to worst spot-up defender
+    (highest defensive percentile first).
+
+    Parameters
+    ----------
+    stats:
+        Pre-built list of :class:`PlayerDefensiveSpotUpStats`; defaults
+        to the full dataset from
+        :func:`build_player_defensive_spot_up_stats`.
+    """
+    if stats is None:
+        stats = build_player_defensive_spot_up_stats()
+    return sorted(stats, key=lambda s: s.percentile, reverse=True)
+
+
+def find_weak_spot_up_defenders(
+    stats: Optional[List["PlayerDefensiveSpotUpStats"]] = None,
+    max_percentile: float = 40.0,
+) -> List["PlayerDefensiveSpotUpStats"]:
+    """
+    Return players who are weak spot-up defenders — those with a
+    defensive percentile at or below *max_percentile* — sorted by PPP
+    allowed (worst first, i.e. highest PPP at the top).
+
+    These are the defenders that elite catch-and-shoot specialists
+    should target; primarily slower bigs who cannot close out on
+    perimeter shooters.
+
+    Parameters
+    ----------
+    stats:
+        Pre-built list; defaults to :func:`build_player_defensive_spot_up_stats`.
+    max_percentile:
+        Ceiling for the defensive percentile.  Players above this threshold
+        are considered adequate defenders and are excluded.  Default: ``40.0``.
+
+    Returns
+    -------
+    list of :class:`PlayerDefensiveSpotUpStats`, sorted by PPP allowed
+    descending (worst defender first).
+    """
+    if stats is None:
+        stats = build_player_defensive_spot_up_stats()
+    weak = [s for s in stats if s.percentile <= max_percentile]
+    return sorted(weak, key=lambda s: s.ppp, reverse=True)
+
+
+def match_spot_up_mismatches(
+    offensive_stats: Optional[List["OffensiveSpotUpStats"]] = None,
+    defensive_stats: Optional[List["PlayerDefensiveSpotUpStats"]] = None,
+    max_def_percentile: float = 40.0,
+    min_off_percentile: float = 0.0,
+    top_n: int = 20,
+) -> List[Dict]:
+    """
+    Identify the most dangerous (player, defender) spot-up mismatches.
+
+    When a team puts a poor spot-up defender — typically a slow center who
+    cannot close out on 3-point shooters — on the floor, elite catch-and-shoot
+    players can exploit them for open looks.  This function cross-references
+    every eligible offensive player against every weak defender whose **team
+    differs** from the offensive player's team.
+
+    The *edge* for each pair is::
+
+        edge = offensive player PPP − defensive player PPP allowed
+
+    A positive edge means the shooter is expected to score more than the
+    defender typically gives up — a clear mismatch to exploit.
+
+    Parameters
+    ----------
+    offensive_stats:
+        Pre-built offensive spot-up list; defaults to the full dataset.
+    defensive_stats:
+        Pre-built player-level defensive spot-up list; defaults to the
+        full dataset.
+    max_def_percentile:
+        Only include defenders at or below this defensive percentile (default
+        ``40.0``).  Higher values widen the search to include better defenders.
+    min_off_percentile:
+        Only include offensive players at or above this percentile (default
+        ``0.0`` = include all).
+    top_n:
+        Maximum number of results to return (default ``20``).
+
+    Returns
+    -------
+    list of dict, sorted by edge descending (largest mismatch first), each
+    containing:
+
+    - ``"player"``           : offensive player name
+    - ``"player_team"``      : offensive player's team abbreviation
+    - ``"off_ppp"``          : offensive player's spot-up PPP
+    - ``"off_freq_pct"``     : offensive player's spot-up frequency %
+    - ``"off_percentile"``   : offensive player's spot-up percentile
+    - ``"defender"``         : name of the weak defensive player
+    - ``"defender_team"``    : defender's team abbreviation
+    - ``"def_ppp_allowed"``  : PPP allowed by the defender
+    - ``"def_percentile"``   : defender's defensive percentile
+    - ``"edge"``             : offensive PPP − defensive PPP allowed
+    - ``"verdict"``          : ``"STRONG_MISMATCH"`` (≥0.15), ``"MISMATCH"``
+                                (≥0.08), or ``"SLIGHT_EDGE"`` (positive but <0.08)
+    """
+    if offensive_stats is None:
+        offensive_stats = build_offensive_spot_up_stats()
+    if defensive_stats is None:
+        defensive_stats = build_player_defensive_spot_up_stats()
+
+    results: List[Dict] = []
+    for off in offensive_stats:
+        if off.percentile < min_off_percentile:
+            continue
+        for defn in defensive_stats:
+            if defn.team == off.team:
+                continue
+            if defn.percentile > max_def_percentile:
+                continue
+            edge = round(off.ppp - defn.ppp, 3)
+            if edge >= 0.15:
+                verdict = "STRONG_MISMATCH"
+            elif edge >= 0.08:
+                verdict = "MISMATCH"
+            else:
+                verdict = "SLIGHT_EDGE"
+            results.append({
+                "player":          off.player,
+                "player_team":     off.team,
+                "off_ppp":         off.ppp,
+                "off_freq_pct":    off.freq_pct,
+                "off_percentile":  off.percentile,
+                "defender":        defn.player,
+                "defender_team":   defn.team,
+                "def_ppp_allowed": defn.ppp,
+                "def_percentile":  defn.percentile,
+                "edge":            edge,
+                "verdict":         verdict,
+            })
+
+    results.sort(key=lambda r: (r["edge"], r["off_percentile"]), reverse=True)
+    return results[:top_n]
 
 
 # ---------------------------------------------------------------------------
