@@ -28,6 +28,7 @@ from nba_playtype_props import (
     PlayerDefensiveIsolationStats,
     PlayerDefensiveTransitionStats,
     PlayerDefensivePnrBallHandlerStats,
+    PlayerDefensivePostUpStats,
     build_sample_players,
     build_sample_defenses,
     build_defensive_isolation_rankings,
@@ -104,6 +105,10 @@ from nba_playtype_props import (
     rank_players_by_pnr_ball_handler_defense,
     find_weak_pnr_ball_handler_defenders,
     match_pnr_ball_handler_mismatches,
+    build_player_defensive_post_up_stats,
+    rank_players_by_post_up_defense,
+    find_weak_post_up_defenders,
+    match_post_up_mismatches,
     compute_similarity,
     find_similar_players,
     _matchup_multiplier,
@@ -6273,6 +6278,243 @@ class TestMatchPnrBallHandlerMismatches(unittest.TestCase):
         self.assertLessEqual(len(filtered), len(all_results))
         for r in filtered:
             self.assertGreaterEqual(r["off_percentile"], 80.0)
+
+
+# ===========================================================================
+# Player-level defensive post-up analytics tests
+# ===========================================================================
+
+class TestBuildPlayerDefensivePostUpStats(unittest.TestCase):
+    """Tests for build_player_defensive_post_up_stats()."""
+
+    def setUp(self):
+        self.stats = build_player_defensive_post_up_stats()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.stats, list)
+
+    def test_minimum_count(self):
+        self.assertGreaterEqual(len(self.stats), 25)
+
+    def test_all_items_correct_type(self):
+        for s in self.stats:
+            self.assertIsInstance(s, PlayerDefensivePostUpStats)
+
+    def test_ppp_values_positive(self):
+        for s in self.stats:
+            self.assertGreater(s.ppp, 0)
+
+    def test_percentile_in_range(self):
+        for s in self.stats:
+            self.assertGreaterEqual(s.percentile, 0.0)
+            self.assertLessEqual(s.percentile, 100.0)
+
+    def test_no_duplicate_players(self):
+        names = [s.player for s in self.stats]
+        self.assertEqual(len(names), len(set(names)), "Duplicate player entries found")
+
+    def test_giannis_elite_defender(self):
+        """Giannis should be the top post-up defender."""
+        g = next((s for s in self.stats if s.player == "Giannis Antetokounmpo"), None)
+        self.assertIsNotNone(g)
+        self.assertGreater(g.percentile, 95.0)
+        self.assertLess(g.ppp, 0.80)
+
+    def test_stephen_curry_poor_defender(self):
+        """Curry is a poor post-up defender."""
+        curry = next((s for s in self.stats if s.player == "Stephen Curry"), None)
+        self.assertIsNotNone(curry)
+        self.assertGreater(curry.ppp, 1.07)
+        self.assertLess(curry.percentile, 5.0)
+
+    def test_elite_defenders_present(self):
+        names = {s.player for s in self.stats}
+        expected = {"Giannis Antetokounmpo", "Bam Adebayo", "Draymond Green",
+                    "Jaren Jackson Jr.", "Evan Mobley", "Myles Turner"}
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing elite defenders: {missing}")
+
+    def test_poor_defenders_present(self):
+        names = {s.player for s in self.stats}
+        expected = {"Trae Young", "James Harden", "Damian Lillard",
+                    "Bradley Beal", "Stephen Curry"}
+        missing = expected - names
+        self.assertEqual(missing, set(), f"Missing poor defenders: {missing}")
+
+    def test_elite_defender_lower_ppp_than_poor_defender(self):
+        g = next((s for s in self.stats if s.player == "Giannis Antetokounmpo"), None)
+        curry = next((s for s in self.stats if s.player == "Stephen Curry"), None)
+        self.assertIsNotNone(g, "Giannis not found")
+        self.assertIsNotNone(curry, "Stephen Curry not found")
+        self.assertLess(g.ppp, curry.ppp)
+
+    def test_gp_values_positive(self):
+        for s in self.stats:
+            self.assertIsInstance(s.gp, int)
+            self.assertGreater(s.gp, 0)
+
+
+class TestRankPlayersByPostUpDefense(unittest.TestCase):
+    """Tests for rank_players_by_post_up_defense()."""
+
+    def setUp(self):
+        self.ranked = rank_players_by_post_up_defense()
+
+    def test_returns_list(self):
+        self.assertIsInstance(self.ranked, list)
+
+    def test_sorted_best_to_worst(self):
+        percentiles = [s.percentile for s in self.ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+    def test_first_player_highest_percentile(self):
+        self.assertEqual(self.ranked[0].player, "Giannis Antetokounmpo")
+
+    def test_last_player_lowest_percentile(self):
+        self.assertEqual(self.ranked[-1].player, "Stephen Curry")
+
+    def test_accepts_custom_stats_list(self):
+        all_stats = build_player_defensive_post_up_stats()
+        subset = all_stats[:5]
+        ranked = rank_players_by_post_up_defense(subset)
+        percentiles = [s.percentile for s in ranked]
+        self.assertEqual(percentiles, sorted(percentiles, reverse=True))
+
+
+class TestFindWeakPostUpDefenders(unittest.TestCase):
+    """Tests for find_weak_post_up_defenders()."""
+
+    def setUp(self):
+        self.stats = build_player_defensive_post_up_stats()
+
+    def test_returns_list(self):
+        result = find_weak_post_up_defenders(self.stats)
+        self.assertIsInstance(result, list)
+
+    def test_default_max_percentile_40(self):
+        result = find_weak_post_up_defenders(self.stats)
+        for s in result:
+            self.assertLessEqual(s.percentile, 40.0)
+
+    def test_sorted_worst_ppp_first(self):
+        result = find_weak_post_up_defenders(self.stats)
+        ppps = [s.ppp for s in result]
+        self.assertEqual(ppps, sorted(ppps, reverse=True))
+
+    def test_known_poor_defenders_included(self):
+        result = find_weak_post_up_defenders(self.stats)
+        names = {s.player for s in result}
+        for name in ("Trae Young", "James Harden", "Damian Lillard",
+                     "Bradley Beal", "Stephen Curry"):
+            self.assertIn(name, names)
+
+    def test_elite_defenders_excluded(self):
+        result = find_weak_post_up_defenders(self.stats)
+        names = {s.player for s in result}
+        for name in ("Giannis Antetokounmpo", "Bam Adebayo", "Draymond Green"):
+            self.assertNotIn(name, names)
+
+    def test_custom_max_percentile(self):
+        result = find_weak_post_up_defenders(self.stats, max_percentile=15.0)
+        for s in result:
+            self.assertLessEqual(s.percentile, 15.0)
+
+    def test_empty_when_max_percentile_zero(self):
+        result = find_weak_post_up_defenders(self.stats, max_percentile=0.0)
+        for s in result:
+            self.assertLessEqual(s.percentile, 0.0)
+
+    def test_defaults_used_when_none(self):
+        result = find_weak_post_up_defenders()
+        self.assertIsInstance(result, list)
+        self.assertGreater(len(result), 0)
+
+
+class TestMatchPostUpMismatches(unittest.TestCase):
+    """Tests for match_post_up_mismatches()."""
+
+    def setUp(self):
+        self.off_stats = build_offensive_post_up_stats()
+        self.def_stats = build_player_defensive_post_up_stats()
+
+    def test_returns_list(self):
+        result = match_post_up_mismatches(self.off_stats, self.def_stats)
+        self.assertIsInstance(result, list)
+
+    def test_top_n_limits_results(self):
+        result = match_post_up_mismatches(self.off_stats, self.def_stats, top_n=5)
+        self.assertLessEqual(len(result), 5)
+
+    def test_required_keys_in_each_result(self):
+        result = match_post_up_mismatches(self.off_stats, self.def_stats)
+        required = {
+            "player", "player_team", "off_ppp", "off_freq_pct", "off_percentile",
+            "defender", "defender_team", "def_ppp_allowed", "def_percentile",
+            "edge", "verdict",
+        }
+        for r in result:
+            self.assertTrue(required.issubset(r.keys()))
+
+    def test_results_sorted_by_edge_descending(self):
+        result = match_post_up_mismatches(self.off_stats, self.def_stats)
+        edges = [r["edge"] for r in result]
+        self.assertEqual(edges, sorted(edges, reverse=True))
+
+    def test_no_player_defends_own_team(self):
+        result = match_post_up_mismatches(self.off_stats, self.def_stats)
+        for r in result:
+            self.assertNotEqual(r["player_team"], r["defender_team"])
+
+    def test_only_weak_defenders_included(self):
+        result = match_post_up_mismatches(
+            self.off_stats, self.def_stats, max_def_percentile=30.0
+        )
+        for r in result:
+            self.assertLessEqual(r["def_percentile"], 30.0)
+
+    def test_max_def_percentile_filters_defenders(self):
+        """Tighter max_def_percentile should produce a strict subset of results."""
+        strict = match_post_up_mismatches(
+            self.off_stats, self.def_stats, top_n=200, max_def_percentile=15.0
+        )
+        lenient = match_post_up_mismatches(
+            self.off_stats, self.def_stats, top_n=200, max_def_percentile=40.0
+        )
+        self.assertLessEqual(len(strict), len(lenient))
+        for r in strict:
+            self.assertLessEqual(r["def_percentile"], 15.0)
+
+    def test_verdict_classification(self):
+        result = match_post_up_mismatches(self.off_stats, self.def_stats)
+        for r in result:
+            e = r["edge"]
+            if e >= 0.15:
+                self.assertEqual(r["verdict"], "STRONG_MISMATCH")
+            elif e >= 0.08:
+                self.assertEqual(r["verdict"], "MISMATCH")
+            else:
+                self.assertEqual(r["verdict"], "SLIGHT_EDGE")
+
+    def test_default_datasets_used_when_none(self):
+        result = match_post_up_mismatches()
+        self.assertIsInstance(result, list)
+        self.assertGreater(len(result), 0)
+
+    def test_high_edge_is_positive(self):
+        result = match_post_up_mismatches(self.off_stats, self.def_stats, top_n=3)
+        for r in result:
+            self.assertGreater(r["edge"], 0)
+
+    def test_min_off_percentile_filters_players(self):
+        all_results = match_post_up_mismatches(
+            self.off_stats, self.def_stats, min_off_percentile=0.0
+        )
+        filtered = match_post_up_mismatches(
+            self.off_stats, self.def_stats, min_off_percentile=60.0
+        )
+        self.assertLessEqual(len(filtered), len(all_results))
+        for r in filtered:
+            self.assertGreaterEqual(r["off_percentile"], 60.0)
 
 
 if __name__ == "__main__":
