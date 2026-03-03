@@ -799,6 +799,18 @@ def build_sample_players() -> List[PlayerProfile]:
                 "misc":             {"frequency": 0.13, "ppp": 0.90, "percentile": 48},
             },
         ),
+        _make_player_profile(
+            "Tyrese Maxey", "PG", "PHI",
+            avg_points=25.9, avg_assists=6.4, avg_rebounds=3.2,
+            play_type_data={
+                "pnr_ball_handler": {"frequency": 0.38, "ppp": 1.01, "percentile": 72},
+                "isolation":        {"frequency": 0.22, "ppp": 1.05, "percentile": 78},
+                "spot_up":          {"frequency": 0.15, "ppp": 1.08, "percentile": 74},
+                "off_screen":       {"frequency": 0.10, "ppp": 1.04, "percentile": 68},
+                "hand_off":         {"frequency": 0.07, "ppp": 0.99, "percentile": 58},
+                "misc":             {"frequency": 0.08, "ppp": 0.92, "percentile": 48},
+            },
+        ),
     ]
     return players
 

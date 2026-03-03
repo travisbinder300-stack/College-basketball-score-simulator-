@@ -6765,5 +6765,120 @@ class TestMatchSpotUpMismatches(unittest.TestCase):
             self.assertGreaterEqual(r["off_percentile"], 60.0)
 
 
+# ===========================================================================
+# Tyrese Maxey — Points 29.5 vs San Antonio defense
+# ===========================================================================
+
+class TestMaxeyPointsVsSanAntonio(unittest.TestCase):
+    """
+    Focused test suite for the Tyrese Maxey 29.5 points prop against the
+    San Antonio Spurs' defense.
+
+    Maxey (PG, PHI) is a PnR-dominant guard averaging 25.9 PPG.  San Antonio
+    is an average defensive team; the matchup multiplier sits below 1.0 because
+    they hold PnR ball handlers and isolation scorers below league average PPP.
+    The model therefore projects Maxey well below 29.5, generating a HIGH-
+    confidence UNDER recommendation.
+    """
+
+    def setUp(self):
+        self.players  = build_sample_players()
+        self.defenses = build_sample_defenses()
+        self.maxey = next(p for p in self.players  if "Maxey" in p.name)
+        self.sas   = next(d for d in self.defenses if d.team == "SAS")
+        self.line  = 29.5
+        self.recs  = project_props(self.maxey, self.sas, lines={"points": self.line})
+        self.pts_rec = next(r for r in self.recs if r.prop_type == "points")
+
+    # --- player profile -------------------------------------------------------
+
+    def test_maxey_present_in_sample_players(self):
+        self.assertIsNotNone(self.maxey)
+
+    def test_maxey_team_is_phi(self):
+        self.assertEqual(self.maxey.team, "PHI")
+
+    def test_maxey_position_is_pg(self):
+        self.assertEqual(self.maxey.position, "PG")
+
+    def test_maxey_avg_points(self):
+        self.assertAlmostEqual(self.maxey.avg_points, 25.9, places=1)
+
+    def test_maxey_dominant_play_type_is_pnr(self):
+        dominant = self.maxey.dominant_play_types(top_n=1)
+        self.assertEqual(dominant[0], "pnr_ball_handler")
+
+    # --- SAS defense ---------------------------------------------------------
+
+    def test_sas_defense_present(self):
+        self.assertIsNotNone(self.sas)
+
+    def test_sas_pnr_defense_ppp_below_league_avg(self):
+        """SAS holds PnR ball handlers below 1.00 PPP — average/decent defense."""
+        pnr_ppp = self.sas.play_types["pnr_ball_handler"].ppp
+        self.assertLess(pnr_ppp, 1.00)
+
+    def test_sas_iso_defense_ppp_below_league_avg(self):
+        iso_ppp = self.sas.play_types["isolation"].ppp
+        self.assertLess(iso_ppp, 1.00)
+
+    # --- prop recommendation -------------------------------------------------
+
+    def test_returns_three_prop_types(self):
+        prop_types = {r.prop_type for r in self.recs}
+        self.assertEqual(prop_types, {"points", "assists", "rebounds"})
+
+    def test_points_line_is_29_5(self):
+        self.assertAlmostEqual(self.pts_rec.line, 29.5, places=1)
+
+    def test_points_projection_below_line(self):
+        """Projection should be well below the inflated 29.5 line."""
+        self.assertLess(self.pts_rec.projection, self.pts_rec.line)
+
+    def test_points_projection_below_season_average(self):
+        """SAS multiplier < 1.0, so projection < season average."""
+        self.assertLess(self.pts_rec.projection, self.maxey.avg_points)
+
+    def test_edge_is_negative(self):
+        self.assertLess(self.pts_rec.edge, 0)
+
+    def test_edge_magnitude_exceeds_4(self):
+        """Gap between projection and 29.5 should be substantial (>4 pts)."""
+        self.assertGreater(abs(self.pts_rec.edge), 4.0)
+
+    def test_confidence_is_high(self):
+        """Edge > 2.5 should yield HIGH confidence."""
+        self.assertEqual(self.pts_rec.confidence, "HIGH")
+
+    def test_confidence_is_valid(self):
+        self.assertIn(self.pts_rec.confidence, {"HIGH", "MEDIUM", "LOW"})
+
+    def test_player_name_in_recommendation(self):
+        self.assertEqual(self.pts_rec.player_name, "Tyrese Maxey")
+
+    def test_matchup_notes_mention_sas(self):
+        self.assertIn("SAS", self.pts_rec.matchup_notes)
+
+    def test_matchup_notes_mention_pnr(self):
+        self.assertIn("pnr", self.pts_rec.matchup_notes)
+
+    def test_matchup_multiplier_below_one(self):
+        """Confirms SAS is a harder-than-average matchup for Maxey's play style."""
+        from nba_playtype_props import _matchup_multiplier
+        mult = _matchup_multiplier(self.maxey, self.sas)
+        self.assertLess(mult, 1.0)
+
+    def test_consistent_projection_with_multiplier(self):
+        """projected_pts == round(avg_points * multiplier, 1)."""
+        from nba_playtype_props import _matchup_multiplier
+        mult = _matchup_multiplier(self.maxey, self.sas)
+        expected = round(self.maxey.avg_points * mult, 1)
+        self.assertAlmostEqual(self.pts_rec.projection, expected, places=1)
+
+    def test_assists_and_rebounds_use_same_player(self):
+        for r in self.recs:
+            self.assertEqual(r.player_name, "Tyrese Maxey")
+
+
 if __name__ == "__main__":
     unittest.main()
