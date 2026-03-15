@@ -6880,5 +6880,118 @@ class TestMaxeyPointsVsSanAntonio(unittest.TestCase):
             self.assertEqual(r.player_name, "Tyrese Maxey")
 
 
+# ===========================================================================
+# LeBron James — Assists 6.5 vs Denver defense
+# ===========================================================================
+
+class TestLeBronAssistVsDenver(unittest.TestCase):
+    """
+    Focused test suite for the LeBron James 6.5 assists prop against the
+    Denver Nuggets' defense.
+
+    LeBron (SF, LAL) is a high-volume playmaker averaging 9.0 APG.  Denver is
+    a solid defensive team; the matchup multiplier sits just below 1.0 because
+    they hold post-up and PnR ball-handler play types below league-average PPP.
+    The assists projection formula scales with only 40% of the scoring
+    multiplier, so even a slightly sub-1.0 multiplier still yields a projected
+    assists total well above the 6.5 line, producing a MEDIUM-confidence OVER
+    recommendation.
+    """
+
+    def setUp(self):
+        self.players  = build_sample_players()
+        self.defenses = build_sample_defenses()
+        self.lebron = next(p for p in self.players  if "LeBron" in p.name)
+        self.den    = next(d for d in self.defenses if d.team == "DEN")
+        self.line   = 6.5
+        self.recs   = project_props(self.lebron, self.den, lines={"assists": self.line})
+        self.ast_rec = next(r for r in self.recs if r.prop_type == "assists")
+
+    # --- player profile -------------------------------------------------------
+
+    def test_lebron_present_in_sample_players(self):
+        self.assertIsNotNone(self.lebron)
+
+    def test_lebron_team_is_lal(self):
+        self.assertEqual(self.lebron.team, "LAL")
+
+    def test_lebron_position_is_sf(self):
+        self.assertEqual(self.lebron.position, "SF")
+
+    def test_lebron_avg_assists(self):
+        self.assertAlmostEqual(self.lebron.avg_assists, 9.0, places=1)
+
+    def test_lebron_dominant_play_type_is_post_up(self):
+        dominant = self.lebron.dominant_play_types(top_n=1)
+        self.assertEqual(dominant[0], "post_up")
+
+    # --- DEN defense ----------------------------------------------------------
+
+    def test_den_defense_present(self):
+        self.assertIsNotNone(self.den)
+
+    def test_den_post_up_defense_ppp_below_league_avg(self):
+        """DEN holds post-up scorers below 1.00 PPP."""
+        post_ppp = self.den.play_types["post_up"].ppp
+        self.assertLess(post_ppp, 1.00)
+
+    def test_den_pnr_defense_ppp_below_league_avg(self):
+        pnr_ppp = self.den.play_types["pnr_ball_handler"].ppp
+        self.assertLess(pnr_ppp, 1.00)
+
+    # --- prop recommendation -------------------------------------------------
+
+    def test_returns_three_prop_types(self):
+        prop_types = {r.prop_type for r in self.recs}
+        self.assertEqual(prop_types, {"points", "assists", "rebounds"})
+
+    def test_assists_line_is_6_5(self):
+        self.assertAlmostEqual(self.ast_rec.line, 6.5, places=1)
+
+    def test_assists_projection_above_line(self):
+        """High assist average (9.0) should project well above 6.5."""
+        self.assertGreater(self.ast_rec.projection, self.ast_rec.line)
+
+    def test_edge_is_positive(self):
+        self.assertGreater(self.ast_rec.edge, 0)
+
+    def test_edge_magnitude_exceeds_2(self):
+        """Gap between projection and 6.5 should be meaningful (>2 assists)."""
+        self.assertGreater(self.ast_rec.edge, 2.0)
+
+    def test_confidence_is_medium(self):
+        """Edge ~2.4 sits in the MEDIUM band (1.0 ≤ edge < 2.5)."""
+        self.assertEqual(self.ast_rec.confidence, "MEDIUM")
+
+    def test_confidence_is_valid(self):
+        self.assertIn(self.ast_rec.confidence, {"HIGH", "MEDIUM", "LOW"})
+
+    def test_player_name_in_recommendation(self):
+        self.assertEqual(self.ast_rec.player_name, "LeBron James")
+
+    def test_matchup_notes_mention_den(self):
+        self.assertIn("DEN", self.ast_rec.matchup_notes)
+
+    def test_matchup_notes_mention_post_up(self):
+        self.assertIn("post up", self.ast_rec.matchup_notes)
+
+    def test_matchup_multiplier_below_one(self):
+        """Confirms DEN is a harder-than-average matchup for LeBron's play style."""
+        from nba_playtype_props import _matchup_multiplier
+        mult = _matchup_multiplier(self.lebron, self.den)
+        self.assertLess(mult, 1.0)
+
+    def test_consistent_projection_with_multiplier(self):
+        """projected_ast == round(avg_assists * (1 + (mult - 1) * 0.4), 1)."""
+        from nba_playtype_props import _matchup_multiplier
+        mult = _matchup_multiplier(self.lebron, self.den)
+        expected = round(self.lebron.avg_assists * (1 + (mult - 1) * 0.4), 1)
+        self.assertAlmostEqual(self.ast_rec.projection, expected, places=1)
+
+    def test_all_recs_use_same_player(self):
+        for r in self.recs:
+            self.assertEqual(r.player_name, "LeBron James")
+
+
 if __name__ == "__main__":
     unittest.main()

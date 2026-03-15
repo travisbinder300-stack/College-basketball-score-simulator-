@@ -811,6 +811,18 @@ def build_sample_players() -> List[PlayerProfile]:
                 "misc":             {"frequency": 0.08, "ppp": 0.92, "percentile": 48},
             },
         ),
+        _make_player_profile(
+            "LeBron James", "SF", "LAL",
+            avg_points=23.7, avg_assists=9.0, avg_rebounds=8.3,
+            play_type_data={
+                "post_up":          {"frequency": 0.25, "ppp": 1.10, "percentile": 85},
+                "pnr_ball_handler": {"frequency": 0.25, "ppp": 1.03, "percentile": 76},
+                "isolation":        {"frequency": 0.20, "ppp": 1.06, "percentile": 80},
+                "spot_up":          {"frequency": 0.10, "ppp": 1.04, "percentile": 68},
+                "cut":              {"frequency": 0.10, "ppp": 1.15, "percentile": 78},
+                "misc":             {"frequency": 0.10, "ppp": 0.95, "percentile": 55},
+            },
+        ),
     ]
     return players
 
