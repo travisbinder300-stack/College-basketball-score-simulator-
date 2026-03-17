@@ -5,6 +5,11 @@ Add NBA players here. Each player is a dictionary with their current team
 and season statistics. The projection engine will use these stats to
 calculate prop projections.
 
+Data source
+-----------
+Stats are sourced from Props Madness (https://propsmadness.com).
+Example player reference: https://propsmadness.com/?player=204&match=5980
+
 Roster template columns
 ------------------------
 Team | Name | Pos | GP | PTS | FGM | FG% | 3PM | 3PA | 3P% | FTM | FT% | Reb | Ast | STL | BLK | TO
@@ -70,6 +75,7 @@ Example entry (uncomment and fill in real values):
 PLAYERS = [
     # ---------------------------------------------------------------
     # Boston Celtics — 2025-26 season per-game averages
+    # Source: Props Madness (https://propsmadness.com)
     # ---------------------------------------------------------------
     {
         "team": "Boston Celtics",
