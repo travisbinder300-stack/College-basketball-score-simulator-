@@ -33,24 +33,28 @@ from typing import Dict, List, Optional
 class Player:
     """Represents an NBA player and their season statistics."""
 
-    name: str
+    # Roster template: Team | Name | Pos | GP | PTS | FGM | FG% | 3PM | 3PA | 3P% | FTM | FT% | Reb | Ast | STL | BLK | TO
     team: str
+    name: str
     position: str
 
     games_played: int
-    minutes_per_game: float
     points_per_game: float
+    fgm: float                     # Field goals made per game (FGM)
+    field_goal_pct: float          # Field goal percentage     (FG%)
+    three_pointers_per_game: float # 3-pointers made per game  (3PM)
+    three_pointers_attempted: float  # 3-point attempts per game (3PA)
+    three_point_pct: float         # 3-point percentage        (3P%)
+    ftm: float                     # Free throws made per game (FTM)
+    free_throw_pct: float          # Free-throw percentage     (FT%)
     rebounds_per_game: float
     assists_per_game: float
     steals_per_game: float
     blocks_per_game: float
-    three_pointers_per_game: float
-    field_goal_pct: float
-    three_point_pct: float
-    free_throw_pct: float
     turnovers_per_game: float = 0.0
 
-    # Optional context for refined projections
+    # Optional — not in the standard template but improve projections when provided
+    minutes_per_game: float = 0.0
     home_points_per_game: Optional[float] = None
     away_points_per_game: Optional[float] = None
     last_5_points: List[float] = field(default_factory=list)
@@ -61,21 +65,24 @@ class Player:
     def from_dict(cls, data: dict) -> "Player":
         """Create a Player from a dictionary (as stored in players.py)."""
         return cls(
-            name=data["name"],
             team=data["team"],
+            name=data["name"],
             position=data["position"],
             games_played=data["games_played"],
-            minutes_per_game=data["minutes_per_game"],
             points_per_game=data["points_per_game"],
+            fgm=data.get("fgm", 0.0),
+            field_goal_pct=data["field_goal_pct"],
+            three_pointers_per_game=data["three_pointers_per_game"],
+            three_pointers_attempted=data.get("three_pointers_attempted", 0.0),
+            three_point_pct=data["three_point_pct"],
+            ftm=data.get("ftm", 0.0),
+            free_throw_pct=data["free_throw_pct"],
             rebounds_per_game=data["rebounds_per_game"],
             assists_per_game=data["assists_per_game"],
             steals_per_game=data["steals_per_game"],
             blocks_per_game=data["blocks_per_game"],
-            three_pointers_per_game=data["three_pointers_per_game"],
-            field_goal_pct=data["field_goal_pct"],
-            three_point_pct=data["three_point_pct"],
-            free_throw_pct=data["free_throw_pct"],
             turnovers_per_game=data.get("turnovers_per_game", 0.0),
+            minutes_per_game=data.get("minutes_per_game", 0.0),
             home_points_per_game=data.get("home_points_per_game"),
             away_points_per_game=data.get("away_points_per_game"),
             last_5_points=data.get("last_5_points", []),
@@ -191,23 +198,29 @@ class PropProjection:
         proj = self._projections
         location = "Home" if self.is_home else "Away"
         lines = [
-            f"{'=' * 56}",
+            f"{'=' * 60}",
             f"  {p.name}  |  {p.team}  |  {p.position}",
             f"  Games: {p.games_played}   Location: {location}",
-            f"{'=' * 56}",
-            f"  {'Prop':<26}  {'Projection':>10}",
-            f"  {'-' * 38}",
-            f"  {'Points':<26}  {proj['points']:>10.1f}",
-            f"  {'Rebounds':<26}  {proj['rebounds']:>10.1f}",
-            f"  {'Assists':<26}  {proj['assists']:>10.1f}",
-            f"  {'Steals':<26}  {proj['steals']:>10.1f}",
-            f"  {'Blocks':<26}  {proj['blocks']:>10.1f}",
-            f"  {'3-Pointers Made':<26}  {proj['three_pointers']:>10.1f}",
-            f"  {'Turnovers':<26}  {proj['turnovers']:>10.1f}",
-            f"  {'-' * 38}",
-            f"  {'Pts + Reb + Ast (PRA)':<26}  {proj['pra']:>10.1f}",
-            f"  {'Steals + Blocks':<26}  {proj['steals_blocks']:>10.1f}",
-            f"{'=' * 56}",
+            f"{'=' * 60}",
+            f"  {'Stat':<28}  {'Season Avg':>10}  {'Projection':>10}",
+            f"  {'-' * 52}",
+            f"  {'PTS  Points':<28}  {p.points_per_game:>10.1f}  {proj['points']:>10.1f}",
+            f"  {'FGM  FG Made':<28}  {p.fgm:>10.1f}  {'—':>10}",
+            f"  {'FG%  FG Pct':<28}  {p.field_goal_pct * 100:>9.1f}%  {'—':>10}",
+            f"  {'3PM  3-Pt Made':<28}  {p.three_pointers_per_game:>10.1f}  {proj['three_pointers']:>10.1f}",
+            f"  {'3PA  3-Pt Att':<28}  {p.three_pointers_attempted:>10.1f}  {'—':>10}",
+            f"  {'3P%  3-Pt Pct':<28}  {p.three_point_pct * 100:>9.1f}%  {'—':>10}",
+            f"  {'FTM  FT Made':<28}  {p.ftm:>10.1f}  {'—':>10}",
+            f"  {'FT%  FT Pct':<28}  {p.free_throw_pct * 100:>9.1f}%  {'—':>10}",
+            f"  {'REB  Rebounds':<28}  {p.rebounds_per_game:>10.1f}  {proj['rebounds']:>10.1f}",
+            f"  {'AST  Assists':<28}  {p.assists_per_game:>10.1f}  {proj['assists']:>10.1f}",
+            f"  {'STL  Steals':<28}  {p.steals_per_game:>10.1f}  {proj['steals']:>10.1f}",
+            f"  {'BLK  Blocks':<28}  {p.blocks_per_game:>10.1f}  {proj['blocks']:>10.1f}",
+            f"  {'TO   Turnovers':<28}  {p.turnovers_per_game:>10.1f}  {proj['turnovers']:>10.1f}",
+            f"  {'-' * 52}",
+            f"  {'PRA  Pts+Reb+Ast':<28}  {'—':>10}  {proj['pra']:>10.1f}",
+            f"  {'S+B  Stl+Blk':<28}  {'—':>10}  {proj['steals_blocks']:>10.1f}",
+            f"{'=' * 60}",
         ]
         return "\n".join(lines)
 
