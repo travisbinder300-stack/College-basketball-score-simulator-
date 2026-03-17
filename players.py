@@ -96,7 +96,7 @@ PLAYERS = [
         "team": "Boston Celtics",
         "name": "Jayson Tatum",
         "position": "SF",
-        "games_played": 4,
+        "games_played": 4,  # Limited by injury in 2025-26
         "minutes_per_game": 28.3,
         "points_per_game": 19.8,
         "fgm": 7.5,
