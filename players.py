@@ -69,8 +69,7 @@ Example entry (uncomment and fill in real values):
 
 PLAYERS = [
     # ---------------------------------------------------------------
-    # Boston Celtics — 2025-26 NBA Regular Season (per-game averages)
-    # Source: ESPN https://www.espn.com/nba/team/stats/_/name/bos/boston-celtics
+    # Boston Celtics — 2025-26 season per-game averages
     # ---------------------------------------------------------------
     {
         "team": "Boston Celtics",
@@ -96,7 +95,7 @@ PLAYERS = [
         "team": "Boston Celtics",
         "name": "Jayson Tatum",
         "position": "SF",
-        "games_played": 4,  # Limited by injury in 2025-26
+        "games_played": 4,
         "minutes_per_game": 28.3,
         "points_per_game": 19.8,
         "fgm": 7.5,
