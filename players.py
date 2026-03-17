@@ -434,7 +434,7 @@ PLAYERS = [
     },
     {
         "team": "Boston Celtics",
-        "name": "Ja'Kobe Walter",
+        "name": "Jordan Tonje",
         "position": "SG",
         "games_played": 3,
         "minutes_per_game": 3.7,
