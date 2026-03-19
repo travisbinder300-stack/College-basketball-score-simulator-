@@ -16,6 +16,10 @@ from mlb_player_props import (
     WeatherConditions,
     WindConditions,
     platoon_splits_for,
+    home_away_batter_splits_for,
+    home_away_pitcher_splits_for,
+    HOME_AWAY_BATTER_SPLITS,
+    HOME_AWAY_PITCHER_SPLITS,
 )
 
 
@@ -1519,6 +1523,237 @@ class TestReproducibility(unittest.TestCase):
         # This test mainly validates that seeding is respected.
         self.assertIsInstance(mean1, float)
         self.assertIsInstance(mean2, float)
+
+
+# ---------------------------------------------------------------------------
+# Home / Away splits tests
+# ---------------------------------------------------------------------------
+
+
+class TestHomeAwaySplitHelpers(unittest.TestCase):
+    """Unit tests for home_away_batter_splits_for and home_away_pitcher_splits_for."""
+
+    # ------------------------------------------------------------------
+    # Batter helper
+    # ------------------------------------------------------------------
+
+    def test_batter_none_returns_neutral(self):
+        result = home_away_batter_splits_for(None)
+        for key in ("hits", "hr", "doubles"):
+            self.assertAlmostEqual(result[key], 1.0,
+                                   msg=f"Expected neutral 1.0 for key '{key}'")
+
+    def test_batter_home_matches_constant(self):
+        result = home_away_batter_splits_for(True)
+        self.assertEqual(result, HOME_AWAY_BATTER_SPLITS["home"])
+
+    def test_batter_away_matches_constant(self):
+        result = home_away_batter_splits_for(False)
+        self.assertEqual(result, HOME_AWAY_BATTER_SPLITS["away"])
+
+    def test_batter_home_hits_above_1(self):
+        result = home_away_batter_splits_for(True)
+        self.assertGreater(result["hits"], 1.0, "Home batters should get a hits boost")
+
+    def test_batter_away_hits_below_1(self):
+        result = home_away_batter_splits_for(False)
+        self.assertLess(result["hits"], 1.0, "Away batters should get a hits penalty")
+
+    def test_batter_home_hr_above_1(self):
+        result = home_away_batter_splits_for(True)
+        self.assertGreater(result["hr"], 1.0)
+
+    def test_batter_away_hr_below_1(self):
+        result = home_away_batter_splits_for(False)
+        self.assertLess(result["hr"], 1.0)
+
+    def test_batter_home_doubles_above_1(self):
+        result = home_away_batter_splits_for(True)
+        self.assertGreater(result["doubles"], 1.0)
+
+    def test_batter_away_doubles_below_1(self):
+        result = home_away_batter_splits_for(False)
+        self.assertLess(result["doubles"], 1.0)
+
+    def test_batter_home_away_are_symmetric(self):
+        home = home_away_batter_splits_for(True)
+        away = home_away_batter_splits_for(False)
+        for key in ("hits", "hr", "doubles"):
+            product = home[key] * away[key]
+            self.assertAlmostEqual(
+                product, 1.0, delta=0.05,
+                msg=f"home×away product for '{key}' should be close to 1.0 (got {product:.4f})",
+            )
+
+    # ------------------------------------------------------------------
+    # Pitcher helper
+    # ------------------------------------------------------------------
+
+    def test_pitcher_none_returns_neutral(self):
+        result = home_away_pitcher_splits_for(None)
+        for key in ("k", "runs", "ip"):
+            self.assertAlmostEqual(result[key], 1.0,
+                                   msg=f"Expected neutral 1.0 for key '{key}'")
+
+    def test_pitcher_home_matches_constant(self):
+        result = home_away_pitcher_splits_for(True)
+        self.assertEqual(result, HOME_AWAY_PITCHER_SPLITS["home"])
+
+    def test_pitcher_away_matches_constant(self):
+        result = home_away_pitcher_splits_for(False)
+        self.assertEqual(result, HOME_AWAY_PITCHER_SPLITS["away"])
+
+    def test_pitcher_home_k_above_1(self):
+        result = home_away_pitcher_splits_for(True)
+        self.assertGreater(result["k"], 1.0, "Home pitcher should get a K-rate boost")
+
+    def test_pitcher_away_k_below_1(self):
+        result = home_away_pitcher_splits_for(False)
+        self.assertLess(result["k"], 1.0, "Away pitcher should get a K-rate penalty")
+
+    def test_pitcher_home_runs_below_1(self):
+        result = home_away_pitcher_splits_for(True)
+        self.assertLess(result["runs"], 1.0, "Home pitcher should allow fewer runs")
+
+    def test_pitcher_away_runs_above_1(self):
+        result = home_away_pitcher_splits_for(False)
+        self.assertGreater(result["runs"], 1.0, "Away pitcher should allow more runs")
+
+    def test_pitcher_home_ip_above_1(self):
+        result = home_away_pitcher_splits_for(True)
+        self.assertGreater(result["ip"], 1.0, "Home pitcher should go deeper")
+
+    def test_pitcher_away_ip_below_1(self):
+        result = home_away_pitcher_splits_for(False)
+        self.assertLess(result["ip"], 1.0, "Away pitcher should have shorter outings")
+
+
+class TestHomeAwaySimulation(unittest.TestCase):
+    """Integration tests confirming home/away context shifts simulated outputs."""
+
+    def setUp(self):
+        self.sim = _default_sim(num_simulations=3_000, seed=7)
+
+    def _pitcher_mean(self, prop_name: str, is_home: bool) -> float:
+        report = self.sim.simulate_pitcher(_default_pitcher(), is_home=is_home)
+        return next(p for p in report.props if p.prop_name == prop_name).mean
+
+    def _batter_mean(self, prop_name: str, is_home: bool) -> float:
+        report = self.sim.simulate_batter(_default_batter(), is_home=is_home)
+        return next(p for p in report.props if p.prop_name == prop_name).mean
+
+    # ------------------------------------------------------------------
+    # Pitcher simulation
+    # ------------------------------------------------------------------
+
+    def test_home_pitcher_more_strikeouts_than_away(self):
+        self.assertGreater(
+            self._pitcher_mean("Strikeouts", True),
+            self._pitcher_mean("Strikeouts", False),
+        )
+
+    def test_home_pitcher_fewer_runs_than_away(self):
+        self.assertLess(
+            self._pitcher_mean("Runs Allowed", True),
+            self._pitcher_mean("Runs Allowed", False),
+        )
+
+    def test_home_pitcher_more_outs_than_away(self):
+        self.assertGreater(
+            self._pitcher_mean("Outs Recorded", True),
+            self._pitcher_mean("Outs Recorded", False),
+        )
+
+    def test_home_pitcher_higher_pitch_count_than_away(self):
+        # More IP + slightly more batters faced at home → higher pitch count
+        self.assertGreater(
+            self._pitcher_mean("Pitch Count", True),
+            self._pitcher_mean("Pitch Count", False),
+        )
+
+    def test_no_home_away_pitcher_between_home_and_away(self):
+        mean_home = self._pitcher_mean("Strikeouts", True)
+        mean_away = self._pitcher_mean("Strikeouts", False)
+        # Rebuild with same seed, no is_home
+        sim2 = _default_sim(num_simulations=3_000, seed=7)
+        report_none = sim2.simulate_pitcher(_default_pitcher())
+        mean_none = next(p for p in report_none.props if p.prop_name == "Strikeouts").mean
+        # "none" sim uses a different random sequence but the mean should be
+        # strictly between home and away (within a reasonable tolerance)
+        self.assertGreaterEqual(mean_none + 0.5, mean_away)
+        self.assertLessEqual(mean_none - 0.5, mean_home)
+
+    # ------------------------------------------------------------------
+    # Batter simulation
+    # ------------------------------------------------------------------
+
+    def test_home_batter_more_hits_than_away(self):
+        self.assertGreater(
+            self._batter_mean("Hits", True),
+            self._batter_mean("Hits", False),
+        )
+
+    def test_home_batter_more_home_runs_than_away(self):
+        self.assertGreater(
+            self._batter_mean("Home Runs", True),
+            self._batter_mean("Home Runs", False),
+        )
+
+    def test_home_batter_more_doubles_than_away(self):
+        self.assertGreater(
+            self._batter_mean("Doubles", True),
+            self._batter_mean("Doubles", False),
+        )
+
+    def test_no_home_away_batter_neutral(self):
+        sim_no = _default_sim(num_simulations=3_000, seed=7)
+        report_no = sim_no.simulate_batter(_default_batter())
+        mean_no = next(p for p in report_no.props if p.prop_name == "Hits").mean
+        self.assertIsInstance(mean_no, float)
+
+    # ------------------------------------------------------------------
+    # simulate_matchup with home/away
+    # ------------------------------------------------------------------
+
+    def test_matchup_pitcher_home_gives_home_k_boost(self):
+        pitcher = _default_pitcher()
+        batter = _default_batter()
+        # Pitcher is home → pitcher gets home boost, batter gets away penalty
+        results_home = self.sim.simulate_matchup(pitcher, [batter], pitcher_is_home=True)
+        # Pitcher is away → pitcher gets away penalty, batter gets home boost
+        results_away = self.sim.simulate_matchup(pitcher, [batter], pitcher_is_home=False)
+        k_home = next(
+            p for p in results_home[pitcher.name].props if p.prop_name == "Strikeouts"
+        ).mean
+        k_away = next(
+            p for p in results_away[pitcher.name].props if p.prop_name == "Strikeouts"
+        ).mean
+        self.assertGreater(k_home, k_away)
+
+    def test_matchup_batter_gets_inverse_location(self):
+        pitcher = _default_pitcher()
+        batter = _default_batter()
+        # When pitcher is HOME, batters should be AWAY (fewer hits)
+        results_pit_home = self.sim.simulate_matchup(
+            pitcher, [batter], pitcher_is_home=True
+        )
+        # When pitcher is AWAY, batters should be HOME (more hits)
+        results_pit_away = self.sim.simulate_matchup(
+            pitcher, [batter], pitcher_is_home=False
+        )
+        hits_batter_vs_home_pitcher = next(
+            p for p in results_pit_home[batter.name].props if p.prop_name == "Hits"
+        ).mean
+        hits_batter_vs_away_pitcher = next(
+            p for p in results_pit_away[batter.name].props if p.prop_name == "Hits"
+        ).mean
+        # batter is HOME when pitcher is AWAY → more hits
+        self.assertGreater(hits_batter_vs_away_pitcher, hits_batter_vs_home_pitcher)
+
+    def test_matchup_none_location_no_error(self):
+        """simulate_matchup without pitcher_is_home should still work."""
+        results = self.sim.simulate_matchup(_default_pitcher(), [_default_batter()])
+        self.assertIn(_default_pitcher().name, results)
 
 
 if __name__ == "__main__":

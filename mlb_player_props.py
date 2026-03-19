@@ -25,6 +25,13 @@ Platoon / handedness splits:
   - Opposite-hand matchups (e.g. RHB vs LHP) favour the batter; same-hand
     matchups favour the pitcher.  See PLATOON_SPLITS for per-combo adjustments.
 
+Home / Away splits:
+  - Pass ``is_home=True`` to ``simulate_pitcher`` / ``simulate_batter`` when
+    the player is playing at their home ballpark, or ``is_home=False`` for a
+    road game.  Omitting the argument (``None``) skips the adjustment.
+  - On average batters hit ~3–5 % better at home; pitchers allow ~3 % fewer
+    runs at home.  See HOME_AWAY_BATTER_SPLITS and HOME_AWAY_PITCHER_SPLITS.
+
 Usage example
 -------------
     from mlb_player_props import (
@@ -43,18 +50,18 @@ Usage example
     sim = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind,
                                   num_simulations=10_000)
 
-    # Left-handed pitcher — works deep counts (pitches_per_pa=4.1)
+    # Left-handed pitcher — pitching at home (is_home=True)
     pitcher = PitcherStats(name="Ace Pitcher", era=3.50, k_per_9=9.5,
                            innings_per_start=6.0, whip=1.15,
                            arm_strength=75, throws="L", pitches_per_pa=4.1)
-    # Right-handed power hitter — patient at the plate (pitches_per_pa=4.2)
+    # Right-handed power hitter — away game (is_home=False)
     batter  = BatterStats(name="Power Hitter", avg=0.285, obp=0.360,
                           slg=0.510, hr_per_600_pa=32, sb_per_season=18,
                           doubles_per_600_pa=38, games_played=162,
                           power_rating=80, bats="R", pitches_per_pa=4.2)
 
-    pitcher_results = sim.simulate_pitcher(pitcher, opponent_bats="R")
-    batter_results  = sim.simulate_batter(batter, opponent_throws="L")
+    pitcher_results = sim.simulate_pitcher(pitcher, opponent_bats="R", is_home=True)
+    batter_results  = sim.simulate_batter(batter, opponent_throws="L", is_home=False)
 
     sim.print_results(pitcher_results)
     sim.print_results(batter_results)
@@ -275,6 +282,90 @@ def platoon_splits_for(bats: str, throws: str) -> Dict[str, float]:
     {'hits': 1.0, 'hr': 1.0, 'doubles': 1.0, 'k': 1.0, 'runs': 1.0}
     """
     return PLATOON_SPLITS.get((bats, throws), _PLATOON_NEUTRAL)
+
+
+# ---------------------------------------------------------------------------
+# Home / Away split constants
+# ---------------------------------------------------------------------------
+# Calibration basis:
+#   Historically MLB home teams win ~54 % of games. Batters hit approximately
+#   3–5 % better at home (comfort, familiarity with the park, crowd energy).
+#   Pitchers allow ~3 % fewer runs at home and go slightly deeper into games.
+#
+# Keys for each dict:
+#   Batter  splits — "hits", "hr", "doubles"
+#   Pitcher splits — "k" (strikeout rate), "runs" (runs allowed), "ip" (innings)
+#
+# Using "home" / "away" string keys keeps the dict easily extendable (e.g. a
+# future "neutral" site for playoff games).
+
+HOME_AWAY_BATTER_SPLITS: Dict[str, Dict[str, float]] = {
+    "home": {"hits": 1.03, "hr": 1.05, "doubles": 1.03},
+    "away": {"hits": 0.97, "hr": 0.95, "doubles": 0.97},
+}
+
+HOME_AWAY_PITCHER_SPLITS: Dict[str, Dict[str, float]] = {
+    "home": {"k": 1.02, "runs": 0.97, "ip": 1.01},
+    "away": {"k": 0.98, "runs": 1.03, "ip": 0.99},
+}
+
+# Sentinel neutral values (used when is_home is None).
+_HOME_AWAY_BATTER_NEUTRAL: Dict[str, float] = {"hits": 1.00, "hr": 1.00, "doubles": 1.00}
+_HOME_AWAY_PITCHER_NEUTRAL: Dict[str, float] = {"k": 1.00, "runs": 1.00, "ip": 1.00}
+
+
+def home_away_batter_splits_for(is_home: Optional[bool]) -> Dict[str, float]:
+    """
+    Return the home/away multiplier dict for a batter.
+
+    Parameters
+    ----------
+    is_home : True for a home game, False for an away game, None for neutral
+              (no adjustment applied).
+
+    Returns
+    -------
+    Dict with keys "hits", "hr", "doubles".
+
+    Examples
+    --------
+    >>> home_away_batter_splits_for(True)
+    {'hits': 1.03, 'hr': 1.05, 'doubles': 1.03}
+    >>> home_away_batter_splits_for(False)
+    {'hits': 0.97, 'hr': 0.95, 'doubles': 0.97}
+    >>> home_away_batter_splits_for(None)
+    {'hits': 1.0, 'hr': 1.0, 'doubles': 1.0}
+    """
+    if is_home is None:
+        return _HOME_AWAY_BATTER_NEUTRAL
+    return HOME_AWAY_BATTER_SPLITS["home" if is_home else "away"]
+
+
+def home_away_pitcher_splits_for(is_home: Optional[bool]) -> Dict[str, float]:
+    """
+    Return the home/away multiplier dict for a pitcher.
+
+    Parameters
+    ----------
+    is_home : True for a home game, False for an away game, None for neutral
+              (no adjustment applied).
+
+    Returns
+    -------
+    Dict with keys "k", "runs", "ip".
+
+    Examples
+    --------
+    >>> home_away_pitcher_splits_for(True)
+    {'k': 1.02, 'runs': 0.97, 'ip': 1.01}
+    >>> home_away_pitcher_splits_for(False)
+    {'k': 0.98, 'runs': 1.03, 'ip': 0.99}
+    >>> home_away_pitcher_splits_for(None)
+    {'k': 1.0, 'runs': 1.0, 'ip': 1.0}
+    """
+    if is_home is None:
+        return _HOME_AWAY_PITCHER_NEUTRAL
+    return HOME_AWAY_PITCHER_SPLITS["home" if is_home else "away"]
 
 
 # ---------------------------------------------------------------------------
@@ -871,6 +962,7 @@ class MLBPlayerPropsSimulator:
         runs_lines: Optional[List[float]] = None,
         pitch_count_lines: Optional[List[float]] = None,
         opponent_bats: Optional[str] = None,
+        is_home: Optional[bool] = None,
     ) -> PlayerPropsReport:
         """
         Run Monte Carlo simulations for a starting pitcher.
@@ -886,6 +978,9 @@ class MLBPlayerPropsSimulator:
         opponent_bats     : batting hand of the opposing lineup ("R", "L", or "S").
                             When provided the platoon split adjusts K rate and runs
                             allowed.  None means no platoon adjustment is applied.
+        is_home           : True if the pitcher is starting at his home ballpark,
+                            False for a road start, None (default) for no
+                            home/away adjustment.
         """
         stats.validate()
         # Compute platoon multipliers once if opponent handedness is known.
@@ -897,12 +992,23 @@ class MLBPlayerPropsSimulator:
             platoon_k_mult = 1.0
             platoon_runs_mult = 1.0
 
-        k_mult = self._env_k_multiplier() * stats.arm_k_multiplier() * platoon_k_mult
-        runs_mult = self._env_runs_multiplier() * stats.arm_runs_multiplier() * platoon_runs_mult
+        # Home / away multipliers.
+        ha_splits = home_away_pitcher_splits_for(is_home)
+        ha_k_mult = ha_splits["k"]
+        ha_runs_mult = ha_splits["runs"]
+        ha_ip_mult = ha_splits["ip"]
+
+        k_mult = self._env_k_multiplier() * stats.arm_k_multiplier() * platoon_k_mult * ha_k_mult
+        runs_mult = self._env_runs_multiplier() * stats.arm_runs_multiplier() * platoon_runs_mult * ha_runs_mult
         # Pre-compute stamina once — temperature and arm strength are fixed for
         # the whole run.  Arm strength extends/shortens outings independently of
         # the weather-based stamina penalty so they multiply together.
-        stamina_mult = self.weather.temp_pitcher_stamina_multiplier() * stats.arm_ip_multiplier()
+        # Home/away IP factor is also folded in here.
+        stamina_mult = (
+            self.weather.temp_pitcher_stamina_multiplier()
+            * stats.arm_ip_multiplier()
+            * ha_ip_mult
+        )
 
         k_results: List[float] = []
         outs_results: List[float] = []
@@ -945,6 +1051,7 @@ class MLBPlayerPropsSimulator:
         sb_lines: Optional[List[float]] = None,
         pa_lines: Optional[List[float]] = None,
         opponent_throws: Optional[str] = None,
+        is_home: Optional[bool] = None,
     ) -> PlayerPropsReport:
         """
         Run Monte Carlo simulations for a position player (batter).
@@ -961,6 +1068,9 @@ class MLBPlayerPropsSimulator:
         opponent_throws : throwing hand of the opposing pitcher ("R" or "L").
                           When provided the platoon split adjusts hits, HR, and
                           doubles rates.  None means no platoon adjustment.
+        is_home         : True if the batter is playing at his home ballpark,
+                          False for a road game, None (default) for no
+                          home/away adjustment.
         """
         stats.validate()
         # Compute platoon multipliers once if opponent handedness is known.
@@ -974,9 +1084,20 @@ class MLBPlayerPropsSimulator:
             platoon_hr_mult = 1.0
             platoon_doubles_mult = 1.0
 
-        hits_mult = self._env_hits_multiplier() * platoon_hits_mult
-        doubles_mult = self._env_doubles_multiplier() * stats.power_doubles_multiplier() * platoon_doubles_mult
-        hr_mult = self._env_hr_multiplier() * stats.power_hr_multiplier() * platoon_hr_mult
+        # Home / away multipliers.
+        ha_splits = home_away_batter_splits_for(is_home)
+        ha_hits_mult = ha_splits["hits"]
+        ha_hr_mult = ha_splits["hr"]
+        ha_doubles_mult = ha_splits["doubles"]
+
+        hits_mult = self._env_hits_multiplier() * platoon_hits_mult * ha_hits_mult
+        doubles_mult = (
+            self._env_doubles_multiplier()
+            * stats.power_doubles_multiplier()
+            * platoon_doubles_mult
+            * ha_doubles_mult
+        )
+        hr_mult = self._env_hr_multiplier() * stats.power_hr_multiplier() * platoon_hr_mult * ha_hr_mult
 
         hits_results: List[float] = []
         doubles_results: List[float] = []
@@ -1023,6 +1144,7 @@ class MLBPlayerPropsSimulator:
         self,
         pitcher: PitcherStats,
         batters: List[BatterStats],
+        pitcher_is_home: Optional[bool] = None,
     ) -> Dict[str, PlayerPropsReport]:
         """
         Convenience method: simulate an entire pitcher vs lineup matchup.
@@ -1032,14 +1154,32 @@ class MLBPlayerPropsSimulator:
         simulation uses the first batter's batting hand as a representative
         opponent for K/runs adjustments (or "R" when no batters are provided).
 
+        Parameters
+        ----------
+        pitcher        : PitcherStats for the starting pitcher.
+        batters        : list of BatterStats for the opposing lineup.
+        pitcher_is_home: True if the pitcher's team is the home team, False if
+                         they are the visiting team, None for no home/away
+                         adjustment.  When provided, batters receive the inverse
+                         designation (if pitcher is home, batters are away and
+                         vice versa).
+
         Returns a dict keyed by player name.
         """
         results: Dict[str, PlayerPropsReport] = {}
         # Determine representative opponent batting hand for the pitcher.
         rep_bats = batters[0].bats if batters else "R"
-        results[pitcher.name] = self.simulate_pitcher(pitcher, opponent_bats=rep_bats)
+        # Batters get the opposite home/away designation from the pitcher.
+        batter_is_home: Optional[bool] = (
+            None if pitcher_is_home is None else not pitcher_is_home
+        )
+        results[pitcher.name] = self.simulate_pitcher(
+            pitcher, opponent_bats=rep_bats, is_home=pitcher_is_home
+        )
         for batter in batters:
-            results[batter.name] = self.simulate_batter(batter, opponent_throws=pitcher.throws)
+            results[batter.name] = self.simulate_batter(
+                batter, opponent_throws=pitcher.throws, is_home=batter_is_home
+            )
         return results
 
 
@@ -1109,9 +1249,21 @@ def _demo() -> None:  # pragma: no cover
         sp = platoon_splits_for(opp_bats, pitcher.throws)
         print(f"  vs {opp_bats}-handed lineup : K mult {sp['k']:.2f}, runs mult {sp['runs']:.2f}")
 
-    # Pitcher props vs right-handed lineup (RHB has platoon advantage over LHP)
-    pitcher_report = sim.simulate_pitcher(pitcher, opponent_bats="R")
-    sim.print_results(pitcher_report)
+    # Show home/away splits for the pitcher
+    print("\n  Home/Away splits (pitcher):")
+    for location, is_h in (("Home", True), ("Away", False)):
+        ha = home_away_pitcher_splits_for(is_h)
+        print(f"    {location}: K×{ha['k']:.2f}  runs×{ha['runs']:.2f}  IP×{ha['ip']:.2f}")
+
+    # Pitcher props at home vs right-handed lineup
+    pitcher_report_home = sim.simulate_pitcher(pitcher, opponent_bats="R", is_home=True)
+    print("\n--- Pitcher: HOME game ---")
+    sim.print_results(pitcher_report_home)
+
+    # Pitcher props on the road vs right-handed lineup
+    pitcher_report_away = sim.simulate_pitcher(pitcher, opponent_bats="R", is_home=False)
+    print("\n--- Pitcher: AWAY game ---")
+    sim.print_results(pitcher_report_away)
 
     # Batter — right-handed power hitter (power_rating=85, bats="R", patient hitter)
     # facing the left-handed pitcher → batter has platoon advantage
@@ -1139,9 +1291,25 @@ def _demo() -> None:  # pragma: no cover
         print(f"  vs {opp_throws}-handed pitcher : hits mult {sp['hits']:.2f}, "
               f"HR mult {sp['hr']:.2f}, 2B mult {sp['doubles']:.2f}")
 
-    # Simulate with platoon split applied (RHB vs LHP → batter boost)
-    batter_report = sim.simulate_batter(batter, opponent_throws=pitcher.throws)
-    sim.print_results(batter_report)
+    # Show home/away splits for the batter
+    print("\n  Home/Away splits (batter):")
+    for location, is_h in (("Home", True), ("Away", False)):
+        ha = home_away_batter_splits_for(is_h)
+        print(f"    {location}: hits×{ha['hits']:.2f}  HR×{ha['hr']:.2f}  2B×{ha['doubles']:.2f}")
+
+    # Batter props at home vs LHP (platoon advantage + home boost)
+    batter_report_home = sim.simulate_batter(
+        batter, opponent_throws=pitcher.throws, is_home=True
+    )
+    print("\n--- Batter: HOME game (vs LHP, platoon + home boost) ---")
+    sim.print_results(batter_report_home)
+
+    # Batter props away vs LHP (platoon advantage, away penalty)
+    batter_report_away = sim.simulate_batter(
+        batter, opponent_throws=pitcher.throws, is_home=False
+    )
+    print("\n--- Batter: AWAY game (vs LHP, platoon boost, away penalty) ---")
+    sim.print_results(batter_report_away)
 
 
 if __name__ == "__main__":
