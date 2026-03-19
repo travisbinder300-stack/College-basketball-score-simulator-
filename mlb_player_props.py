@@ -7,9 +7,17 @@ Simulates individual player prop outcomes for MLB games including:
                    H+R+RBI (Hits + Runs Scored + RBI)
 
 Environmental modifiers applied to every simulation:
-  - Weather conditions  (temperature, precipitation)
+  - Weather conditions  (temperature, precipitation, humidity)
   - Wind conditions     (speed, direction relative to field)
   - Stadium / Park factors (per-venue adjustments for each stat type)
+  - Game time           (``"day"`` | ``"night"`` | ``"dome"``)
+      * ``"day"``  – noon/afternoon game: solar heating amplifies temperature
+        effects on ball travel and contact; afternoon convection makes wind
+        deviations ~15 % stronger.
+      * ``"night"`` – evening game (default): all effects applied at face value.
+      * ``"dome"``  – climate-controlled indoor stadium: temperature and
+        humidity effects are neutralised; precipitation never applies; wind
+        effects are zero regardless of WindConditions values.
 
 Player-attribute modifiers:
   - Pitcher arm strength (0–100 scale) – affects K rate, runs allowed, and
@@ -45,7 +53,8 @@ Usage example
     )
 
     stadium = Stadium.from_name("Wrigley Field")
-    weather = WeatherConditions(temp_f=72, precipitation="none", humidity=0.55)
+    weather = WeatherConditions(temp_f=72, precipitation="none", humidity=0.55,
+                                game_time="night")   # "day" | "night" | "dome"
     wind    = WindConditions(speed_mph=15, direction="out_to_center")
 
     sim = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind,
@@ -210,6 +219,35 @@ WIND_K_OTHER_RATE: float = 0.001  # +0.1 % per mph for other directions
 # represents the runs-adjustment increment per 5-mph of wind speed per unit of
 # directional deviation.
 WIND_RUNS_SPEED_FACTOR: float = 0.015
+
+# ---------------------------------------------------------------------------
+# Game-time (day / night / dome) constants
+# ---------------------------------------------------------------------------
+# "day"   – noon / afternoon game played outdoors in direct sunlight.
+#           Solar radiation heats the ball and air beyond the stated air
+#           temperature, amplifying temperature-driven effects.  Daytime
+#           convective mixing also tends to make winds gustier.
+# "night" – evening game under artificial lighting; effects are applied at
+#           face value (this is the historical default / baseline).
+# "dome"  – indoor stadium with climate control.  Temperature is held near
+#           72 °F and precipitation never occurs, so the corresponding
+#           multipliers are neutralised.  Wind is also effectively zero
+#           regardless of any WindConditions values.
+#
+# Valid game_time values accepted by WeatherConditions.
+VALID_GAME_TIMES: frozenset[str] = frozenset({"day", "night", "dome"})
+
+# Day game: direct sunlight amplifies the per-degree temperature effect on
+# ball travel and batter contact (ball is warmer/harder than stated temp).
+DAY_GAME_TEMP_AMPLIFIER: float = 1.5      # 50 % larger temperature-deviation effect
+
+# Day game: afternoon convective winds tend to be gustier; scale wind
+# deviations from neutral by this factor in day games.
+DAY_GAME_WIND_AMPLIFIER: float = 1.15    # 15 % stronger effective wind deviation
+
+# Dome game: all environmental effects are neutralised.
+DOME_TEMP_AMPLIFIER: float = 0.0          # no temperature effect in a controlled dome
+DOME_WIND_AMPLIFIER: float = 0.0          # no wind effect in an indoor stadium
 
 # ---------------------------------------------------------------------------
 # Pitcher arm-strength tuning constants
@@ -447,31 +485,112 @@ class WindConditions:
 
 @dataclass
 class WeatherConditions:
-    """Describes the weather at game time."""
+    """Describes the weather at game time.
+
+    game_time selects one of three environmental regimes:
+
+    * ``"night"`` (default) – evening game under artificial lighting.
+      All temperature, wind, and precipitation values are applied at
+      face value.  This is the historical baseline.
+    * ``"day"`` – noon or afternoon game in direct sunlight.  Solar
+      heating amplifies temperature-driven effects (ball travels farther
+      than the stated air temperature alone would suggest) and daytime
+      convective mixing makes wind deviations gustier.
+    * ``"dome"`` – indoor, climate-controlled stadium.  Temperature is
+      held near 72 °F and precipitation never occurs, so all temperature
+      and humidity multipliers return 1.0.  Wind is also neutralised (see
+      :meth:`game_time_wind_amplifier`).
+    """
 
     temp_f: float = 72.0
     precipitation: str = "none"   # none | light | moderate | heavy
     humidity: float = 0.50        # 0.0 – 1.0
+    game_time: str = "night"      # "day" | "night" | "dome"
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _game_time_temp_amplifier(self) -> float:
+        """
+        Scaling factor applied to every per-degree temperature deviation.
+
+        * ``"day"``   → ``DAY_GAME_TEMP_AMPLIFIER`` (> 1; solar heating amplifies)
+        * ``"night"`` → 1.0 (baseline — no change vs historical behaviour)
+        * ``"dome"``  → ``DOME_TEMP_AMPLIFIER`` (0.0; controlled environment)
+        """
+        if self.game_time == "dome":
+            return DOME_TEMP_AMPLIFIER
+        if self.game_time == "day":
+            return DAY_GAME_TEMP_AMPLIFIER
+        return 1.0  # night: baseline
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def game_time_wind_amplifier(self) -> float:
+        """
+        Scaling factor applied to every wind-deviation in the simulator.
+
+        * ``"day"``   → ``DAY_GAME_WIND_AMPLIFIER`` (> 1; afternoon gusts)
+        * ``"night"`` → 1.0 (baseline)
+        * ``"dome"``  → ``DOME_WIND_AMPLIFIER`` (0.0; no outdoor wind)
+        """
+        if self.game_time == "dome":
+            return DOME_WIND_AMPLIFIER
+        if self.game_time == "day":
+            return DAY_GAME_WIND_AMPLIFIER
+        return 1.0  # night: baseline
+
+    def validate(self) -> None:
+        if self.game_time not in VALID_GAME_TIMES:
+            raise ValueError(
+                f"game_time must be one of {sorted(VALID_GAME_TIMES)}, "
+                f"got {self.game_time!r}"
+            )
+        if not (0.0 <= self.humidity <= 1.0):
+            raise ValueError("humidity must be between 0.0 and 1.0")
 
     def temp_hr_multiplier(self) -> float:
         """
         Ball travels farther in warm air (less dense).
         Baseline is 72 °F; every 10 °F adds/subtracts ~3 %.
+
+        In a dome the controlled environment removes all temperature
+        deviation; in a day game solar heating amplifies the effect.
         """
-        return 1.0 + (self.temp_f - 72) * 0.003
+        return 1.0 + (self.temp_f - 72) * 0.003 * self._game_time_temp_amplifier()
 
     def temp_k_multiplier(self) -> float:
-        """Cold weather → harder grip → slight increase in Ks."""
-        return 1.0 - (self.temp_f - 72) * 0.001
+        """
+        Cold weather → harder grip → slight increase in Ks.
+
+        Effect is scaled by the game-time amplifier (dome → no effect;
+        day → amplified cold/heat deviation).
+        """
+        return 1.0 - (self.temp_f - 72) * 0.001 * self._game_time_temp_amplifier()
 
     def precip_factor(self) -> float:
+        """
+        Precipitation suppresses offensive output.
+
+        In a dome precipitation never occurs and this always returns 1.0
+        regardless of the ``precipitation`` field value.
+        """
+        if self.game_time == "dome":
+            return 1.0
         return PRECIPITATION_FACTOR.get(self.precipitation, 1.00)
 
     def humidity_hit_multiplier(self) -> float:
         """
         High humidity makes the ball slightly heavier and harder to hit far.
         Effect is small (~2 % max).
+
+        In a dome humidity is climate-controlled and this returns 1.0.
         """
+        if self.game_time == "dome":
+            return 1.0
         return 1.0 - (self.humidity - 0.50) * 0.04
 
     def temp_hit_multiplier(self) -> float:
@@ -482,8 +601,10 @@ class WeatherConditions:
         average.  Warm weather provides a small positive boost to contact.
         Baseline is 72 °F; effect scales linearly at
         TEMP_HIT_RATE_PER_DEGREE_F per degree.
+
+        The per-degree rate is further scaled by the game-time amplifier.
         """
-        return 1.0 + (self.temp_f - 72) * TEMP_HIT_RATE_PER_DEGREE_F
+        return 1.0 + (self.temp_f - 72) * TEMP_HIT_RATE_PER_DEGREE_F * self._game_time_temp_amplifier()
 
     def temp_pitcher_stamina_multiplier(self) -> float:
         """
@@ -493,11 +614,19 @@ class WeatherConditions:
           pitch, and leads to shorter outings.
         * Above TEMP_HOT_THRESHOLD_F: heat fatigue also shortens outings.
         * Between the two thresholds: no stamina penalty (returns 1.0).
+        * In a dome: always 1.0 (climate-controlled).
+
+        In a day game the per-degree penalty is amplified by
+        ``DAY_GAME_TEMP_AMPLIFIER``, reflecting the additional strain of
+        pitching in direct sunlight.
         """
+        if self.game_time == "dome":
+            return 1.0
+        amp = self._game_time_temp_amplifier()
         if self.temp_f < TEMP_COLD_THRESHOLD_F:
-            return 1.0 - (TEMP_COLD_THRESHOLD_F - self.temp_f) * TEMP_COLD_STAMINA_RATE
+            return 1.0 - (TEMP_COLD_THRESHOLD_F - self.temp_f) * TEMP_COLD_STAMINA_RATE * amp
         if self.temp_f > TEMP_HOT_THRESHOLD_F:
-            return 1.0 - (self.temp_f - TEMP_HOT_THRESHOLD_F) * TEMP_HOT_STAMINA_RATE
+            return 1.0 - (self.temp_f - TEMP_HOT_THRESHOLD_F) * TEMP_HOT_STAMINA_RATE * amp
         return 1.0
 
 
@@ -776,13 +905,29 @@ class MLBPlayerPropsSimulator:
     # Composite environmental multipliers
     # ------------------------------------------------------------------
 
+    def _effective_wind_mult(self, raw_wind_mult: float) -> float:
+        """
+        Apply game-time scaling to a raw wind multiplier.
+
+        Wind deviations from neutral (1.0) are scaled by the game-time
+        wind amplifier from ``self.weather``:
+
+        * **night** – amplifier = 1.0 → raw multiplier returned unchanged.
+        * **day**   – amplifier = 1.15 → 15 % larger wind deviation (gustier
+          afternoon convection amplifies outfield wind effects).
+        * **dome**  – amplifier = 0.0 → wind deviation cancelled (returns 1.0;
+          there is no outdoor wind inside an enclosed stadium).
+        """
+        amp = self.weather.game_time_wind_amplifier()
+        return 1.0 + (raw_wind_mult - 1.0) * amp
+
     def _env_hr_multiplier(self) -> float:
         return (
             self.stadium.hr_factor
             * self.weather.temp_hr_multiplier()
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
-            * self.wind.hr_multiplier()
+            * self._effective_wind_mult(self.wind.hr_multiplier())
         )
 
     def _env_hits_multiplier(self) -> float:
@@ -791,7 +936,7 @@ class MLBPlayerPropsSimulator:
             * self.weather.temp_hit_multiplier()
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
-            * self.wind.hit_multiplier()
+            * self._effective_wind_mult(self.wind.hit_multiplier())
         )
 
     def _env_doubles_multiplier(self) -> float:
@@ -800,7 +945,7 @@ class MLBPlayerPropsSimulator:
             * self.weather.temp_hit_multiplier()
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
-            * self.wind.hit_multiplier()
+            * self._effective_wind_mult(self.wind.hit_multiplier())
         )
 
     def _env_k_multiplier(self) -> float:
@@ -808,7 +953,7 @@ class MLBPlayerPropsSimulator:
             self.stadium.k_factor
             * self.weather.temp_k_multiplier()
             * self.weather.precip_factor()
-            * self.wind.k_multiplier()
+            * self._effective_wind_mult(self.wind.k_multiplier())
         )
 
     def _env_runs_multiplier(self) -> float:
@@ -816,7 +961,7 @@ class MLBPlayerPropsSimulator:
             self.stadium.runs_factor
             * self.weather.temp_hr_multiplier()
             * self.weather.precip_factor()
-            * self.wind.runs_multiplier()
+            * self._effective_wind_mult(self.wind.runs_multiplier())
         )
 
     # ------------------------------------------------------------------
@@ -1261,21 +1406,51 @@ def _demo() -> None:  # pragma: no cover
     print(f"  K factor    : {stadium.k_factor}")
     print(f"  Runs factor : {stadium.runs_factor}")
 
-    # Weather
-    weather = WeatherConditions(temp_f=68, precipitation="light", humidity=0.65)
-    print(f"\nWeather : {weather.temp_f}°F, precip={weather.precipitation}, humidity={weather.humidity}")
-    print(f"  Temp HR multiplier      : {weather.temp_hr_multiplier():.3f}")
-    print(f"  Temp hit multiplier     : {weather.temp_hit_multiplier():.3f}  (batter contact rate)")
-    print(f"  Temp K multiplier       : {weather.temp_k_multiplier():.3f}  (pitcher strikeout rate)")
-    print(f"  Temp stamina multiplier : {weather.temp_pitcher_stamina_multiplier():.3f}  (pitcher innings)")
-
-    # Wind
+    # ----------------------------------------------------------------
+    # Game-time effect comparison
+    # ----------------------------------------------------------------
     wind = WindConditions(speed_mph=12, direction="out_to_center")
     print(f"\nWind    : {wind.speed_mph} mph {wind.direction}")
     print(f"  HR multiplier   : {wind.hr_multiplier():.3f}")
     print(f"  Hit multiplier  : {wind.hit_multiplier():.3f}")
     print(f"  K multiplier    : {wind.k_multiplier():.3f}  (pitcher strikeout rate)")
     print(f"  Runs multiplier : {wind.runs_multiplier():.3f}  (runs allowed)")
+
+    # Weather base (warm afternoon — good for showing game-time contrast)
+    base_temp, base_precip, base_hum = 85.0, "none", 0.60
+    print(f"\nGame-time comparison — {base_temp}°F, precip={base_precip}, humidity={base_hum}")
+    print(f"  {'Metric':<35}  {'Night':>8}  {'Day':>8}  {'Dome':>8}")
+    print(f"  {'-'*35}  {'-'*8}  {'-'*8}  {'-'*8}")
+    for gt in ("night", "day", "dome"):
+        w = WeatherConditions(temp_f=base_temp, precipitation=base_precip,
+                              humidity=base_hum, game_time=gt)
+
+    for label, fn in [
+        ("Temp HR mult",          lambda w: w.temp_hr_multiplier()),
+        ("Temp hit mult",         lambda w: w.temp_hit_multiplier()),
+        ("Temp K mult",           lambda w: w.temp_k_multiplier()),
+        ("Temp stamina mult",     lambda w: w.temp_pitcher_stamina_multiplier()),
+        ("Precip factor",         lambda w: w.precip_factor()),
+        ("Humidity hit mult",     lambda w: w.humidity_hit_multiplier()),
+        ("Wind amplifier",        lambda w: w.game_time_wind_amplifier()),
+    ]:
+        vals = [
+            WeatherConditions(temp_f=base_temp, precipitation=base_precip,
+                              humidity=base_hum, game_time=gt)
+            for gt in ("night", "day", "dome")
+        ]
+        print(f"  {label:<35}  {fn(vals[0]):>8.3f}  {fn(vals[1]):>8.3f}  {fn(vals[2]):>8.3f}")
+
+    # Weather for actual sim — night game (default)
+    weather = WeatherConditions(temp_f=68, precipitation="light", humidity=0.65,
+                                game_time="night")
+    print(f"\nWeather (night game): {weather.temp_f}°F, precip={weather.precipitation}, "
+          f"humidity={weather.humidity}, game_time={weather.game_time!r}")
+    print(f"  Temp HR multiplier      : {weather.temp_hr_multiplier():.3f}")
+    print(f"  Temp hit multiplier     : {weather.temp_hit_multiplier():.3f}  (batter contact rate)")
+    print(f"  Temp K multiplier       : {weather.temp_k_multiplier():.3f}  (pitcher strikeout rate)")
+    print(f"  Temp stamina multiplier : {weather.temp_pitcher_stamina_multiplier():.3f}  (pitcher innings)")
+    print(f"  Wind amplifier          : {weather.game_time_wind_amplifier():.3f}  (x wind deviation)")
 
     # Simulator (small run for demo speed)
     sim = MLBPlayerPropsSimulator(

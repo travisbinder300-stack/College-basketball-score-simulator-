@@ -20,6 +20,11 @@ from mlb_player_props import (
     home_away_pitcher_splits_for,
     HOME_AWAY_BATTER_SPLITS,
     HOME_AWAY_PITCHER_SPLITS,
+    DAY_GAME_TEMP_AMPLIFIER,
+    DAY_GAME_WIND_AMPLIFIER,
+    DOME_TEMP_AMPLIFIER,
+    DOME_WIND_AMPLIFIER,
+    VALID_GAME_TIMES,
 )
 
 
@@ -1889,6 +1894,281 @@ class TestHRBProp(unittest.TestCase):
         hrb_home = next(p for p in r_home.props if p.prop_name == "H+R+RBI").mean
         hrb_away = next(p for p in r_away.props if p.prop_name == "H+R+RBI").mean
         self.assertGreater(hrb_home, hrb_away)
+
+
+# ---------------------------------------------------------------------------
+# Game-time (day / night / dome) tests
+# ---------------------------------------------------------------------------
+
+
+def _hot_weather(game_time: str = "night") -> WeatherConditions:
+    """Hot outdoor weather — good for demonstrating game-time contrasts."""
+    return WeatherConditions(temp_f=92.0, precipitation="none",
+                             humidity=0.60, game_time=game_time)
+
+
+def _cold_weather(game_time: str = "night") -> WeatherConditions:
+    """Cold outdoor weather — good for stamina / K-rate contrast."""
+    return WeatherConditions(temp_f=45.0, precipitation="none",
+                             humidity=0.50, game_time=game_time)
+
+
+class TestGameTimeConstants(unittest.TestCase):
+    """Sanity checks on the exported game-time constants."""
+
+    def test_valid_game_times_contains_expected_values(self):
+        self.assertIn("day", VALID_GAME_TIMES)
+        self.assertIn("night", VALID_GAME_TIMES)
+        self.assertIn("dome", VALID_GAME_TIMES)
+
+    def test_day_temp_amplifier_greater_than_night(self):
+        # Day amplifier > 1 (night baseline)
+        self.assertGreater(DAY_GAME_TEMP_AMPLIFIER, 1.0)
+
+    def test_day_wind_amplifier_greater_than_night(self):
+        self.assertGreater(DAY_GAME_WIND_AMPLIFIER, 1.0)
+
+    def test_dome_amplifiers_are_zero(self):
+        self.assertEqual(DOME_TEMP_AMPLIFIER, 0.0)
+        self.assertEqual(DOME_WIND_AMPLIFIER, 0.0)
+
+
+class TestWeatherConditionsGameTime(unittest.TestCase):
+    """Tests for the game_time field on WeatherConditions."""
+
+    # --- Default / night baseline ---
+
+    def test_default_game_time_is_night(self):
+        w = WeatherConditions()
+        self.assertEqual(w.game_time, "night")
+
+    def test_night_game_time_amplifier_is_baseline(self):
+        w = WeatherConditions(game_time="night")
+        self.assertAlmostEqual(w._game_time_temp_amplifier(), 1.0)
+
+    def test_night_wind_amplifier_is_1(self):
+        w = WeatherConditions(game_time="night")
+        self.assertAlmostEqual(w.game_time_wind_amplifier(), 1.0)
+
+    # --- Day game amplification ---
+
+    def test_day_game_temp_amplifier_matches_constant(self):
+        w = WeatherConditions(game_time="day")
+        self.assertAlmostEqual(w._game_time_temp_amplifier(), DAY_GAME_TEMP_AMPLIFIER)
+
+    def test_day_wind_amplifier_matches_constant(self):
+        w = WeatherConditions(game_time="day")
+        self.assertAlmostEqual(w.game_time_wind_amplifier(), DAY_GAME_WIND_AMPLIFIER)
+
+    def test_day_temp_hr_multiplier_greater_than_night(self):
+        # Hot day game → stronger ball-travel effect than same temp at night
+        w_night = _hot_day_weather("night")
+        w_day = _hot_day_weather("day")
+        self.assertGreater(w_day.temp_hr_multiplier(), w_night.temp_hr_multiplier())
+
+    def test_day_temp_hit_multiplier_greater_than_night(self):
+        w_night = _hot_day_weather("night")
+        w_day = _hot_day_weather("day")
+        self.assertGreater(w_day.temp_hit_multiplier(), w_night.temp_hit_multiplier())
+
+    def test_day_cold_k_multiplier_greater_than_night(self):
+        # Cold day game → amplified cold grip → even higher K rate
+        w_night = _cold_night_weather("night")
+        w_day = _cold_night_weather("day")
+        self.assertGreater(w_day.temp_k_multiplier(), w_night.temp_k_multiplier())
+
+    def test_day_hot_stamina_penalty_worse_than_night(self):
+        # Heat fatigue is amplified in direct sunlight
+        w_night = _hot_day_weather("night")
+        w_day = _hot_day_weather("day")
+        self.assertLess(
+            w_day.temp_pitcher_stamina_multiplier(),
+            w_night.temp_pitcher_stamina_multiplier(),
+        )
+
+    def test_day_cold_stamina_penalty_worse_than_night(self):
+        w_night = _cold_night_weather("night")
+        w_day = _cold_night_weather("day")
+        self.assertLess(
+            w_day.temp_pitcher_stamina_multiplier(),
+            w_night.temp_pitcher_stamina_multiplier(),
+        )
+
+    # --- Dome neutralisation ---
+
+    def test_dome_game_temp_amplifier_is_zero(self):
+        w = WeatherConditions(game_time="dome")
+        self.assertAlmostEqual(w._game_time_temp_amplifier(), DOME_TEMP_AMPLIFIER)
+
+    def test_dome_wind_amplifier_is_zero(self):
+        w = WeatherConditions(game_time="dome")
+        self.assertAlmostEqual(w.game_time_wind_amplifier(), DOME_WIND_AMPLIFIER)
+
+    def test_dome_temp_hr_multiplier_is_1(self):
+        # Regardless of temp, dome returns neutral 1.0
+        for temp in (40.0, 72.0, 100.0):
+            w = WeatherConditions(temp_f=temp, game_time="dome")
+            self.assertAlmostEqual(
+                w.temp_hr_multiplier(), 1.0,
+                msg=f"Expected dome temp_hr_multiplier = 1.0 at {temp}°F",
+            )
+
+    def test_dome_temp_hit_multiplier_is_1(self):
+        for temp in (40.0, 72.0, 100.0):
+            w = WeatherConditions(temp_f=temp, game_time="dome")
+            self.assertAlmostEqual(w.temp_hit_multiplier(), 1.0,
+                                   msg=f"Dome hit mult should be 1.0 at {temp}°F")
+
+    def test_dome_temp_k_multiplier_is_1(self):
+        for temp in (40.0, 72.0, 100.0):
+            w = WeatherConditions(temp_f=temp, game_time="dome")
+            self.assertAlmostEqual(w.temp_k_multiplier(), 1.0,
+                                   msg=f"Dome K mult should be 1.0 at {temp}°F")
+
+    def test_dome_stamina_multiplier_is_1(self):
+        for temp in (40.0, 72.0, 100.0):
+            w = WeatherConditions(temp_f=temp, game_time="dome")
+            self.assertAlmostEqual(w.temp_pitcher_stamina_multiplier(), 1.0,
+                                   msg=f"Dome stamina should be 1.0 at {temp}°F")
+
+    def test_dome_precip_factor_is_1_regardless_of_precipitation(self):
+        # It never rains in a dome
+        for precip in ("none", "light", "moderate", "heavy"):
+            w = WeatherConditions(precipitation=precip, game_time="dome")
+            self.assertAlmostEqual(
+                w.precip_factor(), 1.0,
+                msg=f"Dome precip_factor should be 1.0 for precipitation={precip!r}",
+            )
+
+    def test_dome_humidity_multiplier_is_1(self):
+        for hum in (0.1, 0.5, 0.9):
+            w = WeatherConditions(humidity=hum, game_time="dome")
+            self.assertAlmostEqual(
+                w.humidity_hit_multiplier(), 1.0,
+                msg=f"Dome humidity mult should be 1.0 at humidity={hum}",
+            )
+
+    # --- Validation ---
+
+    def test_invalid_game_time_raises(self):
+        w = WeatherConditions(game_time="afternoon")
+        with self.assertRaises(ValueError):
+            w.validate()
+
+    def test_valid_game_times_pass_validation(self):
+        for gt in ("day", "night", "dome"):
+            WeatherConditions(game_time=gt).validate()  # should not raise
+
+    def test_invalid_humidity_raises(self):
+        w = WeatherConditions(humidity=1.5, game_time="night")
+        with self.assertRaises(ValueError):
+            w.validate()
+
+    # --- Night is backward-compatible with pre-existing test assertions ---
+
+    def test_night_baseline_hr_mult_same_as_legacy(self):
+        # night should produce identical value as the old code (no game_time param)
+        w_night = WeatherConditions(temp_f=45, game_time="night")
+        expected = 1.0 + (45 - 72) * 0.003 * 1.0
+        self.assertAlmostEqual(w_night.temp_hr_multiplier(), expected)
+
+    def test_night_baseline_k_mult_same_as_legacy(self):
+        w_night = WeatherConditions(temp_f=45, game_time="night")
+        expected = 1.0 - (45 - 72) * 0.001 * 1.0
+        self.assertAlmostEqual(w_night.temp_k_multiplier(), expected)
+
+
+class TestEffectiveWindMult(unittest.TestCase):
+    """Tests for MLBPlayerPropsSimulator._effective_wind_mult."""
+
+    def _make_sim(self, game_time: str, wind_dir: str = "out_to_center",
+                  wind_speed: float = 15.0) -> MLBPlayerPropsSimulator:
+        return MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(game_time=game_time),
+            wind=WindConditions(speed_mph=wind_speed, direction=wind_dir),
+            num_simulations=100,
+        )
+
+    def test_night_effective_wind_equals_raw(self):
+        sim = self._make_sim("night")
+        raw = sim.wind.hr_multiplier()
+        self.assertAlmostEqual(sim._effective_wind_mult(raw), raw)
+
+    def test_dome_effective_wind_is_1(self):
+        sim = self._make_sim("dome")
+        raw = sim.wind.hr_multiplier()  # > 1 (out wind)
+        self.assertNotAlmostEqual(raw, 1.0)  # confirm raw != 1 (wind present)
+        self.assertAlmostEqual(sim._effective_wind_mult(raw), 1.0)
+
+    def test_day_effective_wind_amplifies_out_wind(self):
+        sim_night = self._make_sim("night")
+        sim_day = self._make_sim("day")
+        raw = sim_night.wind.hr_multiplier()
+        eff_night = sim_night._effective_wind_mult(raw)
+        eff_day = sim_day._effective_wind_mult(raw)
+        self.assertGreater(eff_day, eff_night)
+
+    def test_day_effective_wind_amplifies_in_wind(self):
+        # In-blowing wind effect (< 1) should also be amplified in day
+        sim_night = self._make_sim("night", wind_dir="in_from_center")
+        sim_day = self._make_sim("day", wind_dir="in_from_center")
+        raw = sim_night.wind.hr_multiplier()
+        self.assertLess(raw, 1.0)  # confirm in-wind reduces HR
+        eff_night = sim_night._effective_wind_mult(raw)
+        eff_day = sim_day._effective_wind_mult(raw)
+        # Amplified in-wind means even more suppression → eff_day < eff_night
+        self.assertLess(eff_day, eff_night)
+
+    def test_calm_wind_unchanged_by_game_time(self):
+        # calm wind raw = 1.0 → effective always = 1.0 regardless of game_time
+        for gt in ("day", "night", "dome"):
+            sim = self._make_sim(gt, wind_dir="calm", wind_speed=0.0)
+            self.assertAlmostEqual(sim._effective_wind_mult(1.0), 1.0,
+                                   msg=f"Calm wind should give 1.0 for game_time={gt}")
+
+
+class TestGameTimeSimulationImpact(unittest.TestCase):
+    """Integration tests: game_time affects simulated prop outcomes."""
+
+    def _sim_with_time(self, game_time: str) -> MLBPlayerPropsSimulator:
+        """Hot day, wind blowing out — large effect contrast between day and dome."""
+        return MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(temp_f=90, precipitation="heavy",
+                                      humidity=0.80, game_time=game_time),
+            wind=WindConditions(speed_mph=20, direction="out_to_center"),
+            num_simulations=3_000,
+            random_seed=99,
+        )
+
+    def test_day_sim_higher_hr_mean_than_night(self):
+        # Hot day + out-wind amplified → more HR than same conditions at night
+        batter = _hrb_batter()
+        r_night = self._sim_with_time("night").simulate_batter(batter)
+        r_day = self._sim_with_time("day").simulate_batter(batter)
+        hr_night = next(p for p in r_night.props if p.prop_name == "Home Runs").mean
+        hr_day = next(p for p in r_day.props if p.prop_name == "Home Runs").mean
+        self.assertGreater(hr_day, hr_night)
+
+    def test_dome_sim_precipitation_does_not_hurt_hits(self):
+        # Heavy rain in a dome is irrelevant — hits should equal a "none" dome
+        batter = _hrb_batter()
+        sim_rainy = self._sim_with_time("dome")
+        sim_clear = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(temp_f=90, precipitation="none",
+                                      humidity=0.80, game_time="dome"),
+            wind=WindConditions(speed_mph=20, direction="out_to_center"),
+            num_simulations=3_000,
+            random_seed=99,
+        )
+        r_rainy = sim_rainy.simulate_batter(batter)
+        r_clear = sim_clear.simulate_batter(batter)
+        hits_rainy = next(p for p in r_rainy.props if p.prop_name == "Hits").mean
+        hits_clear = next(p for p in r_clear.props if p.prop_name == "Hits").mean
+        # Dome neutralises precipitation, so results should be essentially equal
+        self.assertAlmostEqual(hits_rainy, hits_clear, delta=0.05)
 
 
 if __name__ == "__main__":
