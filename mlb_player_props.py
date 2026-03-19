@@ -1,0 +1,716 @@
+"""
+MLB Player Props Simulator
+==========================
+Simulates individual player prop outcomes for MLB games including:
+  - Pitcher props: Strikeouts, Outs recorded, Runs Allowed
+  - Batter props:  Hits, Doubles, Home Runs, Stolen Bases
+
+Environmental modifiers applied to every simulation:
+  - Weather conditions  (temperature, precipitation)
+  - Wind conditions     (speed, direction relative to field)
+  - Stadium / Park factors (per-venue adjustments for each stat type)
+
+Usage example
+-------------
+    from mlb_player_props import (
+        MLBPlayerPropsSimulator,
+        WeatherConditions,
+        WindConditions,
+        Stadium,
+        PitcherStats,
+        BatterStats,
+    )
+
+    stadium = Stadium.from_name("Wrigley Field")
+    weather = WeatherConditions(temp_f=72, precipitation="none", humidity=0.55)
+    wind    = WindConditions(speed_mph=15, direction="out_to_center")
+
+    sim = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind,
+                                  num_simulations=10_000)
+
+    pitcher = PitcherStats(name="Ace Pitcher", era=3.50, k_per_9=9.5,
+                           innings_per_start=6.0, whip=1.15)
+    batter  = BatterStats(name="Power Hitter", avg=0.285, obp=0.360,
+                          slg=0.510, hr_per_600_pa=32, sb_per_season=18,
+                          doubles_per_600_pa=38, games_played=162)
+
+    pitcher_results = sim.simulate_pitcher(pitcher)
+    batter_results  = sim.simulate_batter(batter)
+
+    sim.print_results(pitcher_results)
+    sim.print_results(batter_results)
+"""
+
+from __future__ import annotations
+
+import math
+import random
+import statistics
+from dataclasses import dataclass, field
+from typing import ClassVar, Dict, List, Optional, Tuple
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+PRECIPITATION_FACTOR: Dict[str, float] = {
+    "none": 1.00,
+    "light": 0.96,
+    "moderate": 0.90,
+    "heavy": 0.82,
+}
+
+# Wind direction effect on offensive output.
+# "out_to_*" = blowing toward the outfield fence (hitter-friendly).
+# "in_from_*" = blowing from outfield toward home plate (pitcher-friendly).
+WIND_DIRECTION_HR_FACTOR: Dict[str, float] = {
+    "out_to_center": 1.15,
+    "out_to_left": 1.10,
+    "out_to_right": 1.10,
+    "in_from_center": 0.87,
+    "in_from_left": 0.90,
+    "in_from_right": 0.90,
+    "cross_left_right": 1.00,
+    "cross_right_left": 1.00,
+    "calm": 1.00,
+}
+
+# Probability that a steal attempt succeeds (league-average baseline).
+STEAL_SUCCESS_RATE: float = 0.79
+
+# Baseline innings per game (9 innings × number of at-bats per inning ≈ 27 outs).
+OUTS_PER_GAME: int = 27
+
+# At-bats per game for a typical lineup slot.
+PA_PER_GAME: float = 4.2
+
+# Simulation tuning constants
+# -----------------------------
+# Innings-per-start variation: centre shift and Gaussian std-dev.
+IP_FLOOR_SHIFT: float = 0.80        # The minimum-side bias so early hooks are modelled.
+IP_VARIANCE: float = 0.15           # Game-to-game noise around the starter's average IP.
+
+# Strikeout Gaussian noise relative to sqrt(expected_k).
+K_VARIANCE_FACTOR: float = 0.6
+
+# Outs-recorded minimum (pitcher must face at least one full inning).
+MIN_OUTS_RECORDED: float = 3.0
+# Outs-recorded Gaussian noise relative to sqrt(expected_outs).
+OUTS_VARIANCE_FACTOR: float = 0.3
+
+# WHIP adjustment: baseline WHIP considered neutral; each unit above/below
+# shifts expected runs by this fraction.
+WHIP_BASELINE: float = 1.20
+WHIP_RUNS_ADJUSTMENT: float = 0.25
+
+# Plate-appearance variation around PA_PER_GAME (centre shift + std-dev).
+PA_FLOOR_SHIFT: float = 0.85
+PA_VARIANCE: float = 0.12
+
+# Approximate ratio of at-bats to plate appearances (league average ~0.88).
+PA_TO_AB_RATIO: float = 0.88
+
+# Stolen-base per-game model noise (centre shift + std-dev fraction).
+SB_FLOOR_SHIFT: float = 0.8
+SB_VARIANCE: float = 0.4            # 40 % relative noise captures day-to-day variability.
+
+# Maximum steal opportunities modelled per game (caps tail of distribution).
+MAX_STEAL_OPPORTUNITIES_PER_GAME: int = 3
+
+
+# ---------------------------------------------------------------------------
+# Data classes
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class WindConditions:
+    """Describes the wind at game time."""
+
+    speed_mph: float = 0.0
+    direction: str = "calm"  # See WIND_DIRECTION_HR_FACTOR keys
+
+    def hr_multiplier(self) -> float:
+        """Return a home-run distance multiplier based on wind speed and direction."""
+        base = WIND_DIRECTION_HR_FACTOR.get(self.direction, 1.00)
+        # Each 5 mph of "out" wind adds ~2 % to HR probability; "in" wind subtracts.
+        magnitude = self.speed_mph / 5.0 * 0.02
+        if base > 1.0:
+            return base + magnitude * (base - 1.0) * 5
+        elif base < 1.0:
+            return base - magnitude * (1.0 - base) * 5
+        return 1.00
+
+    def hit_multiplier(self) -> float:
+        """Blowing-out wind helps elevate fly balls into hits; blowing-in hurts."""
+        base = WIND_DIRECTION_HR_FACTOR.get(self.direction, 1.00)
+        # Smaller effect on overall hits than on HR.
+        return 1.0 + (base - 1.0) * 0.4
+
+
+@dataclass
+class WeatherConditions:
+    """Describes the weather at game time."""
+
+    temp_f: float = 72.0
+    precipitation: str = "none"   # none | light | moderate | heavy
+    humidity: float = 0.50        # 0.0 – 1.0
+
+    def temp_hr_multiplier(self) -> float:
+        """
+        Ball travels farther in warm air (less dense).
+        Baseline is 72 °F; every 10 °F adds/subtracts ~3 %.
+        """
+        return 1.0 + (self.temp_f - 72) * 0.003
+
+    def temp_k_multiplier(self) -> float:
+        """Cold weather → harder grip → slight increase in Ks."""
+        return 1.0 - (self.temp_f - 72) * 0.001
+
+    def precip_factor(self) -> float:
+        return PRECIPITATION_FACTOR.get(self.precipitation, 1.00)
+
+    def humidity_hit_multiplier(self) -> float:
+        """
+        High humidity makes the ball slightly heavier and harder to hit far.
+        Effect is small (~2 % max).
+        """
+        return 1.0 - (self.humidity - 0.50) * 0.04
+
+
+@dataclass
+class Stadium:
+    """
+    Park factors relative to a neutral 1.00 baseline.
+    Values > 1.00 favour hitters / the listed event; < 1.00 favour pitchers.
+    """
+
+    name: str
+    hr_factor: float = 1.00
+    hits_factor: float = 1.00
+    doubles_factor: float = 1.00
+    k_factor: float = 1.00        # strikeouts (pitcher view)
+    runs_factor: float = 1.00
+
+    # ------------------------------------------------------------------
+    # Built-in stadium catalogue
+    # ------------------------------------------------------------------
+    _STADIUMS: ClassVar[Dict[str, Dict]] = {
+        # Name              hr     hits   2B     K      runs
+        "Coors Field":        {"hr_factor": 1.39, "hits_factor": 1.13, "doubles_factor": 1.18, "k_factor": 0.91, "runs_factor": 1.35},
+        "Great American Ball Park": {"hr_factor": 1.25, "hits_factor": 1.05, "doubles_factor": 1.08, "k_factor": 0.97, "runs_factor": 1.18},
+        "Wrigley Field":      {"hr_factor": 1.12, "hits_factor": 1.03, "doubles_factor": 1.05, "k_factor": 0.99, "runs_factor": 1.07},
+        "Fenway Park":        {"hr_factor": 1.04, "hits_factor": 1.08, "doubles_factor": 1.22, "k_factor": 0.98, "runs_factor": 1.05},
+        "Dodger Stadium":     {"hr_factor": 0.95, "hits_factor": 0.97, "doubles_factor": 0.96, "k_factor": 1.02, "runs_factor": 0.94},
+        "Oracle Park":        {"hr_factor": 0.79, "hits_factor": 0.95, "doubles_factor": 1.04, "k_factor": 1.03, "runs_factor": 0.89},
+        "Petco Park":         {"hr_factor": 0.85, "hits_factor": 0.94, "doubles_factor": 0.97, "k_factor": 1.04, "runs_factor": 0.88},
+        "Truist Park":        {"hr_factor": 1.08, "hits_factor": 1.02, "doubles_factor": 1.03, "k_factor": 1.00, "runs_factor": 1.04},
+        "Yankee Stadium":     {"hr_factor": 1.20, "hits_factor": 1.01, "doubles_factor": 0.99, "k_factor": 0.99, "runs_factor": 1.08},
+        "T-Mobile Park":      {"hr_factor": 0.96, "hits_factor": 0.97, "doubles_factor": 1.00, "k_factor": 1.01, "runs_factor": 0.95},
+        "Kauffman Stadium":   {"hr_factor": 0.90, "hits_factor": 1.00, "doubles_factor": 1.02, "k_factor": 1.01, "runs_factor": 0.96},
+        "Busch Stadium":      {"hr_factor": 0.92, "hits_factor": 0.99, "doubles_factor": 1.01, "k_factor": 1.02, "runs_factor": 0.94},
+        "Globe Life Field":   {"hr_factor": 1.02, "hits_factor": 1.01, "doubles_factor": 1.01, "k_factor": 1.00, "runs_factor": 1.01},
+        "Minute Maid Park":   {"hr_factor": 1.05, "hits_factor": 1.01, "doubles_factor": 1.08, "k_factor": 0.99, "runs_factor": 1.03},
+        "Neutral":            {"hr_factor": 1.00, "hits_factor": 1.00, "doubles_factor": 1.00, "k_factor": 1.00, "runs_factor": 1.00},
+    }
+
+    @classmethod
+    def from_name(cls, name: str) -> "Stadium":
+        """Create a Stadium by well-known name.  Falls back to neutral factors."""
+        data = cls._STADIUMS.get(name, cls._STADIUMS["Neutral"])
+        return cls(name=name, **data)
+
+    def __post_init__(self) -> None:
+        self._validate()
+
+    def _validate(self) -> None:
+        for attr in ("hr_factor", "hits_factor", "doubles_factor", "k_factor", "runs_factor"):
+            v = getattr(self, attr)
+            if not (0.5 <= v <= 2.0):
+                raise ValueError(f"Stadium factor '{attr}' = {v} is outside the valid range [0.5, 2.0]")
+
+
+@dataclass
+class PitcherStats:
+    """Season / career statistics for a starting pitcher."""
+
+    name: str
+    era: float                    # Earned Run Average
+    k_per_9: float                # Strikeouts per 9 innings
+    innings_per_start: float      # Average innings pitched per start
+    whip: float                   # Walks + Hits per Inning Pitched
+
+    def validate(self) -> None:
+        if self.era < 0:
+            raise ValueError("ERA cannot be negative")
+        if not (0 < self.k_per_9 <= 20):
+            raise ValueError("K/9 must be between 0 and 20")
+        if not (0 < self.innings_per_start <= 9):
+            raise ValueError("Innings per start must be between 0 and 9")
+        if self.whip < 0:
+            raise ValueError("WHIP cannot be negative")
+
+
+@dataclass
+class BatterStats:
+    """Season / career statistics for a position player."""
+
+    name: str
+    avg: float                    # Batting average
+    obp: float                    # On-base percentage
+    slg: float                    # Slugging percentage
+    hr_per_600_pa: float          # Home runs per 600 plate appearances
+    sb_per_season: float          # Stolen bases per full season
+    doubles_per_600_pa: float     # Doubles per 600 plate appearances
+    games_played: int = 162       # Games played (used to normalise season totals)
+
+    def validate(self) -> None:
+        if not (0 <= self.avg <= 1):
+            raise ValueError("Batting average must be between 0 and 1")
+        if not (0 <= self.obp <= 1):
+            raise ValueError("OBP must be between 0 and 1")
+        if not (0 <= self.slg <= 4):
+            raise ValueError("SLG must be between 0 and 4")
+        if self.hr_per_600_pa < 0:
+            raise ValueError("HR per 600 PA cannot be negative")
+        if self.sb_per_season < 0:
+            raise ValueError("SB per season cannot be negative")
+        if self.doubles_per_600_pa < 0:
+            raise ValueError("Doubles per 600 PA cannot be negative")
+
+
+# ---------------------------------------------------------------------------
+# Simulation result containers
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class PropResult:
+    """Summary statistics for a simulated prop line."""
+
+    player_name: str
+    prop_name: str
+    mean: float
+    median: float
+    std_dev: float
+    percentile_10: float
+    percentile_25: float
+    percentile_75: float
+    percentile_90: float
+    over_probabilities: Dict[float, float] = field(default_factory=dict)
+
+    def __str__(self) -> str:  # pragma: no cover
+        lines = [
+            f"  {self.prop_name}",
+            f"    Mean:    {self.mean:.2f}",
+            f"    Median:  {self.median:.2f}",
+            f"    Std Dev: {self.std_dev:.2f}",
+            f"    P10/P25/P75/P90: {self.percentile_10:.1f} / "
+            f"{self.percentile_25:.1f} / {self.percentile_75:.1f} / {self.percentile_90:.1f}",
+        ]
+        if self.over_probabilities:
+            lines.append("    Over Probabilities:")
+            for line_val, prob in sorted(self.over_probabilities.items()):
+                lines.append(f"      O{line_val:.1f}: {prob*100:.1f}%")
+        return "\n".join(lines)
+
+
+@dataclass
+class PlayerPropsReport:
+    """All prop results for a single player."""
+
+    player_name: str
+    props: List[PropResult] = field(default_factory=list)
+
+    def __str__(self) -> str:  # pragma: no cover
+        lines = [f"\n{'='*50}", f"  {self.player_name}", f"{'='*50}"]
+        lines += [str(p) for p in self.props]
+        return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Core simulator
+# ---------------------------------------------------------------------------
+
+
+class MLBPlayerPropsSimulator:
+    """
+    Monte Carlo simulator for MLB player props.
+
+    Parameters
+    ----------
+    stadium        : Stadium  – venue-specific park factors
+    weather        : WeatherConditions
+    wind           : WindConditions
+    num_simulations: int      – number of Monte Carlo trials (default 10 000)
+    random_seed    : int|None – optional seed for reproducibility
+    """
+
+    def __init__(
+        self,
+        stadium: Stadium,
+        weather: WeatherConditions,
+        wind: WindConditions,
+        num_simulations: int = 10_000,
+        random_seed: Optional[int] = None,
+    ) -> None:
+        self.stadium = stadium
+        self.weather = weather
+        self.wind = wind
+        self.num_simulations = num_simulations
+        if random_seed is not None:
+            random.seed(random_seed)
+
+    # ------------------------------------------------------------------
+    # Composite environmental multipliers
+    # ------------------------------------------------------------------
+
+    def _env_hr_multiplier(self) -> float:
+        return (
+            self.stadium.hr_factor
+            * self.weather.temp_hr_multiplier()
+            * self.weather.precip_factor()
+            * self.weather.humidity_hit_multiplier()
+            * self.wind.hr_multiplier()
+        )
+
+    def _env_hits_multiplier(self) -> float:
+        return (
+            self.stadium.hits_factor
+            * self.weather.precip_factor()
+            * self.weather.humidity_hit_multiplier()
+            * self.wind.hit_multiplier()
+        )
+
+    def _env_doubles_multiplier(self) -> float:
+        return (
+            self.stadium.doubles_factor
+            * self.weather.precip_factor()
+            * self.weather.humidity_hit_multiplier()
+            * self.wind.hit_multiplier()
+        )
+
+    def _env_k_multiplier(self) -> float:
+        return (
+            self.stadium.k_factor
+            * self.weather.temp_k_multiplier()
+            * self.weather.precip_factor()
+        )
+
+    def _env_runs_multiplier(self) -> float:
+        return (
+            self.stadium.runs_factor
+            * self.weather.temp_hr_multiplier()
+            * self.weather.precip_factor()
+        )
+
+    # ------------------------------------------------------------------
+    # Helper: build a result from a list of simulation values
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _summarise(
+        values: List[float],
+        player_name: str,
+        prop_name: str,
+        over_lines: Optional[List[float]] = None,
+    ) -> PropResult:
+        sorted_vals = sorted(values)
+        n = len(sorted_vals)
+        mean = statistics.mean(sorted_vals)
+        median = statistics.median(sorted_vals)
+        std_dev = statistics.stdev(sorted_vals) if n > 1 else 0.0
+        p10 = sorted_vals[int(n * 0.10)]
+        p25 = sorted_vals[int(n * 0.25)]
+        p75 = sorted_vals[int(n * 0.75)]
+        p90 = sorted_vals[min(int(n * 0.90), n - 1)]
+
+        over_probs: Dict[float, float] = {}
+        if over_lines:
+            for line in over_lines:
+                over_probs[line] = sum(1 for v in values if v > line) / n
+
+        return PropResult(
+            player_name=player_name,
+            prop_name=prop_name,
+            mean=mean,
+            median=median,
+            std_dev=std_dev,
+            percentile_10=p10,
+            percentile_25=p25,
+            percentile_75=p75,
+            percentile_90=p90,
+            over_probabilities=over_probs,
+        )
+
+    # ------------------------------------------------------------------
+    # Simulate a single game for a pitcher
+    # ------------------------------------------------------------------
+
+    def _simulate_pitcher_game(
+        self,
+        stats: PitcherStats,
+        k_mult: float,
+        runs_mult: float,
+    ) -> Tuple[float, float, float]:
+        """
+        Returns (strikeouts, outs_recorded, runs_allowed) for one simulated game.
+        Uses a Poisson-like approach via random Gaussian perturbation of expected values.
+        """
+        # --- Expected values from season stats --------------------------
+        expected_ip = stats.innings_per_start * (IP_FLOOR_SHIFT + random.gauss(0, IP_VARIANCE))
+        expected_ip = max(1.0, min(9.0, expected_ip))
+
+        # Strikeouts: K/9 × IP / 9 × environmental multiplier
+        expected_k = stats.k_per_9 * expected_ip / 9.0 * k_mult
+        strikeouts = max(0.0, random.gauss(expected_k, math.sqrt(expected_k) * K_VARIANCE_FACTOR))
+
+        # Outs recorded: innings × 3
+        outs_raw = expected_ip * 3
+        outs_recorded = max(MIN_OUTS_RECORDED, random.gauss(outs_raw, math.sqrt(outs_raw) * OUTS_VARIANCE_FACTOR))
+        outs_recorded = min(outs_recorded, OUTS_PER_GAME)
+
+        # Runs allowed: ERA / 9 × IP × environmental multiplier
+        expected_runs = (stats.era / 9.0) * expected_ip * runs_mult
+        # WHIP adds base-runner pressure
+        whip_adj = 1.0 + (stats.whip - WHIP_BASELINE) * WHIP_RUNS_ADJUSTMENT
+        expected_runs *= max(0.5, whip_adj)
+        runs_allowed = max(0.0, random.gauss(expected_runs, math.sqrt(max(expected_runs, 0.5)) * 0.9))
+
+        return strikeouts, outs_recorded, runs_allowed
+
+    # ------------------------------------------------------------------
+    # Simulate a single game for a batter
+    # ------------------------------------------------------------------
+
+    def _simulate_batter_game(
+        self,
+        stats: BatterStats,
+        hits_mult: float,
+        doubles_mult: float,
+        hr_mult: float,
+    ) -> Tuple[float, float, float, float]:
+        """
+        Returns (hits, doubles, home_runs, stolen_bases) for one simulated game.
+        """
+        pa = PA_PER_GAME * (PA_FLOOR_SHIFT + random.gauss(0, PA_VARIANCE))
+        pa = max(1.0, pa)
+        ab = pa * PA_TO_AB_RATIO
+
+        # --- Hits -------------------------------------------------------
+        expected_hits = ab * stats.avg * hits_mult
+        hits = max(0.0, random.gauss(expected_hits, math.sqrt(max(expected_hits, 0.3)) * 0.75))
+
+        # --- Doubles ----------------------------------------------------
+        # Doubles per PA (scaled from season rate per 600 PA)
+        doubles_rate_per_pa = (stats.doubles_per_600_pa / 600.0) * doubles_mult
+        expected_doubles = pa * doubles_rate_per_pa
+        doubles = max(0.0, random.gauss(expected_doubles, math.sqrt(max(expected_doubles, 0.1)) * 0.8))
+        doubles = min(doubles, hits)  # can't have more doubles than hits
+
+        # --- Home Runs --------------------------------------------------
+        hr_rate_per_pa = (stats.hr_per_600_pa / 600.0) * hr_mult
+        expected_hr = pa * hr_rate_per_pa
+        home_runs = max(0.0, random.gauss(expected_hr, math.sqrt(max(expected_hr, 0.05)) * 0.8))
+        home_runs = min(home_runs, hits)  # HRs are a subset of hits
+
+        # --- Stolen Bases -----------------------------------------------
+        # Pro-rate the player's season stolen bases to a per-game rate, then
+        # model each game as a simple Bernoulli / Poisson draw.
+        expected_sb_per_game = stats.sb_per_season / max(stats.games_played, 1)
+        # Add game-to-game variance (SB_VARIANCE relative noise)
+        lambda_sb = max(0.0, expected_sb_per_game * (SB_FLOOR_SHIFT + random.gauss(0, SB_VARIANCE)))
+        # Simulate up to MAX_STEAL_OPPORTUNITIES_PER_GAME steal opportunities
+        stolen_bases = 0.0
+        for _ in range(MAX_STEAL_OPPORTUNITIES_PER_GAME):
+            if random.random() < lambda_sb and random.random() < STEAL_SUCCESS_RATE:
+                stolen_bases += 1.0
+
+        return hits, doubles, home_runs, stolen_bases
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def simulate_pitcher(
+        self,
+        stats: PitcherStats,
+        k_lines: Optional[List[float]] = None,
+        outs_lines: Optional[List[float]] = None,
+        runs_lines: Optional[List[float]] = None,
+    ) -> PlayerPropsReport:
+        """
+        Run Monte Carlo simulations for a starting pitcher.
+
+        Parameters
+        ----------
+        stats      : PitcherStats
+        k_lines    : list of strikeout over/under lines to evaluate
+        outs_lines : list of outs-recorded lines to evaluate
+        runs_lines : list of runs-allowed lines to evaluate
+        """
+        stats.validate()
+        k_mult = self._env_k_multiplier()
+        runs_mult = self._env_runs_multiplier()
+
+        k_results: List[float] = []
+        outs_results: List[float] = []
+        runs_results: List[float] = []
+
+        for _ in range(self.num_simulations):
+            k, outs, runs = self._simulate_pitcher_game(stats, k_mult, runs_mult)
+            k_results.append(k)
+            outs_results.append(outs)
+            runs_results.append(runs)
+
+        report = PlayerPropsReport(player_name=stats.name)
+        report.props.append(
+            self._summarise(k_results, stats.name, "Strikeouts", k_lines or [3.5, 4.5, 5.5, 6.5, 7.5])
+        )
+        report.props.append(
+            self._summarise(outs_results, stats.name, "Outs Recorded", outs_lines or [14.5, 16.5, 18.5])
+        )
+        report.props.append(
+            self._summarise(runs_results, stats.name, "Runs Allowed", runs_lines or [1.5, 2.5, 3.5, 4.5])
+        )
+        return report
+
+    def simulate_batter(
+        self,
+        stats: BatterStats,
+        hits_lines: Optional[List[float]] = None,
+        doubles_lines: Optional[List[float]] = None,
+        hr_lines: Optional[List[float]] = None,
+        sb_lines: Optional[List[float]] = None,
+    ) -> PlayerPropsReport:
+        """
+        Run Monte Carlo simulations for a position player (batter).
+
+        Parameters
+        ----------
+        stats        : BatterStats
+        hits_lines   : list of hit over/under lines to evaluate
+        doubles_lines: list of double over/under lines to evaluate
+        hr_lines     : list of home-run over/under lines to evaluate
+        sb_lines     : list of stolen-base over/under lines to evaluate
+        """
+        stats.validate()
+        hits_mult = self._env_hits_multiplier()
+        doubles_mult = self._env_doubles_multiplier()
+        hr_mult = self._env_hr_multiplier()
+
+        hits_results: List[float] = []
+        doubles_results: List[float] = []
+        hr_results: List[float] = []
+        sb_results: List[float] = []
+
+        for _ in range(self.num_simulations):
+            h, d, hr, sb = self._simulate_batter_game(stats, hits_mult, doubles_mult, hr_mult)
+            hits_results.append(h)
+            doubles_results.append(d)
+            hr_results.append(hr)
+            sb_results.append(sb)
+
+        report = PlayerPropsReport(player_name=stats.name)
+        report.props.append(
+            self._summarise(hits_results, stats.name, "Hits", hits_lines or [0.5, 1.5, 2.5])
+        )
+        report.props.append(
+            self._summarise(doubles_results, stats.name, "Doubles", doubles_lines or [0.5, 1.5])
+        )
+        report.props.append(
+            self._summarise(hr_results, stats.name, "Home Runs", hr_lines or [0.5, 1.5])
+        )
+        report.props.append(
+            self._summarise(sb_results, stats.name, "Stolen Bases", sb_lines or [0.5, 1.5])
+        )
+        return report
+
+    def print_results(self, report: PlayerPropsReport) -> None:  # pragma: no cover
+        """Pretty-print a PlayerPropsReport to stdout."""
+        print(report)
+
+    def simulate_matchup(
+        self,
+        pitcher: PitcherStats,
+        batters: List[BatterStats],
+    ) -> Dict[str, PlayerPropsReport]:
+        """
+        Convenience method: simulate an entire pitcher vs lineup matchup.
+
+        Returns a dict keyed by player name.
+        """
+        results: Dict[str, PlayerPropsReport] = {}
+        results[pitcher.name] = self.simulate_pitcher(pitcher)
+        for batter in batters:
+            results[batter.name] = self.simulate_batter(batter)
+        return results
+
+
+# ---------------------------------------------------------------------------
+# CLI entry-point (demo)
+# ---------------------------------------------------------------------------
+
+
+def _demo() -> None:  # pragma: no cover
+    """Quick demonstration of the simulator."""
+    print("MLB Player Props Simulator — Demo")
+    print("=" * 50)
+
+    # Venue
+    stadium = Stadium.from_name("Wrigley Field")
+    print(f"Venue   : {stadium.name}")
+    print(f"  HR factor   : {stadium.hr_factor}")
+    print(f"  Hits factor : {stadium.hits_factor}")
+    print(f"  Doubles fac : {stadium.doubles_factor}")
+    print(f"  K factor    : {stadium.k_factor}")
+    print(f"  Runs factor : {stadium.runs_factor}")
+
+    # Weather
+    weather = WeatherConditions(temp_f=68, precipitation="light", humidity=0.65)
+    print(f"\nWeather : {weather.temp_f}°F, precip={weather.precipitation}, humidity={weather.humidity}")
+
+    # Wind
+    wind = WindConditions(speed_mph=12, direction="out_to_center")
+    print(f"Wind    : {wind.speed_mph} mph {wind.direction}")
+    print(f"  HR multiplier  : {wind.hr_multiplier():.3f}")
+    print(f"  Hit multiplier : {wind.hit_multiplier():.3f}")
+
+    # Simulator (small run for demo speed)
+    sim = MLBPlayerPropsSimulator(
+        stadium=stadium,
+        weather=weather,
+        wind=wind,
+        num_simulations=5_000,
+        random_seed=42,
+    )
+
+    # Pitcher
+    pitcher = PitcherStats(
+        name="Demo Ace",
+        era=3.20,
+        k_per_9=10.5,
+        innings_per_start=6.0,
+        whip=1.08,
+    )
+    pitcher_report = sim.simulate_pitcher(pitcher)
+    sim.print_results(pitcher_report)
+
+    # Batter
+    batter = BatterStats(
+        name="Demo Slugger",
+        avg=0.290,
+        obp=0.370,
+        slg=0.530,
+        hr_per_600_pa=35,
+        sb_per_season=20,
+        doubles_per_600_pa=40,
+        games_played=162,
+    )
+    batter_report = sim.simulate_batter(batter)
+    sim.print_results(batter_report)
+
+
+if __name__ == "__main__":
+    _demo()
