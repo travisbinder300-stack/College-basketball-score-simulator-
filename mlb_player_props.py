@@ -10,6 +10,11 @@ Environmental modifiers applied to every simulation:
   - Wind conditions     (speed, direction relative to field)
   - Stadium / Park factors (per-venue adjustments for each stat type)
 
+Player-attribute modifiers:
+  - Pitcher arm strength (0–100 scale) – affects K rate, runs allowed, and
+    innings pitched depth.
+  - Batter power rating  (0–100 scale) – affects HR rate and doubles rate.
+
 Usage example
 -------------
     from mlb_player_props import (
@@ -29,10 +34,11 @@ Usage example
                                   num_simulations=10_000)
 
     pitcher = PitcherStats(name="Ace Pitcher", era=3.50, k_per_9=9.5,
-                           innings_per_start=6.0, whip=1.15)
+                           innings_per_start=6.0, whip=1.15, arm_strength=75)
     batter  = BatterStats(name="Power Hitter", avg=0.285, obp=0.360,
                           slg=0.510, hr_per_600_pa=32, sb_per_season=18,
-                          doubles_per_600_pa=38, games_played=162)
+                          doubles_per_600_pa=38, games_played=162,
+                          power_rating=80)
 
     pitcher_results = sim.simulate_pitcher(pitcher)
     batter_results  = sim.simulate_batter(batter)
@@ -143,6 +149,32 @@ WIND_K_OTHER_RATE: float = 0.001  # +0.1 % per mph for other directions
 # represents the runs-adjustment increment per 5-mph of wind speed per unit of
 # directional deviation.
 WIND_RUNS_SPEED_FACTOR: float = 0.015
+
+# ---------------------------------------------------------------------------
+# Pitcher arm-strength tuning constants
+# ---------------------------------------------------------------------------
+# Arm strength is expressed on a 0–100 scale where 50 is league-average.
+# The three rates below define how far each output shifts per point of
+# arm-strength deviation from the baseline.
+
+ARM_STRENGTH_BASELINE: float = 50.0  # neutral midpoint (league average)
+# Each point above the baseline adds this fraction to expected K rate.
+ARM_K_RATE: float = 0.006            # ±0.6 % per point  (10-pt swing ≈ ±6 %)
+# Each point above the baseline *reduces* expected runs allowed by this fraction.
+ARM_RUNS_RATE: float = 0.004         # ±0.4 % per point  (10-pt swing ≈ ±4 %)
+# Each point above the baseline extends expected innings pitched by this fraction.
+ARM_IP_RATE: float = 0.003           # ±0.3 % per point  (10-pt swing ≈ ±3 %)
+
+# ---------------------------------------------------------------------------
+# Batter power-rating tuning constants
+# ---------------------------------------------------------------------------
+# Power rating is expressed on a 0–100 scale where 50 is league-average.
+
+POWER_BASELINE: float = 50.0         # neutral midpoint (league average)
+# Each point above the baseline adds this fraction to expected HR rate.
+POWER_HR_RATE: float = 0.010         # ±1.0 % per point  (10-pt swing ≈ ±10 %)
+# Each point above the baseline adds this fraction to expected doubles rate.
+POWER_DOUBLES_RATE: float = 0.005    # ±0.5 % per point  (10-pt swing ≈ ±5 %)
 
 
 # ---------------------------------------------------------------------------
@@ -325,6 +357,38 @@ class PitcherStats:
     k_per_9: float                # Strikeouts per 9 innings
     innings_per_start: float      # Average innings pitched per start
     whip: float                   # Walks + Hits per Inning Pitched
+    arm_strength: float = 50.0    # 0–100 scale; 50 = league-average arm
+
+    # ------------------------------------------------------------------
+    # Arm-strength multipliers
+    # ------------------------------------------------------------------
+
+    def arm_k_multiplier(self) -> float:
+        """
+        Stronger arm → better velocity and pitch movement → more strikeouts.
+
+        Returns a multiplier > 1.0 for above-average arm strength and
+        < 1.0 for below-average.
+        """
+        return 1.0 + (self.arm_strength - ARM_STRENGTH_BASELINE) * ARM_K_RATE
+
+    def arm_runs_multiplier(self) -> float:
+        """
+        Stronger arm → harder for batters to square up → fewer runs allowed.
+
+        Returns a multiplier < 1.0 for above-average arm strength (runs go
+        down) and > 1.0 for below-average (runs go up).
+        """
+        return 1.0 - (self.arm_strength - ARM_STRENGTH_BASELINE) * ARM_RUNS_RATE
+
+    def arm_ip_multiplier(self) -> float:
+        """
+        Stronger arm → maintains velocity deeper into the game → longer outings.
+
+        Returns a multiplier > 1.0 for above-average arm strength and
+        < 1.0 for below-average.
+        """
+        return 1.0 + (self.arm_strength - ARM_STRENGTH_BASELINE) * ARM_IP_RATE
 
     def validate(self) -> None:
         if self.era < 0:
@@ -335,6 +399,8 @@ class PitcherStats:
             raise ValueError("Innings per start must be between 0 and 9")
         if self.whip < 0:
             raise ValueError("WHIP cannot be negative")
+        if not (0 <= self.arm_strength <= 100):
+            raise ValueError("arm_strength must be between 0 and 100")
 
 
 @dataclass
@@ -349,6 +415,29 @@ class BatterStats:
     sb_per_season: float          # Stolen bases per full season
     doubles_per_600_pa: float     # Doubles per 600 plate appearances
     games_played: int = 162       # Games played (used to normalise season totals)
+    power_rating: float = 50.0    # 0–100 scale; 50 = league-average raw power
+
+    # ------------------------------------------------------------------
+    # Power-rating multipliers
+    # ------------------------------------------------------------------
+
+    def power_hr_multiplier(self) -> float:
+        """
+        Higher raw power → harder contact → elevated HR rate.
+
+        Returns a multiplier > 1.0 for above-average power and
+        < 1.0 for below-average.
+        """
+        return 1.0 + (self.power_rating - POWER_BASELINE) * POWER_HR_RATE
+
+    def power_doubles_multiplier(self) -> float:
+        """
+        Higher raw power → more balls driven into the gaps → more doubles.
+
+        Returns a multiplier > 1.0 for above-average power and
+        < 1.0 for below-average.
+        """
+        return 1.0 + (self.power_rating - POWER_BASELINE) * POWER_DOUBLES_RATE
 
     def validate(self) -> None:
         if not (0 <= self.avg <= 1):
@@ -363,6 +452,8 @@ class BatterStats:
             raise ValueError("SB per season cannot be negative")
         if self.doubles_per_600_pa < 0:
             raise ValueError("Doubles per 600 PA cannot be negative")
+        if not (0 <= self.power_rating <= 100):
+            raise ValueError("power_rating must be between 0 and 100")
 
 
 # ---------------------------------------------------------------------------
@@ -647,10 +738,12 @@ class MLBPlayerPropsSimulator:
         runs_lines : list of runs-allowed lines to evaluate
         """
         stats.validate()
-        k_mult = self._env_k_multiplier()
-        runs_mult = self._env_runs_multiplier()
-        # Pre-compute stamina once — temperature is fixed for the whole run.
-        stamina_mult = self.weather.temp_pitcher_stamina_multiplier()
+        k_mult = self._env_k_multiplier() * stats.arm_k_multiplier()
+        runs_mult = self._env_runs_multiplier() * stats.arm_runs_multiplier()
+        # Pre-compute stamina once — temperature and arm strength are fixed for
+        # the whole run.  Arm strength extends/shortens outings independently of
+        # the weather-based stamina penalty so they multiply together.
+        stamina_mult = self.weather.temp_pitcher_stamina_multiplier() * stats.arm_ip_multiplier()
 
         k_results: List[float] = []
         outs_results: List[float] = []
@@ -695,8 +788,8 @@ class MLBPlayerPropsSimulator:
         """
         stats.validate()
         hits_mult = self._env_hits_multiplier()
-        doubles_mult = self._env_doubles_multiplier()
-        hr_mult = self._env_hr_multiplier()
+        doubles_mult = self._env_doubles_multiplier() * stats.power_doubles_multiplier()
+        hr_mult = self._env_hr_multiplier() * stats.power_hr_multiplier()
 
         hits_results: List[float] = []
         doubles_results: List[float] = []
@@ -790,28 +883,37 @@ def _demo() -> None:  # pragma: no cover
         random_seed=42,
     )
 
-    # Pitcher
+    # Pitcher — elite arm (arm_strength=80)
     pitcher = PitcherStats(
         name="Demo Ace",
         era=3.20,
         k_per_9=10.5,
         innings_per_start=6.0,
         whip=1.08,
+        arm_strength=80,
     )
+    print(f"\nPitcher : {pitcher.name}  (arm_strength={pitcher.arm_strength})")
+    print(f"  Arm K multiplier   : {pitcher.arm_k_multiplier():.3f}  (strikeout rate)")
+    print(f"  Arm runs multiplier: {pitcher.arm_runs_multiplier():.3f}  (runs allowed)")
+    print(f"  Arm IP multiplier  : {pitcher.arm_ip_multiplier():.3f}  (innings pitched)")
     pitcher_report = sim.simulate_pitcher(pitcher)
     sim.print_results(pitcher_report)
 
-    # Batter
+    # Batter — pure power hitter (power_rating=85)
     batter = BatterStats(
         name="Demo Slugger",
-        avg=0.290,
-        obp=0.370,
-        slg=0.530,
-        hr_per_600_pa=35,
-        sb_per_season=20,
-        doubles_per_600_pa=40,
+        avg=0.255,
+        obp=0.340,
+        slg=0.560,
+        hr_per_600_pa=40,
+        sb_per_season=5,
+        doubles_per_600_pa=30,
         games_played=162,
+        power_rating=85,
     )
+    print(f"\nBatter  : {batter.name}  (power_rating={batter.power_rating})")
+    print(f"  Power HR multiplier     : {batter.power_hr_multiplier():.3f}  (home run rate)")
+    print(f"  Power doubles multiplier: {batter.power_doubles_multiplier():.3f}  (doubles rate)")
     batter_report = sim.simulate_batter(batter)
     sim.print_results(batter_report)
 

@@ -301,6 +301,22 @@ class TestPitcherStatsValidation(unittest.TestCase):
         with self.assertRaises(ValueError):
             p.validate()
 
+    def test_arm_strength_above_100_raises(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0,
+                         whip=1.20, arm_strength=101)
+        with self.assertRaises(ValueError):
+            p.validate()
+
+    def test_arm_strength_below_0_raises(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0,
+                         whip=1.20, arm_strength=-1)
+        with self.assertRaises(ValueError):
+            p.validate()
+
+    def test_arm_strength_defaults_to_50(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0, whip=1.20)
+        self.assertEqual(p.arm_strength, 50.0)
+
 
 class TestBatterStatsValidation(unittest.TestCase):
 
@@ -337,6 +353,137 @@ class TestBatterStatsValidation(unittest.TestCase):
                         hr_per_600_pa=20, sb_per_season=-1, doubles_per_600_pa=30)
         with self.assertRaises(ValueError):
             b.validate()
+
+    def test_power_rating_above_100_raises(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        power_rating=101)
+        with self.assertRaises(ValueError):
+            b.validate()
+
+    def test_power_rating_below_0_raises(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        power_rating=-1)
+        with self.assertRaises(ValueError):
+            b.validate()
+
+    def test_power_rating_defaults_to_50(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30)
+        self.assertEqual(b.power_rating, 50.0)
+
+
+# ---------------------------------------------------------------------------
+# Pitcher arm-strength multiplier tests
+# ---------------------------------------------------------------------------
+
+
+class TestPitcherArmStrength(unittest.TestCase):
+    """Unit tests for the PitcherStats arm-strength multiplier methods."""
+
+    def _pitcher(self, arm: float) -> PitcherStats:
+        return PitcherStats(name="P", era=4.0, k_per_9=8.5,
+                            innings_per_start=5.5, whip=1.25, arm_strength=arm)
+
+    # --- arm_k_multiplier ---
+
+    def test_average_arm_k_multiplier_is_1(self):
+        self.assertAlmostEqual(self._pitcher(50).arm_k_multiplier(), 1.0)
+
+    def test_elite_arm_raises_k_multiplier(self):
+        self.assertGreater(self._pitcher(80).arm_k_multiplier(), 1.0)
+
+    def test_weak_arm_lowers_k_multiplier(self):
+        self.assertLess(self._pitcher(20).arm_k_multiplier(), 1.0)
+
+    def test_k_multiplier_scales_with_arm_strength(self):
+        self.assertGreater(
+            self._pitcher(80).arm_k_multiplier(),
+            self._pitcher(60).arm_k_multiplier(),
+        )
+
+    # --- arm_runs_multiplier ---
+
+    def test_average_arm_runs_multiplier_is_1(self):
+        self.assertAlmostEqual(self._pitcher(50).arm_runs_multiplier(), 1.0)
+
+    def test_elite_arm_lowers_runs_multiplier(self):
+        # Stronger arm → harder to hit → fewer runs (multiplier < 1)
+        self.assertLess(self._pitcher(80).arm_runs_multiplier(), 1.0)
+
+    def test_weak_arm_raises_runs_multiplier(self):
+        self.assertGreater(self._pitcher(20).arm_runs_multiplier(), 1.0)
+
+    def test_runs_multiplier_inverse_of_k_multiplier_direction(self):
+        # Elite arm → more Ks AND fewer runs
+        elite = self._pitcher(80)
+        self.assertGreater(elite.arm_k_multiplier(), 1.0)
+        self.assertLess(elite.arm_runs_multiplier(), 1.0)
+
+    # --- arm_ip_multiplier ---
+
+    def test_average_arm_ip_multiplier_is_1(self):
+        self.assertAlmostEqual(self._pitcher(50).arm_ip_multiplier(), 1.0)
+
+    def test_elite_arm_raises_ip_multiplier(self):
+        self.assertGreater(self._pitcher(80).arm_ip_multiplier(), 1.0)
+
+    def test_weak_arm_lowers_ip_multiplier(self):
+        self.assertLess(self._pitcher(20).arm_ip_multiplier(), 1.0)
+
+    def test_ip_multiplier_scales_with_arm_strength(self):
+        self.assertGreater(
+            self._pitcher(90).arm_ip_multiplier(),
+            self._pitcher(60).arm_ip_multiplier(),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Batter power-rating multiplier tests
+# ---------------------------------------------------------------------------
+
+
+class TestBatterPower(unittest.TestCase):
+    """Unit tests for the BatterStats power-rating multiplier methods."""
+
+    def _batter(self, power: float) -> BatterStats:
+        return BatterStats(name="B", avg=0.270, obp=0.340, slg=0.460,
+                           hr_per_600_pa=25, sb_per_season=15,
+                           doubles_per_600_pa=35, power_rating=power)
+
+    # --- power_hr_multiplier ---
+
+    def test_average_power_hr_multiplier_is_1(self):
+        self.assertAlmostEqual(self._batter(50).power_hr_multiplier(), 1.0)
+
+    def test_high_power_raises_hr_multiplier(self):
+        self.assertGreater(self._batter(85).power_hr_multiplier(), 1.0)
+
+    def test_low_power_lowers_hr_multiplier(self):
+        self.assertLess(self._batter(15).power_hr_multiplier(), 1.0)
+
+    def test_hr_multiplier_scales_with_power(self):
+        self.assertGreater(
+            self._batter(90).power_hr_multiplier(),
+            self._batter(70).power_hr_multiplier(),
+        )
+
+    # --- power_doubles_multiplier ---
+
+    def test_average_power_doubles_multiplier_is_1(self):
+        self.assertAlmostEqual(self._batter(50).power_doubles_multiplier(), 1.0)
+
+    def test_high_power_raises_doubles_multiplier(self):
+        self.assertGreater(self._batter(80).power_doubles_multiplier(), 1.0)
+
+    def test_low_power_lowers_doubles_multiplier(self):
+        self.assertLess(self._batter(20).power_doubles_multiplier(), 1.0)
+
+    def test_doubles_multiplier_smaller_effect_than_hr_multiplier(self):
+        # Power has a larger proportional effect on HRs than doubles
+        b = self._batter(80)
+        self.assertGreater(b.power_hr_multiplier(), b.power_doubles_multiplier())
 
 
 # ---------------------------------------------------------------------------
@@ -649,6 +796,85 @@ class TestEnvironmentalEffects(unittest.TestCase):
         runs_out = next(p for p in sim_out.simulate_pitcher(pitcher).props if p.prop_name == "Runs Allowed").mean
         runs_calm = next(p for p in sim_calm.simulate_pitcher(pitcher).props if p.prop_name == "Runs Allowed").mean
         self.assertGreater(runs_out, runs_calm)
+
+    # --- New: pitcher arm strength end-to-end ---
+
+    def _run_pitcher_prop_arm(self, arm_strength: float, prop: str, n: int = 3_000) -> float:
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=n,
+            random_seed=42,
+        )
+        pitcher = PitcherStats(name="P", era=4.0, k_per_9=8.5,
+                               innings_per_start=5.5, whip=1.25,
+                               arm_strength=arm_strength)
+        report = sim.simulate_pitcher(pitcher)
+        return next(p for p in report.props if p.prop_name == prop).mean
+
+    def test_strong_arm_increases_strikeouts(self):
+        k_strong = self._run_pitcher_prop_arm(80, "Strikeouts")
+        k_average = self._run_pitcher_prop_arm(50, "Strikeouts")
+        self.assertGreater(k_strong, k_average)
+
+    def test_weak_arm_decreases_strikeouts(self):
+        k_weak = self._run_pitcher_prop_arm(20, "Strikeouts")
+        k_average = self._run_pitcher_prop_arm(50, "Strikeouts")
+        self.assertLess(k_weak, k_average)
+
+    def test_strong_arm_reduces_runs_allowed(self):
+        runs_strong = self._run_pitcher_prop_arm(80, "Runs Allowed")
+        runs_average = self._run_pitcher_prop_arm(50, "Runs Allowed")
+        self.assertLess(runs_strong, runs_average)
+
+    def test_strong_arm_extends_outing(self):
+        outs_strong = self._run_pitcher_prop_arm(80, "Outs Recorded")
+        outs_average = self._run_pitcher_prop_arm(50, "Outs Recorded")
+        self.assertGreater(outs_strong, outs_average)
+
+    def test_weak_arm_shortens_outing(self):
+        outs_weak = self._run_pitcher_prop_arm(20, "Outs Recorded")
+        outs_average = self._run_pitcher_prop_arm(50, "Outs Recorded")
+        self.assertLess(outs_weak, outs_average)
+
+    # --- New: batter power rating end-to-end ---
+
+    def _run_batter_prop_power(self, power_rating: float, prop: str, n: int = 3_000) -> float:
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=n,
+            random_seed=42,
+        )
+        batter = BatterStats(name="B", avg=0.270, obp=0.340, slg=0.460,
+                             hr_per_600_pa=25, sb_per_season=15,
+                             doubles_per_600_pa=35, power_rating=power_rating)
+        report = sim.simulate_batter(batter)
+        return next(p for p in report.props if p.prop_name == prop).mean
+
+    def test_high_power_increases_hr(self):
+        hr_high = self._run_batter_prop_power(85, "Home Runs")
+        hr_avg = self._run_batter_prop_power(50, "Home Runs")
+        self.assertGreater(hr_high, hr_avg)
+
+    def test_low_power_decreases_hr(self):
+        hr_low = self._run_batter_prop_power(15, "Home Runs")
+        hr_avg = self._run_batter_prop_power(50, "Home Runs")
+        self.assertLess(hr_low, hr_avg)
+
+    def test_high_power_increases_doubles(self):
+        d_high = self._run_batter_prop_power(85, "Doubles")
+        d_avg = self._run_batter_prop_power(50, "Doubles")
+        self.assertGreater(d_high, d_avg)
+
+    def test_power_does_not_affect_hits(self):
+        # Power rating should not directly change batting average / hit count.
+        hits_high = self._run_batter_prop_power(85, "Hits")
+        hits_low = self._run_batter_prop_power(15, "Hits")
+        # Allow a 10% relative tolerance since both share the same seed.
+        self.assertAlmostEqual(hits_high, hits_low, delta=hits_high * 0.10)
 
 
 # ---------------------------------------------------------------------------
