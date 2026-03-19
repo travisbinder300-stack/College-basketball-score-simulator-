@@ -2,8 +2,8 @@
 MLB Player Props Simulator
 ==========================
 Simulates individual player prop outcomes for MLB games including:
-  - Pitcher props: Strikeouts, Outs recorded, Runs Allowed
-  - Batter props:  Hits, Doubles, Home Runs, Stolen Bases
+  - Pitcher props: Strikeouts, Outs recorded, Runs Allowed, Pitch Count
+  - Batter props:  Hits, Doubles, Home Runs, Stolen Bases, Plate Appearances
 
 Environmental modifiers applied to every simulation:
   - Weather conditions  (temperature, precipitation)
@@ -13,7 +13,11 @@ Environmental modifiers applied to every simulation:
 Player-attribute modifiers:
   - Pitcher arm strength (0–100 scale) – affects K rate, runs allowed, and
     innings pitched depth.
+  - Pitcher pitches per plate appearance (`pitches_per_pa`) – how efficient/
+    dominant the pitcher is per batter faced; higher = deeper counts.
   - Batter power rating  (0–100 scale) – affects HR rate and doubles rate.
+  - Batter pitches per plate appearance (`pitches_per_pa`) – how deep the
+    batter works counts; higher = more pitches seen per trip to the plate.
 
 Platoon / handedness splits:
   - Pitcher throwing hand (`throws`: "R" or "L").
@@ -39,15 +43,15 @@ Usage example
     sim = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind,
                                   num_simulations=10_000)
 
-    # Left-handed pitcher with elite arm
+    # Left-handed pitcher — works deep counts (pitches_per_pa=4.1)
     pitcher = PitcherStats(name="Ace Pitcher", era=3.50, k_per_9=9.5,
                            innings_per_start=6.0, whip=1.15,
-                           arm_strength=75, throws="L")
-    # Right-handed power hitter — has platoon advantage vs LHP
+                           arm_strength=75, throws="L", pitches_per_pa=4.1)
+    # Right-handed power hitter — patient at the plate (pitches_per_pa=4.2)
     batter  = BatterStats(name="Power Hitter", avg=0.285, obp=0.360,
                           slg=0.510, hr_per_600_pa=32, sb_per_season=18,
                           doubles_per_600_pa=38, games_played=162,
-                          power_rating=80, bats="R")
+                          power_rating=80, bats="R", pitches_per_pa=4.2)
 
     pitcher_results = sim.simulate_pitcher(pitcher, opponent_bats="R")
     batter_results  = sim.simulate_batter(batter, opponent_throws="L")
@@ -118,6 +122,33 @@ OUTS_VARIANCE_FACTOR: float = 0.3
 # shifts expected runs by this fraction.
 WHIP_BASELINE: float = 1.20
 WHIP_RUNS_ADJUSTMENT: float = 0.25
+
+# ---------------------------------------------------------------------------
+# Pitch-count model constants
+# ---------------------------------------------------------------------------
+# League-average pitches thrown per plate appearance faced by the pitcher.
+# Source: ~3.8 P/PA is the modern MLB average.
+PITCHER_PITCHES_PER_PA_DEFAULT: float = 3.8
+
+# Minimum and maximum reasonable P/PA values for validation.
+PITCHER_PITCHES_PER_PA_MIN: float = 3.0
+PITCHER_PITCHES_PER_PA_MAX: float = 5.5
+
+# Game-to-game Gaussian noise on total pitch count (relative std-dev fraction).
+PITCH_COUNT_VARIANCE: float = 0.08   # 8 % relative noise ≈ ±8 pitches on a 100-pitch game
+
+# ---------------------------------------------------------------------------
+# Batter pitches-per-PA model constants
+# ---------------------------------------------------------------------------
+# League-average pitches seen per plate appearance by the batter.
+BATTER_PITCHES_PER_PA_DEFAULT: float = 3.8
+
+# Minimum and maximum for validation.
+BATTER_PITCHES_PER_PA_MIN: float = 2.5
+BATTER_PITCHES_PER_PA_MAX: float = 5.5
+
+# Game-to-game noise on batter pitches seen (relative std-dev fraction).
+BATTER_PITCHES_VARIANCE: float = 0.10  # 10 % relative noise per game
 
 # Plate-appearance variation around PA_PER_GAME (centre shift + std-dev).
 PA_FLOOR_SHIFT: float = 0.85
@@ -428,6 +459,10 @@ class PitcherStats:
     whip: float                   # Walks + Hits per Inning Pitched
     arm_strength: float = 50.0    # 0–100 scale; 50 = league-average arm
     throws: str = "R"             # Throwing hand: "R" (right) or "L" (left)
+    pitches_per_pa: float = PITCHER_PITCHES_PER_PA_DEFAULT
+    # Average pitches thrown per batter faced.  League average ~3.8; higher
+    # values indicate a pitcher who works deeper counts (more walks/strikeouts),
+    # lower values indicate a quick-count, contact-allowing pitcher.
 
     # ------------------------------------------------------------------
     # Arm-strength multipliers
@@ -473,6 +508,11 @@ class PitcherStats:
             raise ValueError("arm_strength must be between 0 and 100")
         if self.throws not in ("R", "L"):
             raise ValueError("throws must be 'R' (right) or 'L' (left)")
+        if not (PITCHER_PITCHES_PER_PA_MIN <= self.pitches_per_pa <= PITCHER_PITCHES_PER_PA_MAX):
+            raise ValueError(
+                f"pitches_per_pa must be between {PITCHER_PITCHES_PER_PA_MIN} "
+                f"and {PITCHER_PITCHES_PER_PA_MAX}"
+            )
 
 
 @dataclass
@@ -489,6 +529,9 @@ class BatterStats:
     games_played: int = 162       # Games played (used to normalise season totals)
     power_rating: float = 50.0    # 0–100 scale; 50 = league-average raw power
     bats: str = "R"               # Batting hand: "R" (right), "L" (left), "S" (switch)
+    pitches_per_pa: float = BATTER_PITCHES_PER_PA_DEFAULT
+    # Average pitches seen per plate appearance.  League average ~3.8; patient
+    # hitters with high OBP often see 4.0+; aggressive free-swingers ~3.3.
 
     # ------------------------------------------------------------------
     # Power-rating multipliers
@@ -529,6 +572,11 @@ class BatterStats:
             raise ValueError("power_rating must be between 0 and 100")
         if self.bats not in ("R", "L", "S"):
             raise ValueError("bats must be 'R' (right), 'L' (left), or 'S' (switch)")
+        if not (BATTER_PITCHES_PER_PA_MIN <= self.pitches_per_pa <= BATTER_PITCHES_PER_PA_MAX):
+            raise ValueError(
+                f"pitches_per_pa must be between {BATTER_PITCHES_PER_PA_MIN} "
+                f"and {BATTER_PITCHES_PER_PA_MAX}"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -709,10 +757,11 @@ class MLBPlayerPropsSimulator:
         k_mult: float,
         runs_mult: float,
         stamina_mult: float,
-    ) -> Tuple[float, float, float]:
+    ) -> Tuple[float, float, float, float]:
         """
-        Returns (strikeouts, outs_recorded, runs_allowed) for one simulated game.
-        Uses a Poisson-like approach via random Gaussian perturbation of expected values.
+        Returns (strikeouts, outs_recorded, runs_allowed, pitch_count) for one
+        simulated game.  Uses a Poisson-like approach via random Gaussian
+        perturbation of expected values.
         """
         # --- Expected values from season stats --------------------------
         # stamina_mult is pre-computed once per simulation run (see simulate_pitcher)
@@ -740,7 +789,17 @@ class MLBPlayerPropsSimulator:
         expected_runs *= max(0.5, whip_adj)
         runs_allowed = max(0.0, random.gauss(expected_runs, math.sqrt(max(expected_runs, 0.5)) * 0.9))
 
-        return strikeouts, outs_recorded, runs_allowed
+        # --- Pitch count ------------------------------------------------
+        # Batters faced ≈ outs_recorded + base-runners (WHIP × IP).
+        # Each batter faced adds `pitches_per_pa` pitches on average.
+        batters_faced = outs_recorded + stats.whip * expected_ip
+        expected_pitches = batters_faced * stats.pitches_per_pa
+        pitch_count = max(0.0, random.gauss(
+            expected_pitches,
+            expected_pitches * PITCH_COUNT_VARIANCE,
+        ))
+
+        return strikeouts, outs_recorded, runs_allowed, pitch_count
 
     # ------------------------------------------------------------------
     # Simulate a single game for a batter
@@ -752,9 +811,10 @@ class MLBPlayerPropsSimulator:
         hits_mult: float,
         doubles_mult: float,
         hr_mult: float,
-    ) -> Tuple[float, float, float, float]:
+    ) -> Tuple[float, float, float, float, float]:
         """
-        Returns (hits, doubles, home_runs, stolen_bases) for one simulated game.
+        Returns (hits, doubles, home_runs, stolen_bases, plate_appearances) for
+        one simulated game.
         """
         pa = PA_PER_GAME * (PA_FLOOR_SHIFT + random.gauss(0, PA_VARIANCE))
         pa = max(1.0, pa)
@@ -789,7 +849,15 @@ class MLBPlayerPropsSimulator:
             if random.random() < lambda_sb and random.random() < STEAL_SUCCESS_RATE:
                 stolen_bases += 1.0
 
-        return hits, doubles, home_runs, stolen_bases
+        # --- Plate Appearances ------------------------------------------
+        # pa is already simulated above; apply batter-specific pitches_per_pa
+        # noise to capture days where he sees many or few pitches.
+        plate_appearances = max(
+            1.0,
+            random.gauss(pa, pa * BATTER_PITCHES_VARIANCE * 0.5),
+        )
+
+        return hits, doubles, home_runs, stolen_bases, plate_appearances
 
     # ------------------------------------------------------------------
     # Public API
@@ -801,6 +869,7 @@ class MLBPlayerPropsSimulator:
         k_lines: Optional[List[float]] = None,
         outs_lines: Optional[List[float]] = None,
         runs_lines: Optional[List[float]] = None,
+        pitch_count_lines: Optional[List[float]] = None,
         opponent_bats: Optional[str] = None,
     ) -> PlayerPropsReport:
         """
@@ -808,13 +877,15 @@ class MLBPlayerPropsSimulator:
 
         Parameters
         ----------
-        stats         : PitcherStats
-        k_lines       : list of strikeout over/under lines to evaluate
-        outs_lines    : list of outs-recorded lines to evaluate
-        runs_lines    : list of runs-allowed lines to evaluate
-        opponent_bats : batting hand of the opposing lineup ("R", "L", or "S").
-                        When provided the platoon split adjusts K rate and runs
-                        allowed.  None means no platoon adjustment is applied.
+        stats             : PitcherStats
+        k_lines           : list of strikeout over/under lines to evaluate
+        outs_lines        : list of outs-recorded lines to evaluate
+        runs_lines        : list of runs-allowed lines to evaluate
+        pitch_count_lines : list of total pitch-count over/under lines.
+                            Defaults to [74.5, 84.5, 94.5, 104.5].
+        opponent_bats     : batting hand of the opposing lineup ("R", "L", or "S").
+                            When provided the platoon split adjusts K rate and runs
+                            allowed.  None means no platoon adjustment is applied.
         """
         stats.validate()
         # Compute platoon multipliers once if opponent handedness is known.
@@ -836,12 +907,14 @@ class MLBPlayerPropsSimulator:
         k_results: List[float] = []
         outs_results: List[float] = []
         runs_results: List[float] = []
+        pitch_count_results: List[float] = []
 
         for _ in range(self.num_simulations):
-            k, outs, runs = self._simulate_pitcher_game(stats, k_mult, runs_mult, stamina_mult)
+            k, outs, runs, pitches = self._simulate_pitcher_game(stats, k_mult, runs_mult, stamina_mult)
             k_results.append(k)
             outs_results.append(outs)
             runs_results.append(runs)
+            pitch_count_results.append(pitches)
 
         report = PlayerPropsReport(player_name=stats.name)
         report.props.append(
@@ -853,6 +926,14 @@ class MLBPlayerPropsSimulator:
         report.props.append(
             self._summarise(runs_results, stats.name, "Runs Allowed", runs_lines or [1.5, 2.5, 3.5, 4.5])
         )
+        report.props.append(
+            self._summarise(
+                pitch_count_results,
+                stats.name,
+                "Pitch Count",
+                pitch_count_lines or [74.5, 84.5, 94.5, 104.5],
+            )
+        )
         return report
 
     def simulate_batter(
@@ -862,6 +943,7 @@ class MLBPlayerPropsSimulator:
         doubles_lines: Optional[List[float]] = None,
         hr_lines: Optional[List[float]] = None,
         sb_lines: Optional[List[float]] = None,
+        pa_lines: Optional[List[float]] = None,
         opponent_throws: Optional[str] = None,
     ) -> PlayerPropsReport:
         """
@@ -874,6 +956,8 @@ class MLBPlayerPropsSimulator:
         doubles_lines   : list of double over/under lines to evaluate
         hr_lines        : list of home-run over/under lines to evaluate
         sb_lines        : list of stolen-base over/under lines to evaluate
+        pa_lines        : list of plate-appearance over/under lines.
+                          Defaults to [2.5, 3.5, 4.5, 5.5].
         opponent_throws : throwing hand of the opposing pitcher ("R" or "L").
                           When provided the platoon split adjusts hits, HR, and
                           doubles rates.  None means no platoon adjustment.
@@ -898,13 +982,15 @@ class MLBPlayerPropsSimulator:
         doubles_results: List[float] = []
         hr_results: List[float] = []
         sb_results: List[float] = []
+        pa_results: List[float] = []
 
         for _ in range(self.num_simulations):
-            h, d, hr, sb = self._simulate_batter_game(stats, hits_mult, doubles_mult, hr_mult)
+            h, d, hr, sb, pa = self._simulate_batter_game(stats, hits_mult, doubles_mult, hr_mult)
             hits_results.append(h)
             doubles_results.append(d)
             hr_results.append(hr)
             sb_results.append(sb)
+            pa_results.append(pa)
 
         report = PlayerPropsReport(player_name=stats.name)
         report.props.append(
@@ -918,6 +1004,14 @@ class MLBPlayerPropsSimulator:
         )
         report.props.append(
             self._summarise(sb_results, stats.name, "Stolen Bases", sb_lines or [0.5, 1.5])
+        )
+        report.props.append(
+            self._summarise(
+                pa_results,
+                stats.name,
+                "Plate Appearances",
+                pa_lines or [2.5, 3.5, 4.5, 5.5],
+            )
         )
         return report
 
@@ -993,7 +1087,7 @@ def _demo() -> None:  # pragma: no cover
         random_seed=42,
     )
 
-    # Pitcher — left-handed ace (arm_strength=80, throws="L")
+    # Pitcher — left-handed ace (arm_strength=80, throws="L", works deep counts)
     pitcher = PitcherStats(
         name="Demo Ace",
         era=3.20,
@@ -1002,8 +1096,10 @@ def _demo() -> None:  # pragma: no cover
         whip=1.08,
         arm_strength=80,
         throws="L",
+        pitches_per_pa=4.1,    # works deep counts
     )
-    print(f"\nPitcher : {pitcher.name}  (arm_strength={pitcher.arm_strength}, throws={pitcher.throws})")
+    print(f"\nPitcher : {pitcher.name}  (arm_strength={pitcher.arm_strength}, "
+          f"throws={pitcher.throws}, pitches_per_pa={pitcher.pitches_per_pa})")
     print(f"  Arm K multiplier   : {pitcher.arm_k_multiplier():.3f}  (strikeout rate)")
     print(f"  Arm runs multiplier: {pitcher.arm_runs_multiplier():.3f}  (runs allowed)")
     print(f"  Arm IP multiplier  : {pitcher.arm_ip_multiplier():.3f}  (innings pitched)")
@@ -1017,7 +1113,7 @@ def _demo() -> None:  # pragma: no cover
     pitcher_report = sim.simulate_pitcher(pitcher, opponent_bats="R")
     sim.print_results(pitcher_report)
 
-    # Batter — right-handed power hitter (power_rating=85, bats="R")
+    # Batter — right-handed power hitter (power_rating=85, bats="R", patient hitter)
     # facing the left-handed pitcher → batter has platoon advantage
     batter = BatterStats(
         name="Demo Slugger",
@@ -1030,8 +1126,10 @@ def _demo() -> None:  # pragma: no cover
         games_played=162,
         power_rating=85,
         bats="R",
+        pitches_per_pa=4.2,    # patient hitter, works long counts
     )
-    print(f"\nBatter  : {batter.name}  (power_rating={batter.power_rating}, bats={batter.bats})")
+    print(f"\nBatter  : {batter.name}  (power_rating={batter.power_rating}, "
+          f"bats={batter.bats}, pitches_per_pa={batter.pitches_per_pa})")
     print(f"  Power HR multiplier     : {batter.power_hr_multiplier():.3f}  (home run rate)")
     print(f"  Power doubles multiplier: {batter.power_doubles_multiplier():.3f}  (doubles rate)")
 

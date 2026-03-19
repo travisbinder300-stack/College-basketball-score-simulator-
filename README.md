@@ -8,10 +8,10 @@ environmental adjustments to every projection.
 
 ### Props Supported
 
-| Category  | Props                                             |
-|-----------|---------------------------------------------------|
-| Pitcher   | Strikeouts, Outs Recorded, Runs Allowed           |
-| Batter    | Hits, Doubles, Home Runs, Stolen Bases            |
+| Category  | Props                                                         |
+|-----------|---------------------------------------------------------------|
+| Pitcher   | Strikeouts, Outs Recorded, Runs Allowed, Pitch Count          |
+| Batter    | Hits, Doubles, Home Runs, Stolen Bases, Plate Appearances     |
 
 ### Environmental Factors
 
@@ -24,7 +24,33 @@ environmental adjustments to every projection.
 | **Wind speed**      | Amplifies the direction effect proportionally                 |
 | **Stadium / Park**  | Per-venue HR, hits, doubles, K, and runs factors              |
 
-### Built-in Stadiums
+### Player Attributes
+
+| Attribute                        | Applies to | Effect                                                  |
+|----------------------------------|------------|---------------------------------------------------------|
+| `arm_strength` (0–100)           | Pitcher    | Higher → more Ks, fewer runs, deeper outings            |
+| `throws` ("R" / "L")             | Pitcher    | Used for platoon split adjustments                      |
+| `pitches_per_pa` (default 3.8)   | Pitcher    | Average pitches thrown per batter; drives Pitch Count   |
+| `power_rating` (0–100)           | Batter     | Higher → more HRs and doubles                          |
+| `bats` ("R" / "L" / "S")        | Batter     | Used for platoon split adjustments                      |
+| `pitches_per_pa` (default 3.8)   | Batter     | Average pitches seen per PA; influences Plate Appearances |
+
+### Platoon / Handedness Splits
+
+Opposite-hand matchups (e.g. RHB vs LHP) give the batter a ~4–8 % hit boost and
+~7–10 % HR boost.  Same-hand matchups give the pitcher a ~5–6 % K-rate advantage.
+Switch hitters (`bats="S"`) are always neutral.
+
+```python
+# Apply splits automatically via simulate_matchup
+results = sim.simulate_matchup(pitcher, [batter1, batter2])
+
+# Or explicitly per call
+sim.simulate_batter(batter, opponent_throws="L")   # RHB vs LHP → batter boost
+sim.simulate_pitcher(pitcher, opponent_bats="R")   # LHP vs RHB → fewer Ks
+```
+
+
 
 Coors Field, Great American Ball Park, Wrigley Field, Fenway Park, Dodger Stadium,
 Oracle Park, Petco Park, Truist Park, Yankee Stadium, T-Mobile Park, Kauffman

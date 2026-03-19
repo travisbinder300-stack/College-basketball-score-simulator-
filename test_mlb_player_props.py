@@ -333,6 +333,27 @@ class TestPitcherStatsValidation(unittest.TestCase):
                          whip=1.20, throws="L")
         p.validate()  # Should not raise
 
+    def test_pitches_per_pa_defaults_to_3_8(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0, whip=1.20)
+        self.assertAlmostEqual(p.pitches_per_pa, 3.8)
+
+    def test_pitches_per_pa_too_low_raises(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0, whip=1.20,
+                         pitches_per_pa=2.9)
+        with self.assertRaises(ValueError):
+            p.validate()
+
+    def test_pitches_per_pa_too_high_raises(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0, whip=1.20,
+                         pitches_per_pa=5.6)
+        with self.assertRaises(ValueError):
+            p.validate()
+
+    def test_pitches_per_pa_valid_value_passes(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0, whip=1.20,
+                         pitches_per_pa=4.1)
+        p.validate()  # Should not raise
+
 
 class TestBatterStatsValidation(unittest.TestCase):
 
@@ -411,6 +432,31 @@ class TestBatterStatsValidation(unittest.TestCase):
         b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
                         hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
                         bats="S")
+        b.validate()  # Should not raise
+
+    def test_batter_pitches_per_pa_defaults_to_3_8(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30)
+        self.assertAlmostEqual(b.pitches_per_pa, 3.8)
+
+    def test_batter_pitches_per_pa_too_low_raises(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        pitches_per_pa=2.4)
+        with self.assertRaises(ValueError):
+            b.validate()
+
+    def test_batter_pitches_per_pa_too_high_raises(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        pitches_per_pa=5.6)
+        with self.assertRaises(ValueError):
+            b.validate()
+
+    def test_batter_pitches_per_pa_valid_value_passes(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        pitches_per_pa=4.2)
         b.validate()  # Should not raise
 
 
@@ -541,21 +587,23 @@ class TestSimulatorOutputStructure(unittest.TestCase):
     def test_pitcher_report_has_three_props(self):
         report = self.sim.simulate_pitcher(self.pitcher)
         self.assertIsInstance(report, PlayerPropsReport)
-        self.assertEqual(len(report.props), 3)
+        self.assertEqual(len(report.props), 4)
         prop_names = {p.prop_name for p in report.props}
         self.assertIn("Strikeouts", prop_names)
         self.assertIn("Outs Recorded", prop_names)
         self.assertIn("Runs Allowed", prop_names)
+        self.assertIn("Pitch Count", prop_names)
 
     def test_batter_report_has_four_props(self):
         report = self.sim.simulate_batter(self.batter)
         self.assertIsInstance(report, PlayerPropsReport)
-        self.assertEqual(len(report.props), 4)
+        self.assertEqual(len(report.props), 5)
         prop_names = {p.prop_name for p in report.props}
         self.assertIn("Hits", prop_names)
         self.assertIn("Doubles", prop_names)
         self.assertIn("Home Runs", prop_names)
         self.assertIn("Stolen Bases", prop_names)
+        self.assertIn("Plate Appearances", prop_names)
 
     def test_pitcher_report_player_name(self):
         report = self.sim.simulate_pitcher(self.pitcher)
@@ -723,8 +771,8 @@ class TestEnvironmentalEffects(unittest.TestCase):
         cold_weather = WeatherConditions(temp_f=55)
         warm_weather = WeatherConditions(temp_f=88)
 
-        sim_cold = MLBPlayerPropsSimulator(neutral_stadium, cold_weather, calm, 2_000, 42)
-        sim_warm = MLBPlayerPropsSimulator(neutral_stadium, warm_weather, calm, 2_000, 42)
+        sim_cold = MLBPlayerPropsSimulator(neutral_stadium, cold_weather, calm, 5_000, 42)
+        sim_warm = MLBPlayerPropsSimulator(neutral_stadium, warm_weather, calm, 5_000, 42)
 
         pitcher = _default_pitcher()
         k_cold = next(p for p in sim_cold.simulate_pitcher(pitcher).props if p.prop_name == "Strikeouts").mean
@@ -915,6 +963,201 @@ class TestEnvironmentalEffects(unittest.TestCase):
         hits_low = self._run_batter_prop_power(15, "Hits")
         # Allow a 10% relative tolerance since both share the same seed.
         self.assertAlmostEqual(hits_high, hits_low, delta=hits_high * 0.10)
+
+
+# ---------------------------------------------------------------------------
+# Pitch Count prop tests
+# ---------------------------------------------------------------------------
+
+
+class TestPitchCountProp(unittest.TestCase):
+    """End-to-end tests for the new Pitch Count prop on PitcherStats."""
+
+    def _default_sim(self, n: int = 3_000, seed: int = 0) -> "MLBPlayerPropsSimulator":
+        return MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=n,
+            random_seed=seed,
+        )
+
+    def _pitcher(self, pitches_per_pa: float = 3.8, ip: float = 5.5) -> PitcherStats:
+        return PitcherStats(
+            name="P",
+            era=4.0,
+            k_per_9=8.5,
+            innings_per_start=ip,
+            whip=1.25,
+            pitches_per_pa=pitches_per_pa,
+        )
+
+    def _pitch_count_mean(self, pitcher: PitcherStats, n: int = 3_000, seed: int = 0) -> float:
+        sim = self._default_sim(n, seed)
+        report = sim.simulate_pitcher(pitcher)
+        return next(p for p in report.props if p.prop_name == "Pitch Count").mean
+
+    # --- Pitch Count prop is included in the report ---
+
+    def test_pitch_count_prop_present(self):
+        sim = self._default_sim()
+        report = sim.simulate_pitcher(self._pitcher())
+        prop_names = {p.prop_name for p in report.props}
+        self.assertIn("Pitch Count", prop_names)
+
+    # --- Pitch Count values are positive and in a realistic range ---
+
+    def test_pitch_count_mean_positive(self):
+        mean = self._pitch_count_mean(self._pitcher())
+        self.assertGreater(mean, 0.0)
+
+    def test_pitch_count_mean_reasonable_range(self):
+        # A starting pitcher typically throws 70–120 pitches; mean should be in that range.
+        mean = self._pitch_count_mean(self._pitcher(), n=5_000)
+        self.assertGreater(mean, 50.0)
+        self.assertLess(mean, 140.0)
+
+    # --- Higher pitches_per_pa → higher total pitch count ---
+
+    def test_higher_pitches_per_pa_raises_pitch_count(self):
+        mean_high = self._pitch_count_mean(self._pitcher(pitches_per_pa=4.5), seed=1)
+        mean_low = self._pitch_count_mean(self._pitcher(pitches_per_pa=3.2), seed=1)
+        self.assertGreater(mean_high, mean_low)
+
+    # --- More innings pitched → higher total pitch count ---
+
+    def test_longer_outing_raises_pitch_count(self):
+        mean_long = self._pitch_count_mean(self._pitcher(ip=7.0), seed=2)
+        mean_short = self._pitch_count_mean(self._pitcher(ip=4.0), seed=2)
+        self.assertGreater(mean_long, mean_short)
+
+    # --- Custom pitch_count_lines are respected ---
+
+    def test_custom_pitch_count_lines_appear_in_report(self):
+        sim = self._default_sim()
+        report = sim.simulate_pitcher(self._pitcher(), pitch_count_lines=[79.5, 89.5])
+        pc_prop = next(p for p in report.props if p.prop_name == "Pitch Count")
+        self.assertIn(79.5, pc_prop.over_probabilities)
+        self.assertIn(89.5, pc_prop.over_probabilities)
+
+    # --- Over probabilities are in [0, 1] ---
+
+    def test_pitch_count_over_probabilities_valid(self):
+        sim = self._default_sim()
+        report = sim.simulate_pitcher(self._pitcher())
+        pc_prop = next(p for p in report.props if p.prop_name == "Pitch Count")
+        for line, prob in pc_prop.over_probabilities.items():
+            self.assertGreaterEqual(prob, 0.0)
+            self.assertLessEqual(prob, 1.0)
+
+    # --- Percentile ordering ---
+
+    def test_pitch_count_percentile_ordering(self):
+        sim = self._default_sim()
+        report = sim.simulate_pitcher(self._pitcher())
+        pc = next(p for p in report.props if p.prop_name == "Pitch Count")
+        self.assertLessEqual(pc.percentile_10, pc.percentile_25)
+        self.assertLessEqual(pc.percentile_25, pc.percentile_75)
+        self.assertLessEqual(pc.percentile_75, pc.percentile_90)
+
+
+# ---------------------------------------------------------------------------
+# Plate Appearances prop tests
+# ---------------------------------------------------------------------------
+
+
+class TestPlateAppearancesProp(unittest.TestCase):
+    """End-to-end tests for the new Plate Appearances prop on BatterStats."""
+
+    def _default_sim(self, n: int = 3_000, seed: int = 0) -> "MLBPlayerPropsSimulator":
+        return MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=n,
+            random_seed=seed,
+        )
+
+    def _batter(self, pitches_per_pa: float = 3.8) -> BatterStats:
+        return BatterStats(
+            name="B",
+            avg=0.270,
+            obp=0.340,
+            slg=0.460,
+            hr_per_600_pa=25,
+            sb_per_season=15,
+            doubles_per_600_pa=35,
+            pitches_per_pa=pitches_per_pa,
+        )
+
+    def _pa_mean(self, batter: BatterStats, n: int = 3_000, seed: int = 0) -> float:
+        sim = self._default_sim(n, seed)
+        report = sim.simulate_batter(batter)
+        return next(p for p in report.props if p.prop_name == "Plate Appearances").mean
+
+    # --- Plate Appearances prop is included in the report ---
+
+    def test_plate_appearances_prop_present(self):
+        sim = self._default_sim()
+        report = sim.simulate_batter(self._batter())
+        prop_names = {p.prop_name for p in report.props}
+        self.assertIn("Plate Appearances", prop_names)
+
+    # --- PA values are positive and in a realistic per-game range ---
+
+    def test_plate_appearances_mean_positive(self):
+        mean = self._pa_mean(self._batter())
+        self.assertGreater(mean, 0.0)
+
+    def test_plate_appearances_mean_reasonable_range(self):
+        # A starting position player typically gets 3–6 PA per game.
+        mean = self._pa_mean(self._batter(), n=5_000)
+        self.assertGreater(mean, 2.0)
+        self.assertLess(mean, 7.0)
+
+    # --- Custom pa_lines are respected ---
+
+    def test_custom_pa_lines_appear_in_report(self):
+        sim = self._default_sim()
+        report = sim.simulate_batter(self._batter(), pa_lines=[2.5, 4.5])
+        pa_prop = next(p for p in report.props if p.prop_name == "Plate Appearances")
+        self.assertIn(2.5, pa_prop.over_probabilities)
+        self.assertIn(4.5, pa_prop.over_probabilities)
+
+    # --- Over probabilities are in [0, 1] ---
+
+    def test_plate_appearances_over_probabilities_valid(self):
+        sim = self._default_sim()
+        report = sim.simulate_batter(self._batter())
+        pa_prop = next(p for p in report.props if p.prop_name == "Plate Appearances")
+        for line, prob in pa_prop.over_probabilities.items():
+            self.assertGreaterEqual(prob, 0.0)
+            self.assertLessEqual(prob, 1.0)
+
+    # --- Percentile ordering ---
+
+    def test_plate_appearances_percentile_ordering(self):
+        sim = self._default_sim()
+        report = sim.simulate_batter(self._batter())
+        pa = next(p for p in report.props if p.prop_name == "Plate Appearances")
+        self.assertLessEqual(pa.percentile_10, pa.percentile_25)
+        self.assertLessEqual(pa.percentile_25, pa.percentile_75)
+        self.assertLessEqual(pa.percentile_75, pa.percentile_90)
+
+    # --- PA mean is consistent across calls with same seed ---
+
+    def test_plate_appearances_reproducible(self):
+        mean1 = self._pa_mean(self._batter(), n=2_000, seed=99)
+        mean2 = self._pa_mean(self._batter(), n=2_000, seed=99)
+        self.assertAlmostEqual(mean1, mean2)
+
+    # --- PA is always at least 1 ---
+
+    def test_plate_appearances_always_at_least_1(self):
+        sim = self._default_sim(n=1_000, seed=7)
+        report = sim.simulate_batter(self._batter())
+        pa_prop = next(p for p in report.props if p.prop_name == "Plate Appearances")
+        self.assertGreaterEqual(pa_prop.percentile_10, 1.0)
 
 
 # ---------------------------------------------------------------------------
