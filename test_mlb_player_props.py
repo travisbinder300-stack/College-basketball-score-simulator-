@@ -601,13 +601,14 @@ class TestSimulatorOutputStructure(unittest.TestCase):
     def test_batter_report_has_four_props(self):
         report = self.sim.simulate_batter(self.batter)
         self.assertIsInstance(report, PlayerPropsReport)
-        self.assertEqual(len(report.props), 5)
+        self.assertEqual(len(report.props), 6)
         prop_names = {p.prop_name for p in report.props}
         self.assertIn("Hits", prop_names)
         self.assertIn("Doubles", prop_names)
         self.assertIn("Home Runs", prop_names)
         self.assertIn("Stolen Bases", prop_names)
         self.assertIn("Plate Appearances", prop_names)
+        self.assertIn("H+R+RBI", prop_names)
 
     def test_pitcher_report_player_name(self):
         report = self.sim.simulate_pitcher(self.pitcher)
@@ -1754,6 +1755,140 @@ class TestHomeAwaySimulation(unittest.TestCase):
         """simulate_matchup without pitcher_is_home should still work."""
         results = self.sim.simulate_matchup(_default_pitcher(), [_default_batter()])
         self.assertIn(_default_pitcher().name, results)
+
+
+# ---------------------------------------------------------------------------
+# HRB (H+R+RBI) prop tests
+# ---------------------------------------------------------------------------
+
+
+def _hrb_batter() -> BatterStats:
+    """A batter with realistic RBI and runs figures for HRB testing."""
+    return BatterStats(
+        name="HRB Batter",
+        avg=0.280,
+        obp=0.360,
+        slg=0.490,
+        hr_per_600_pa=28,
+        sb_per_season=10,
+        doubles_per_600_pa=38,
+        games_played=162,
+        rbi_per_season=90,
+        runs_per_season=80,
+    )
+
+
+class TestBatterStatsHRBFields(unittest.TestCase):
+    """Tests for the new rbi_per_season and runs_per_season BatterStats fields."""
+
+    def test_defaults_are_zero(self):
+        b = _default_batter()
+        self.assertEqual(b.rbi_per_season, 0.0)
+        self.assertEqual(b.runs_per_season, 0.0)
+
+    def test_explicit_values_stored(self):
+        b = _hrb_batter()
+        self.assertEqual(b.rbi_per_season, 90)
+        self.assertEqual(b.runs_per_season, 80)
+
+    def test_negative_rbi_raises(self):
+        b = _hrb_batter()
+        b.rbi_per_season = -1
+        with self.assertRaises(ValueError):
+            b.validate()
+
+    def test_negative_runs_raises(self):
+        b = _hrb_batter()
+        b.runs_per_season = -5
+        with self.assertRaises(ValueError):
+            b.validate()
+
+    def test_zero_rbi_and_runs_valid(self):
+        b = _default_batter()
+        b.validate()  # should not raise
+
+    def test_large_rbi_valid(self):
+        b = _hrb_batter()
+        b.rbi_per_season = 162
+        b.validate()  # should not raise
+
+
+class TestHRBProp(unittest.TestCase):
+    """Integration tests for the H+R+RBI prop in simulate_batter."""
+
+    def setUp(self):
+        self.sim = _default_sim(num_simulations=3_000, seed=42)
+
+    def _hrb_mean(self, batter: BatterStats) -> float:
+        report = self.sim.simulate_batter(batter)
+        return next(p for p in report.props if p.prop_name == "H+R+RBI").mean
+
+    def test_hrb_prop_present_in_report(self):
+        report = self.sim.simulate_batter(_hrb_batter())
+        prop_names = {p.prop_name for p in report.props}
+        self.assertIn("H+R+RBI", prop_names)
+
+    def test_hrb_mean_positive(self):
+        mean = self._hrb_mean(_hrb_batter())
+        self.assertGreater(mean, 0.0)
+
+    def test_hrb_mean_at_least_hits_mean(self):
+        # H+R+RBI >= H always (R and RBI are non-negative)
+        report = self.sim.simulate_batter(_hrb_batter())
+        hits_mean = next(p for p in report.props if p.prop_name == "Hits").mean
+        hrb_mean = next(p for p in report.props if p.prop_name == "H+R+RBI").mean
+        self.assertGreaterEqual(hrb_mean, hits_mean)
+
+    def test_hrb_higher_with_more_rbi_and_runs(self):
+        low = _default_batter()   # rbi=0, runs=0  → HRB ≈ hits only
+        high = _hrb_batter()      # rbi=90, runs=80  → HRB > hits
+        self.assertGreater(self._hrb_mean(high), self._hrb_mean(low))
+
+    def test_hrb_default_over_lines(self):
+        report = self.sim.simulate_batter(_hrb_batter())
+        hrb = next(p for p in report.props if p.prop_name == "H+R+RBI")
+        # Default lines are [0.5, 1.5, 2.5, 3.5, 4.5]
+        self.assertEqual(sorted(hrb.over_probabilities.keys()), [0.5, 1.5, 2.5, 3.5, 4.5])
+
+    def test_hrb_custom_over_lines(self):
+        report = self.sim.simulate_batter(_hrb_batter(), hrb_lines=[1.5, 2.5])
+        hrb = next(p for p in report.props if p.prop_name == "H+R+RBI")
+        self.assertEqual(sorted(hrb.over_probabilities.keys()), [1.5, 2.5])
+
+    def test_hrb_over_0_5_probability_high(self):
+        # With hits ~1 + nonzero runs/rbi, prob(HRB > 0.5) should be > 70 %
+        report = self.sim.simulate_batter(_hrb_batter())
+        hrb = next(p for p in report.props if p.prop_name == "H+R+RBI")
+        self.assertGreater(hrb.over_probabilities[0.5], 0.70)
+
+    def test_hrb_zero_rbi_and_runs_equals_hits_approx(self):
+        # When rbi_per_season=0 and runs_per_season=0, HRB ≈ Hits
+        report = self.sim.simulate_batter(_default_batter())
+        hits_mean = next(p for p in report.props if p.prop_name == "Hits").mean
+        hrb_mean = next(p for p in report.props if p.prop_name == "H+R+RBI").mean
+        self.assertAlmostEqual(hrb_mean, hits_mean, delta=0.01)
+
+    def test_hrb_std_dev_positive(self):
+        report = self.sim.simulate_batter(_hrb_batter())
+        hrb = next(p for p in report.props if p.prop_name == "H+R+RBI")
+        self.assertGreater(hrb.std_dev, 0.0)
+
+    def test_hrb_percentiles_ordered(self):
+        report = self.sim.simulate_batter(_hrb_batter())
+        hrb = next(p for p in report.props if p.prop_name == "H+R+RBI")
+        self.assertLessEqual(hrb.percentile_10, hrb.percentile_25)
+        self.assertLessEqual(hrb.percentile_25, hrb.percentile_75)
+        self.assertLessEqual(hrb.percentile_75, hrb.percentile_90)
+
+    def test_hrb_home_higher_than_away(self):
+        # Home boosts hits (and proxied runs/rbi via hr_mult/hits_mult)
+        sim_h = _default_sim(num_simulations=3_000, seed=5)
+        sim_a = _default_sim(num_simulations=3_000, seed=5)
+        r_home = sim_h.simulate_batter(_hrb_batter(), is_home=True)
+        r_away = sim_a.simulate_batter(_hrb_batter(), is_home=False)
+        hrb_home = next(p for p in r_home.props if p.prop_name == "H+R+RBI").mean
+        hrb_away = next(p for p in r_away.props if p.prop_name == "H+R+RBI").mean
+        self.assertGreater(hrb_home, hrb_away)
 
 
 if __name__ == "__main__":

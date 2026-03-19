@@ -3,7 +3,8 @@ MLB Player Props Simulator
 ==========================
 Simulates individual player prop outcomes for MLB games including:
   - Pitcher props: Strikeouts, Outs recorded, Runs Allowed, Pitch Count
-  - Batter props:  Hits, Doubles, Home Runs, Stolen Bases, Plate Appearances
+  - Batter props:  Hits, Doubles, Home Runs, Stolen Bases, Plate Appearances,
+                   H+R+RBI (Hits + Runs Scored + RBI)
 
 Environmental modifiers applied to every simulation:
   - Weather conditions  (temperature, precipitation)
@@ -170,6 +171,19 @@ SB_VARIANCE: float = 0.4            # 40 % relative noise captures day-to-day va
 
 # Maximum steal opportunities modelled per game (caps tail of distribution).
 MAX_STEAL_OPPORTUNITIES_PER_GAME: int = 3
+
+# ---------------------------------------------------------------------------
+# Runs scored and RBI per-game model constants
+# ---------------------------------------------------------------------------
+# Runs scored per game: modelled from the player's season runs-per-game rate
+# with a floor shift and Gaussian noise.
+# ~35 % of on-base events turn into runs (dependent on lineup context).
+RUNS_FLOOR_SHIFT: float = 0.80   # slight lower-side bias (bad nights, quick innings)
+RUNS_VARIANCE: float = 0.35      # 35 % relative noise per game
+
+# RBI per game: similar model; power drives RBI so the HR multiplier is used.
+RBI_FLOOR_SHIFT: float = 0.80
+RBI_VARIANCE: float = 0.35       # 35 % relative noise per game
 
 # Temperature effects on batter contact rate.
 # Baseline is 72 °F; each degree below baseline reduces contact slightly (slower
@@ -623,6 +637,8 @@ class BatterStats:
     pitches_per_pa: float = BATTER_PITCHES_PER_PA_DEFAULT
     # Average pitches seen per plate appearance.  League average ~3.8; patient
     # hitters with high OBP often see 4.0+; aggressive free-swingers ~3.3.
+    rbi_per_season: float = 0.0   # Runs batted in per full season
+    runs_per_season: float = 0.0  # Runs scored per full season
 
     # ------------------------------------------------------------------
     # Power-rating multipliers
@@ -668,6 +684,10 @@ class BatterStats:
                 f"pitches_per_pa must be between {BATTER_PITCHES_PER_PA_MIN} "
                 f"and {BATTER_PITCHES_PER_PA_MAX}"
             )
+        if self.rbi_per_season < 0:
+            raise ValueError("rbi_per_season cannot be negative")
+        if self.runs_per_season < 0:
+            raise ValueError("runs_per_season cannot be negative")
 
 
 # ---------------------------------------------------------------------------
@@ -902,10 +922,10 @@ class MLBPlayerPropsSimulator:
         hits_mult: float,
         doubles_mult: float,
         hr_mult: float,
-    ) -> Tuple[float, float, float, float, float]:
+    ) -> Tuple[float, float, float, float, float, float, float]:
         """
-        Returns (hits, doubles, home_runs, stolen_bases, plate_appearances) for
-        one simulated game.
+        Returns (hits, doubles, home_runs, stolen_bases, plate_appearances,
+        runs_scored, rbi) for one simulated game.
         """
         pa = PA_PER_GAME * (PA_FLOOR_SHIFT + random.gauss(0, PA_VARIANCE))
         pa = max(1.0, pa)
@@ -948,7 +968,28 @@ class MLBPlayerPropsSimulator:
             random.gauss(pa, pa * BATTER_PITCHES_VARIANCE * 0.5),
         )
 
-        return hits, doubles, home_runs, stolen_bases, plate_appearances
+        # --- Runs Scored ------------------------------------------------
+        # Pro-rate from the player's season runs-per-game rate.  Apply the
+        # hits multiplier as a proxy for lineup-context and environment.
+        expected_runs_per_game = (
+            stats.runs_per_season / max(stats.games_played, 1)
+        ) * hits_mult
+        runs_scored = max(
+            0.0,
+            expected_runs_per_game * (RUNS_FLOOR_SHIFT + random.gauss(0, RUNS_VARIANCE)),
+        )
+
+        # --- RBI --------------------------------------------------------
+        # Pro-rate from season RBI with power/environment via hr_mult proxy.
+        expected_rbi_per_game = (
+            stats.rbi_per_season / max(stats.games_played, 1)
+        ) * hr_mult
+        rbi = max(
+            0.0,
+            expected_rbi_per_game * (RBI_FLOOR_SHIFT + random.gauss(0, RBI_VARIANCE)),
+        )
+
+        return hits, doubles, home_runs, stolen_bases, plate_appearances, runs_scored, rbi
 
     # ------------------------------------------------------------------
     # Public API
@@ -1050,6 +1091,7 @@ class MLBPlayerPropsSimulator:
         hr_lines: Optional[List[float]] = None,
         sb_lines: Optional[List[float]] = None,
         pa_lines: Optional[List[float]] = None,
+        hrb_lines: Optional[List[float]] = None,
         opponent_throws: Optional[str] = None,
         is_home: Optional[bool] = None,
     ) -> PlayerPropsReport:
@@ -1065,6 +1107,11 @@ class MLBPlayerPropsSimulator:
         sb_lines        : list of stolen-base over/under lines to evaluate
         pa_lines        : list of plate-appearance over/under lines.
                           Defaults to [2.5, 3.5, 4.5, 5.5].
+        hrb_lines       : list of H+R+RBI (Hits + Runs + RBI) over/under lines.
+                          Defaults to [0.5, 1.5, 2.5, 3.5, 4.5].
+                          Requires ``stats.rbi_per_season`` and
+                          ``stats.runs_per_season`` to be non-zero for a
+                          meaningful simulation.
         opponent_throws : throwing hand of the opposing pitcher ("R" or "L").
                           When provided the platoon split adjusts hits, HR, and
                           doubles rates.  None means no platoon adjustment.
@@ -1104,14 +1151,18 @@ class MLBPlayerPropsSimulator:
         hr_results: List[float] = []
         sb_results: List[float] = []
         pa_results: List[float] = []
+        hrb_results: List[float] = []
 
         for _ in range(self.num_simulations):
-            h, d, hr, sb, pa = self._simulate_batter_game(stats, hits_mult, doubles_mult, hr_mult)
+            h, d, hr, sb, pa, runs, rbi = self._simulate_batter_game(
+                stats, hits_mult, doubles_mult, hr_mult
+            )
             hits_results.append(h)
             doubles_results.append(d)
             hr_results.append(hr)
             sb_results.append(sb)
             pa_results.append(pa)
+            hrb_results.append(h + runs + rbi)
 
         report = PlayerPropsReport(player_name=stats.name)
         report.props.append(
@@ -1132,6 +1183,14 @@ class MLBPlayerPropsSimulator:
                 stats.name,
                 "Plate Appearances",
                 pa_lines or [2.5, 3.5, 4.5, 5.5],
+            )
+        )
+        report.props.append(
+            self._summarise(
+                hrb_results,
+                stats.name,
+                "H+R+RBI",
+                hrb_lines or [0.5, 1.5, 2.5, 3.5, 4.5],
             )
         )
         return report
@@ -1279,9 +1338,13 @@ def _demo() -> None:  # pragma: no cover
         power_rating=85,
         bats="R",
         pitches_per_pa=4.2,    # patient hitter, works long counts
+        rbi_per_season=95,     # high-RBI slot (4-5 hitter)
+        runs_per_season=85,    # runs well for a power hitter
     )
     print(f"\nBatter  : {batter.name}  (power_rating={batter.power_rating}, "
           f"bats={batter.bats}, pitches_per_pa={batter.pitches_per_pa})")
+    print(f"  RBI per season  : {batter.rbi_per_season}  ({batter.rbi_per_season / batter.games_played:.3f}/game)")
+    print(f"  Runs per season : {batter.runs_per_season}  ({batter.runs_per_season / batter.games_played:.3f}/game)")
     print(f"  Power HR multiplier     : {batter.power_hr_multiplier():.3f}  (home run rate)")
     print(f"  Power doubles multiplier: {batter.power_doubles_multiplier():.3f}  (doubles rate)")
 
