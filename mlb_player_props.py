@@ -118,6 +118,32 @@ SB_VARIANCE: float = 0.4            # 40 % relative noise captures day-to-day va
 # Maximum steal opportunities modelled per game (caps tail of distribution).
 MAX_STEAL_OPPORTUNITIES_PER_GAME: int = 3
 
+# Temperature effects on batter contact rate.
+# Baseline is 72 °F; each degree below baseline reduces contact slightly (slower
+# bat speed in cold; stiff hands).  Warm weather provides a marginal boost.
+TEMP_HIT_RATE_PER_DEGREE_F: float = 0.0015   # ±0.15 % per °F deviation from 72 °F
+
+# Temperature thresholds and rates for pitcher stamina.
+# Cold weather below TEMP_COLD_THRESHOLD_F reduces expected innings pitched.
+# Extreme heat above TEMP_HOT_THRESHOLD_F also reduces stamina.
+TEMP_COLD_THRESHOLD_F: float = 60.0
+TEMP_HOT_THRESHOLD_F: float = 90.0
+TEMP_COLD_STAMINA_RATE: float = 0.004   # −0.4 % of IP per °F below cold threshold
+TEMP_HOT_STAMINA_RATE: float = 0.003    # −0.3 % of IP per °F above hot threshold
+
+# Wind K-rate adjustment constants.
+# In-blowing wind (pitcher-friendly) enhances pitch movement and slightly lifts Ks.
+# Out-blowing or cross wind has a smaller boosting effect (distraction for batters).
+WIND_K_IN_RATE: float = 0.002    # +0.2 % per mph when wind blows in
+WIND_K_OTHER_RATE: float = 0.001  # +0.1 % per mph for other directions
+
+# Wind runs-allowed adjustment (mirrors HR factor but dampened for general runs).
+# This value is used as: magnitude = speed_mph / 5.0 * WIND_RUNS_SPEED_FACTOR
+# and then scaled by the direction's deviation from neutral, so the constant
+# represents the runs-adjustment increment per 5-mph of wind speed per unit of
+# directional deviation.
+WIND_RUNS_SPEED_FACTOR: float = 0.015
+
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -148,6 +174,39 @@ class WindConditions:
         # Smaller effect on overall hits than on HR.
         return 1.0 + (base - 1.0) * 0.4
 
+    def k_multiplier(self) -> float:
+        """
+        Wind direction effect on pitcher strikeout rate.
+
+        * In-blowing wind (pitcher-friendly directions) enhances pitch movement
+          and makes it harder for batters to track off-speed pitches.
+        * Out-blowing or cross wind has a smaller but still positive effect —
+          batters must adjust their eye on wind-affected trajectories.
+        * Effect scales with wind speed.
+        """
+        base = WIND_DIRECTION_HR_FACTOR.get(self.direction, 1.00)
+        if base < 1.0:
+            # Wind blowing in — helps pitch movement more
+            return 1.0 + self.speed_mph * WIND_K_IN_RATE
+        # Calm, cross, or out wind — smaller K boost
+        return 1.0 + self.speed_mph * WIND_K_OTHER_RATE
+
+    def runs_multiplier(self) -> float:
+        """
+        Wind direction effect on runs allowed.
+
+        Mirrors the HR factor directional logic (out-blowing wind carries more
+        balls to the outfield seats, increasing run scoring) but with a
+        dampened speed-scaling compared to the pure HR multiplier.
+        """
+        base = WIND_DIRECTION_HR_FACTOR.get(self.direction, 1.00)
+        magnitude = self.speed_mph / 5.0 * WIND_RUNS_SPEED_FACTOR
+        if base > 1.0:
+            return base + magnitude * (base - 1.0) * 5
+        elif base < 1.0:
+            return base - magnitude * (1.0 - base) * 5
+        return 1.00
+
 
 @dataclass
 class WeatherConditions:
@@ -177,6 +236,32 @@ class WeatherConditions:
         Effect is small (~2 % max).
         """
         return 1.0 - (self.humidity - 0.50) * 0.04
+
+    def temp_hit_multiplier(self) -> float:
+        """
+        Temperature effect on batter contact rate.
+
+        Cold weather slows bat speed and stiffens hands, reducing batting
+        average.  Warm weather provides a small positive boost to contact.
+        Baseline is 72 °F; effect scales linearly at
+        TEMP_HIT_RATE_PER_DEGREE_F per degree.
+        """
+        return 1.0 + (self.temp_f - 72) * TEMP_HIT_RATE_PER_DEGREE_F
+
+    def temp_pitcher_stamina_multiplier(self) -> float:
+        """
+        Temperature effect on pitcher stamina (expected innings pitched).
+
+        * Below TEMP_COLD_THRESHOLD_F: cold reduces grip, increases effort per
+          pitch, and leads to shorter outings.
+        * Above TEMP_HOT_THRESHOLD_F: heat fatigue also shortens outings.
+        * Between the two thresholds: no stamina penalty (returns 1.0).
+        """
+        if self.temp_f < TEMP_COLD_THRESHOLD_F:
+            return 1.0 - (TEMP_COLD_THRESHOLD_F - self.temp_f) * TEMP_COLD_STAMINA_RATE
+        if self.temp_f > TEMP_HOT_THRESHOLD_F:
+            return 1.0 - (self.temp_f - TEMP_HOT_THRESHOLD_F) * TEMP_HOT_STAMINA_RATE
+        return 1.0
 
 
 @dataclass
@@ -378,6 +463,7 @@ class MLBPlayerPropsSimulator:
     def _env_hits_multiplier(self) -> float:
         return (
             self.stadium.hits_factor
+            * self.weather.temp_hit_multiplier()
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
             * self.wind.hit_multiplier()
@@ -386,6 +472,7 @@ class MLBPlayerPropsSimulator:
     def _env_doubles_multiplier(self) -> float:
         return (
             self.stadium.doubles_factor
+            * self.weather.temp_hit_multiplier()
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
             * self.wind.hit_multiplier()
@@ -396,6 +483,7 @@ class MLBPlayerPropsSimulator:
             self.stadium.k_factor
             * self.weather.temp_k_multiplier()
             * self.weather.precip_factor()
+            * self.wind.k_multiplier()
         )
 
     def _env_runs_multiplier(self) -> float:
@@ -403,6 +491,7 @@ class MLBPlayerPropsSimulator:
             self.stadium.runs_factor
             * self.weather.temp_hr_multiplier()
             * self.weather.precip_factor()
+            * self.wind.runs_multiplier()
         )
 
     # ------------------------------------------------------------------
@@ -453,13 +542,20 @@ class MLBPlayerPropsSimulator:
         stats: PitcherStats,
         k_mult: float,
         runs_mult: float,
+        stamina_mult: float,
     ) -> Tuple[float, float, float]:
         """
         Returns (strikeouts, outs_recorded, runs_allowed) for one simulated game.
         Uses a Poisson-like approach via random Gaussian perturbation of expected values.
         """
         # --- Expected values from season stats --------------------------
-        expected_ip = stats.innings_per_start * (IP_FLOOR_SHIFT + random.gauss(0, IP_VARIANCE))
+        # stamina_mult is pre-computed once per simulation run (see simulate_pitcher)
+        # to avoid re-evaluating the temperature check thousands of times.
+        expected_ip = (
+            stats.innings_per_start
+            * stamina_mult
+            * (IP_FLOOR_SHIFT + random.gauss(0, IP_VARIANCE))
+        )
         expected_ip = max(1.0, min(9.0, expected_ip))
 
         # Strikeouts: K/9 × IP / 9 × environmental multiplier
@@ -553,13 +649,15 @@ class MLBPlayerPropsSimulator:
         stats.validate()
         k_mult = self._env_k_multiplier()
         runs_mult = self._env_runs_multiplier()
+        # Pre-compute stamina once — temperature is fixed for the whole run.
+        stamina_mult = self.weather.temp_pitcher_stamina_multiplier()
 
         k_results: List[float] = []
         outs_results: List[float] = []
         runs_results: List[float] = []
 
         for _ in range(self.num_simulations):
-            k, outs, runs = self._simulate_pitcher_game(stats, k_mult, runs_mult)
+            k, outs, runs = self._simulate_pitcher_game(stats, k_mult, runs_mult, stamina_mult)
             k_results.append(k)
             outs_results.append(outs)
             runs_results.append(runs)
@@ -670,12 +768,18 @@ def _demo() -> None:  # pragma: no cover
     # Weather
     weather = WeatherConditions(temp_f=68, precipitation="light", humidity=0.65)
     print(f"\nWeather : {weather.temp_f}°F, precip={weather.precipitation}, humidity={weather.humidity}")
+    print(f"  Temp HR multiplier      : {weather.temp_hr_multiplier():.3f}")
+    print(f"  Temp hit multiplier     : {weather.temp_hit_multiplier():.3f}  (batter contact rate)")
+    print(f"  Temp K multiplier       : {weather.temp_k_multiplier():.3f}  (pitcher strikeout rate)")
+    print(f"  Temp stamina multiplier : {weather.temp_pitcher_stamina_multiplier():.3f}  (pitcher innings)")
 
     # Wind
     wind = WindConditions(speed_mph=12, direction="out_to_center")
-    print(f"Wind    : {wind.speed_mph} mph {wind.direction}")
-    print(f"  HR multiplier  : {wind.hr_multiplier():.3f}")
-    print(f"  Hit multiplier : {wind.hit_multiplier():.3f}")
+    print(f"\nWind    : {wind.speed_mph} mph {wind.direction}")
+    print(f"  HR multiplier   : {wind.hr_multiplier():.3f}")
+    print(f"  Hit multiplier  : {wind.hit_multiplier():.3f}")
+    print(f"  K multiplier    : {wind.k_multiplier():.3f}  (pitcher strikeout rate)")
+    print(f"  Runs multiplier : {wind.runs_multiplier():.3f}  (runs allowed)")
 
     # Simulator (small run for demo speed)
     sim = MLBPlayerPropsSimulator(

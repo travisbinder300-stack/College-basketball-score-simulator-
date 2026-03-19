@@ -136,6 +136,57 @@ class TestWeatherConditions(unittest.TestCase):
         baseline = WeatherConditions(humidity=0.50)
         self.assertAlmostEqual(baseline.humidity_hit_multiplier(), 1.00)
 
+    # --- New: temp_hit_multiplier ---
+
+    def test_warm_weather_increases_hit_multiplier(self):
+        cold = WeatherConditions(temp_f=45)
+        warm = WeatherConditions(temp_f=95)
+        self.assertGreater(warm.temp_hit_multiplier(), cold.temp_hit_multiplier())
+
+    def test_cold_weather_decreases_hit_multiplier(self):
+        cold = WeatherConditions(temp_f=45)
+        self.assertLess(cold.temp_hit_multiplier(), 1.0)
+
+    def test_baseline_temp_hit_multiplier_is_1(self):
+        baseline = WeatherConditions(temp_f=72)
+        self.assertAlmostEqual(baseline.temp_hit_multiplier(), 1.0)
+
+    # --- New: temp_pitcher_stamina_multiplier ---
+
+    def test_comfortable_temp_stamina_is_1(self):
+        # The comfortable range is 60°F–90°F inclusive: the condition checks
+        # temp_f > TEMP_HOT_THRESHOLD_F (90.0), so exactly 90°F returns 1.0.
+        for temp in (60, 72, 80, 89, 90):
+            w = WeatherConditions(temp_f=temp)
+            self.assertAlmostEqual(
+                w.temp_pitcher_stamina_multiplier(), 1.0,
+                msg=f"Expected stamina = 1.0 at {temp}°F (comfortable range [60, 90])",
+            )
+
+    def test_cold_reduces_pitcher_stamina(self):
+        cold = WeatherConditions(temp_f=45)
+        self.assertLess(cold.temp_pitcher_stamina_multiplier(), 1.0)
+
+    def test_heat_reduces_pitcher_stamina(self):
+        hot = WeatherConditions(temp_f=100)
+        self.assertLess(hot.temp_pitcher_stamina_multiplier(), 1.0)
+
+    def test_colder_means_more_stamina_penalty(self):
+        slightly_cold = WeatherConditions(temp_f=55)
+        very_cold = WeatherConditions(temp_f=40)
+        self.assertGreater(
+            slightly_cold.temp_pitcher_stamina_multiplier(),
+            very_cold.temp_pitcher_stamina_multiplier(),
+        )
+
+    def test_hotter_means_more_stamina_penalty(self):
+        slightly_hot = WeatherConditions(temp_f=92)
+        very_hot = WeatherConditions(temp_f=105)
+        self.assertGreater(
+            slightly_hot.temp_pitcher_stamina_multiplier(),
+            very_hot.temp_pitcher_stamina_multiplier(),
+        )
+
 
 # ---------------------------------------------------------------------------
 # WindConditions tests
@@ -171,6 +222,52 @@ class TestWindConditions(unittest.TestCase):
     def test_unknown_direction_defaults_to_neutral(self):
         w = WindConditions(speed_mph=10, direction="sideways_tornado")
         self.assertAlmostEqual(w.hr_multiplier(), 1.00)
+
+    # --- New: k_multiplier ---
+
+    def test_calm_wind_k_multiplier_is_1(self):
+        calm = WindConditions(speed_mph=0, direction="calm")
+        self.assertAlmostEqual(calm.k_multiplier(), 1.00)
+
+    def test_any_wind_raises_k_multiplier(self):
+        # Any non-zero wind should produce K multiplier >= 1.
+        for direction in ("out_to_center", "in_from_center", "cross_left_right"):
+            w = WindConditions(speed_mph=15, direction=direction)
+            self.assertGreaterEqual(
+                w.k_multiplier(), 1.00,
+                msg=f"k_multiplier should be >= 1 for direction={direction}",
+            )
+
+    def test_in_wind_higher_k_multiplier_than_out_wind(self):
+        # In-blowing wind gets a larger K boost than out-blowing wind.
+        in_wind = WindConditions(speed_mph=15, direction="in_from_center")
+        out_wind = WindConditions(speed_mph=15, direction="out_to_center")
+        self.assertGreater(in_wind.k_multiplier(), out_wind.k_multiplier())
+
+    def test_faster_wind_raises_k_multiplier(self):
+        slow = WindConditions(speed_mph=5, direction="in_from_center")
+        fast = WindConditions(speed_mph=20, direction="in_from_center")
+        self.assertGreater(fast.k_multiplier(), slow.k_multiplier())
+
+    # --- New: runs_multiplier ---
+
+    def test_calm_wind_runs_multiplier_is_1(self):
+        calm = WindConditions(speed_mph=0, direction="calm")
+        self.assertAlmostEqual(calm.runs_multiplier(), 1.00)
+
+    def test_out_wind_raises_runs_multiplier(self):
+        out_wind = WindConditions(speed_mph=15, direction="out_to_center")
+        calm = WindConditions(speed_mph=0, direction="calm")
+        self.assertGreater(out_wind.runs_multiplier(), calm.runs_multiplier())
+
+    def test_in_wind_lowers_runs_multiplier(self):
+        in_wind = WindConditions(speed_mph=15, direction="in_from_center")
+        calm = WindConditions(speed_mph=0, direction="calm")
+        self.assertLess(in_wind.runs_multiplier(), calm.runs_multiplier())
+
+    def test_cross_wind_is_neutral_on_runs(self):
+        cross = WindConditions(speed_mph=10, direction="cross_left_right")
+        self.assertAlmostEqual(cross.runs_multiplier(), 1.00)
 
 
 # ---------------------------------------------------------------------------
@@ -430,10 +527,14 @@ class TestEnvironmentalEffects(unittest.TestCase):
         self.assertGreater(hr_out, hr_calm)
 
     def test_cold_weather_increases_strikeouts(self):
+        # Use moderate cold (55°F) vs moderate warm (88°F) — both within or just
+        # outside the stamina-neutral zone so the K-rate boost from cold clearly
+        # outweighs the minor stamina penalty.  Extreme temps (< 40°F) would
+        # trigger a larger stamina reduction that can offset the K-rate benefit.
         neutral_stadium = Stadium.from_name("Neutral")
         calm = WindConditions()
-        cold_weather = WeatherConditions(temp_f=40)
-        warm_weather = WeatherConditions(temp_f=95)
+        cold_weather = WeatherConditions(temp_f=55)
+        warm_weather = WeatherConditions(temp_f=88)
 
         sim_cold = MLBPlayerPropsSimulator(neutral_stadium, cold_weather, calm, 2_000, 42)
         sim_warm = MLBPlayerPropsSimulator(neutral_stadium, warm_weather, calm, 2_000, 42)
@@ -470,6 +571,84 @@ class TestEnvironmentalEffects(unittest.TestCase):
         hr_cold = next(p for p in sim_cold.simulate_batter(batter).props if p.prop_name == "Home Runs").mean
         hr_hot = next(p for p in sim_hot.simulate_batter(batter).props if p.prop_name == "Home Runs").mean
         self.assertGreater(hr_hot, hr_cold)
+
+    # --- New: temperature effect on batter hits ---
+
+    def test_cold_weather_reduces_hits(self):
+        neutral_stadium = Stadium.from_name("Neutral")
+        calm = WindConditions()
+        cold = WeatherConditions(temp_f=45)
+        warm = WeatherConditions(temp_f=85)
+
+        sim_cold = MLBPlayerPropsSimulator(neutral_stadium, cold, calm, 2_000, 42)
+        sim_warm = MLBPlayerPropsSimulator(neutral_stadium, warm, calm, 2_000, 42)
+
+        batter = _default_batter()
+        hits_cold = next(p for p in sim_cold.simulate_batter(batter).props if p.prop_name == "Hits").mean
+        hits_warm = next(p for p in sim_warm.simulate_batter(batter).props if p.prop_name == "Hits").mean
+        self.assertGreater(hits_warm, hits_cold)
+
+    # --- New: temperature effect on pitcher stamina (outs recorded) ---
+
+    def test_extreme_cold_shortens_pitcher_outing(self):
+        neutral_stadium = Stadium.from_name("Neutral")
+        calm = WindConditions()
+        freezing = WeatherConditions(temp_f=40)
+        comfortable = WeatherConditions(temp_f=72)
+
+        sim_cold = MLBPlayerPropsSimulator(neutral_stadium, freezing, calm, 2_000, 42)
+        sim_norm = MLBPlayerPropsSimulator(neutral_stadium, comfortable, calm, 2_000, 42)
+
+        pitcher = _default_pitcher()
+        outs_cold = next(p for p in sim_cold.simulate_pitcher(pitcher).props if p.prop_name == "Outs Recorded").mean
+        outs_norm = next(p for p in sim_norm.simulate_pitcher(pitcher).props if p.prop_name == "Outs Recorded").mean
+        self.assertLess(outs_cold, outs_norm)
+
+    def test_extreme_heat_shortens_pitcher_outing(self):
+        neutral_stadium = Stadium.from_name("Neutral")
+        calm = WindConditions()
+        scorching = WeatherConditions(temp_f=103)
+        comfortable = WeatherConditions(temp_f=72)
+
+        sim_hot = MLBPlayerPropsSimulator(neutral_stadium, scorching, calm, 2_000, 42)
+        sim_norm = MLBPlayerPropsSimulator(neutral_stadium, comfortable, calm, 2_000, 42)
+
+        pitcher = _default_pitcher()
+        outs_hot = next(p for p in sim_hot.simulate_pitcher(pitcher).props if p.prop_name == "Outs Recorded").mean
+        outs_norm = next(p for p in sim_norm.simulate_pitcher(pitcher).props if p.prop_name == "Outs Recorded").mean
+        self.assertLess(outs_hot, outs_norm)
+
+    # --- New: wind K multiplier end-to-end ---
+
+    def test_in_wind_raises_pitcher_strikeouts(self):
+        neutral_stadium = Stadium.from_name("Neutral")
+        weather = WeatherConditions()
+        in_wind = WindConditions(speed_mph=15, direction="in_from_center")
+        calm_wind = WindConditions(speed_mph=0, direction="calm")
+
+        sim_in = MLBPlayerPropsSimulator(neutral_stadium, weather, in_wind, 2_000, 42)
+        sim_calm = MLBPlayerPropsSimulator(neutral_stadium, weather, calm_wind, 2_000, 42)
+
+        pitcher = _default_pitcher()
+        k_in = next(p for p in sim_in.simulate_pitcher(pitcher).props if p.prop_name == "Strikeouts").mean
+        k_calm = next(p for p in sim_calm.simulate_pitcher(pitcher).props if p.prop_name == "Strikeouts").mean
+        self.assertGreater(k_in, k_calm)
+
+    # --- New: wind runs multiplier end-to-end ---
+
+    def test_out_wind_raises_runs_allowed(self):
+        neutral_stadium = Stadium.from_name("Neutral")
+        weather = WeatherConditions()
+        out_wind = WindConditions(speed_mph=15, direction="out_to_center")
+        calm_wind = WindConditions(speed_mph=0, direction="calm")
+
+        sim_out = MLBPlayerPropsSimulator(neutral_stadium, weather, out_wind, 2_000, 42)
+        sim_calm = MLBPlayerPropsSimulator(neutral_stadium, weather, calm_wind, 2_000, 42)
+
+        pitcher = _default_pitcher()
+        runs_out = next(p for p in sim_out.simulate_pitcher(pitcher).props if p.prop_name == "Runs Allowed").mean
+        runs_calm = next(p for p in sim_calm.simulate_pitcher(pitcher).props if p.prop_name == "Runs Allowed").mean
+        self.assertGreater(runs_out, runs_calm)
 
 
 # ---------------------------------------------------------------------------
