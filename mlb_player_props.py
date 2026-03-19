@@ -15,6 +15,12 @@ Player-attribute modifiers:
     innings pitched depth.
   - Batter power rating  (0–100 scale) – affects HR rate and doubles rate.
 
+Platoon / handedness splits:
+  - Pitcher throwing hand (`throws`: "R" or "L").
+  - Batter batting hand   (`bats`:   "R", "L", or "S" for switch).
+  - Opposite-hand matchups (e.g. RHB vs LHP) favour the batter; same-hand
+    matchups favour the pitcher.  See PLATOON_SPLITS for per-combo adjustments.
+
 Usage example
 -------------
     from mlb_player_props import (
@@ -33,15 +39,18 @@ Usage example
     sim = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind,
                                   num_simulations=10_000)
 
+    # Left-handed pitcher with elite arm
     pitcher = PitcherStats(name="Ace Pitcher", era=3.50, k_per_9=9.5,
-                           innings_per_start=6.0, whip=1.15, arm_strength=75)
+                           innings_per_start=6.0, whip=1.15,
+                           arm_strength=75, throws="L")
+    # Right-handed power hitter — has platoon advantage vs LHP
     batter  = BatterStats(name="Power Hitter", avg=0.285, obp=0.360,
                           slg=0.510, hr_per_600_pa=32, sb_per_season=18,
                           doubles_per_600_pa=38, games_played=162,
-                          power_rating=80)
+                          power_rating=80, bats="R")
 
-    pitcher_results = sim.simulate_pitcher(pitcher)
-    batter_results  = sim.simulate_batter(batter)
+    pitcher_results = sim.simulate_pitcher(pitcher, opponent_bats="R")
+    batter_results  = sim.simulate_batter(batter, opponent_throws="L")
 
     sim.print_results(pitcher_results)
     sim.print_results(batter_results)
@@ -175,6 +184,66 @@ POWER_BASELINE: float = 50.0         # neutral midpoint (league average)
 POWER_HR_RATE: float = 0.010         # ±1.0 % per point  (10-pt swing ≈ ±10 %)
 # Each point above the baseline adds this fraction to expected doubles rate.
 POWER_DOUBLES_RATE: float = 0.005    # ±0.5 % per point  (10-pt swing ≈ ±5 %)
+
+# ---------------------------------------------------------------------------
+# Platoon split constants (batter handedness × pitcher handedness)
+# ---------------------------------------------------------------------------
+# Each entry maps a (bats, throws) tuple to a dict of multipliers applied on
+# top of all other modifiers:
+#   hits    – batter hit rate adjustment
+#   hr      – batter home-run rate adjustment
+#   doubles – batter doubles rate adjustment
+#   k       – pitcher strikeout rate adjustment  (>1 = pitcher advantage)
+#   runs    – pitcher runs-allowed adjustment    (>1 = more runs for pitcher)
+#
+# Calibration basis:
+#   Opposite-hand matchups (e.g. RHB vs LHP) historically yield ~4–8 % more
+#   hits and ~7–10 % more HRs for the batter; same-hand matchups yield a
+#   ~3–5 % batter penalty (pitcher advantage in Ks, fewer runs scored).
+#   Switch hitters ("S") are always neutral regardless of pitcher hand.
+
+PLATOON_SPLITS: Dict[Tuple[str, str], Dict[str, float]] = {
+    # (bats, throws) : batter boost   , pitcher K boost
+    ("R", "R"): {"hits": 0.97, "hr": 0.95, "doubles": 0.97, "k": 1.05, "runs": 0.97},
+    ("R", "L"): {"hits": 1.04, "hr": 1.07, "doubles": 1.04, "k": 0.95, "runs": 1.04},
+    ("L", "L"): {"hits": 0.96, "hr": 0.94, "doubles": 0.96, "k": 1.06, "runs": 0.96},
+    ("L", "R"): {"hits": 1.05, "hr": 1.08, "doubles": 1.05, "k": 0.94, "runs": 1.05},
+    ("S", "R"): {"hits": 1.00, "hr": 1.00, "doubles": 1.00, "k": 1.00, "runs": 1.00},
+    ("S", "L"): {"hits": 1.00, "hr": 1.00, "doubles": 1.00, "k": 1.00, "runs": 1.00},
+}
+
+# Sentinel value returned when the (bats, throws) combination is not found.
+_PLATOON_NEUTRAL: Dict[str, float] = {
+    "hits": 1.00, "hr": 1.00, "doubles": 1.00, "k": 1.00, "runs": 1.00
+}
+
+
+def platoon_splits_for(bats: str, throws: str) -> Dict[str, float]:
+    """
+    Return the platoon-split multiplier dict for a given (bats, throws) combo.
+
+    Parameters
+    ----------
+    bats   : "R" (right), "L" (left), or "S" (switch hitter)
+    throws : "R" (right) or "L" (left)
+
+    Returns
+    -------
+    Dict with keys "hits", "hr", "doubles", "k", "runs".
+    Falls back to all-1.0 neutral values for unrecognised combinations.
+
+    Examples
+    --------
+    >>> platoon_splits_for("R", "L")          # RHB vs LHP – batter advantage
+    {'hits': 1.04, 'hr': 1.07, 'doubles': 1.04, 'k': 0.95, 'runs': 1.04}
+    >>> platoon_splits_for("L", "R")          # LHB vs RHP – batter advantage
+    {'hits': 1.05, 'hr': 1.08, 'doubles': 1.05, 'k': 0.94, 'runs': 1.05}
+    >>> platoon_splits_for("R", "R")          # RHB vs RHP – pitcher advantage
+    {'hits': 0.97, 'hr': 0.95, 'doubles': 0.97, 'k': 1.05, 'runs': 0.97}
+    >>> platoon_splits_for("S", "L")          # Switch hitter – always neutral
+    {'hits': 1.0, 'hr': 1.0, 'doubles': 1.0, 'k': 1.0, 'runs': 1.0}
+    """
+    return PLATOON_SPLITS.get((bats, throws), _PLATOON_NEUTRAL)
 
 
 # ---------------------------------------------------------------------------
@@ -358,6 +427,7 @@ class PitcherStats:
     innings_per_start: float      # Average innings pitched per start
     whip: float                   # Walks + Hits per Inning Pitched
     arm_strength: float = 50.0    # 0–100 scale; 50 = league-average arm
+    throws: str = "R"             # Throwing hand: "R" (right) or "L" (left)
 
     # ------------------------------------------------------------------
     # Arm-strength multipliers
@@ -401,6 +471,8 @@ class PitcherStats:
             raise ValueError("WHIP cannot be negative")
         if not (0 <= self.arm_strength <= 100):
             raise ValueError("arm_strength must be between 0 and 100")
+        if self.throws not in ("R", "L"):
+            raise ValueError("throws must be 'R' (right) or 'L' (left)")
 
 
 @dataclass
@@ -416,6 +488,7 @@ class BatterStats:
     doubles_per_600_pa: float     # Doubles per 600 plate appearances
     games_played: int = 162       # Games played (used to normalise season totals)
     power_rating: float = 50.0    # 0–100 scale; 50 = league-average raw power
+    bats: str = "R"               # Batting hand: "R" (right), "L" (left), "S" (switch)
 
     # ------------------------------------------------------------------
     # Power-rating multipliers
@@ -454,6 +527,8 @@ class BatterStats:
             raise ValueError("Doubles per 600 PA cannot be negative")
         if not (0 <= self.power_rating <= 100):
             raise ValueError("power_rating must be between 0 and 100")
+        if self.bats not in ("R", "L", "S"):
+            raise ValueError("bats must be 'R' (right), 'L' (left), or 'S' (switch)")
 
 
 # ---------------------------------------------------------------------------
@@ -726,20 +801,33 @@ class MLBPlayerPropsSimulator:
         k_lines: Optional[List[float]] = None,
         outs_lines: Optional[List[float]] = None,
         runs_lines: Optional[List[float]] = None,
+        opponent_bats: Optional[str] = None,
     ) -> PlayerPropsReport:
         """
         Run Monte Carlo simulations for a starting pitcher.
 
         Parameters
         ----------
-        stats      : PitcherStats
-        k_lines    : list of strikeout over/under lines to evaluate
-        outs_lines : list of outs-recorded lines to evaluate
-        runs_lines : list of runs-allowed lines to evaluate
+        stats         : PitcherStats
+        k_lines       : list of strikeout over/under lines to evaluate
+        outs_lines    : list of outs-recorded lines to evaluate
+        runs_lines    : list of runs-allowed lines to evaluate
+        opponent_bats : batting hand of the opposing lineup ("R", "L", or "S").
+                        When provided the platoon split adjusts K rate and runs
+                        allowed.  None means no platoon adjustment is applied.
         """
         stats.validate()
-        k_mult = self._env_k_multiplier() * stats.arm_k_multiplier()
-        runs_mult = self._env_runs_multiplier() * stats.arm_runs_multiplier()
+        # Compute platoon multipliers once if opponent handedness is known.
+        if opponent_bats is not None:
+            splits = platoon_splits_for(opponent_bats, stats.throws)
+            platoon_k_mult = splits["k"]
+            platoon_runs_mult = splits["runs"]
+        else:
+            platoon_k_mult = 1.0
+            platoon_runs_mult = 1.0
+
+        k_mult = self._env_k_multiplier() * stats.arm_k_multiplier() * platoon_k_mult
+        runs_mult = self._env_runs_multiplier() * stats.arm_runs_multiplier() * platoon_runs_mult
         # Pre-compute stamina once — temperature and arm strength are fixed for
         # the whole run.  Arm strength extends/shortens outings independently of
         # the weather-based stamina penalty so they multiply together.
@@ -774,22 +862,37 @@ class MLBPlayerPropsSimulator:
         doubles_lines: Optional[List[float]] = None,
         hr_lines: Optional[List[float]] = None,
         sb_lines: Optional[List[float]] = None,
+        opponent_throws: Optional[str] = None,
     ) -> PlayerPropsReport:
         """
         Run Monte Carlo simulations for a position player (batter).
 
         Parameters
         ----------
-        stats        : BatterStats
-        hits_lines   : list of hit over/under lines to evaluate
-        doubles_lines: list of double over/under lines to evaluate
-        hr_lines     : list of home-run over/under lines to evaluate
-        sb_lines     : list of stolen-base over/under lines to evaluate
+        stats           : BatterStats
+        hits_lines      : list of hit over/under lines to evaluate
+        doubles_lines   : list of double over/under lines to evaluate
+        hr_lines        : list of home-run over/under lines to evaluate
+        sb_lines        : list of stolen-base over/under lines to evaluate
+        opponent_throws : throwing hand of the opposing pitcher ("R" or "L").
+                          When provided the platoon split adjusts hits, HR, and
+                          doubles rates.  None means no platoon adjustment.
         """
         stats.validate()
-        hits_mult = self._env_hits_multiplier()
-        doubles_mult = self._env_doubles_multiplier() * stats.power_doubles_multiplier()
-        hr_mult = self._env_hr_multiplier() * stats.power_hr_multiplier()
+        # Compute platoon multipliers once if opponent handedness is known.
+        if opponent_throws is not None:
+            splits = platoon_splits_for(stats.bats, opponent_throws)
+            platoon_hits_mult = splits["hits"]
+            platoon_hr_mult = splits["hr"]
+            platoon_doubles_mult = splits["doubles"]
+        else:
+            platoon_hits_mult = 1.0
+            platoon_hr_mult = 1.0
+            platoon_doubles_mult = 1.0
+
+        hits_mult = self._env_hits_multiplier() * platoon_hits_mult
+        doubles_mult = self._env_doubles_multiplier() * stats.power_doubles_multiplier() * platoon_doubles_mult
+        hr_mult = self._env_hr_multiplier() * stats.power_hr_multiplier() * platoon_hr_mult
 
         hits_results: List[float] = []
         doubles_results: List[float] = []
@@ -830,12 +933,19 @@ class MLBPlayerPropsSimulator:
         """
         Convenience method: simulate an entire pitcher vs lineup matchup.
 
+        Platoon splits are applied automatically: each batter simulation uses
+        the pitcher's throwing hand (``pitcher.throws``) and the pitcher
+        simulation uses the first batter's batting hand as a representative
+        opponent for K/runs adjustments (or "R" when no batters are provided).
+
         Returns a dict keyed by player name.
         """
         results: Dict[str, PlayerPropsReport] = {}
-        results[pitcher.name] = self.simulate_pitcher(pitcher)
+        # Determine representative opponent batting hand for the pitcher.
+        rep_bats = batters[0].bats if batters else "R"
+        results[pitcher.name] = self.simulate_pitcher(pitcher, opponent_bats=rep_bats)
         for batter in batters:
-            results[batter.name] = self.simulate_batter(batter)
+            results[batter.name] = self.simulate_batter(batter, opponent_throws=pitcher.throws)
         return results
 
 
@@ -883,7 +993,7 @@ def _demo() -> None:  # pragma: no cover
         random_seed=42,
     )
 
-    # Pitcher — elite arm (arm_strength=80)
+    # Pitcher — left-handed ace (arm_strength=80, throws="L")
     pitcher = PitcherStats(
         name="Demo Ace",
         era=3.20,
@@ -891,15 +1001,24 @@ def _demo() -> None:  # pragma: no cover
         innings_per_start=6.0,
         whip=1.08,
         arm_strength=80,
+        throws="L",
     )
-    print(f"\nPitcher : {pitcher.name}  (arm_strength={pitcher.arm_strength})")
+    print(f"\nPitcher : {pitcher.name}  (arm_strength={pitcher.arm_strength}, throws={pitcher.throws})")
     print(f"  Arm K multiplier   : {pitcher.arm_k_multiplier():.3f}  (strikeout rate)")
     print(f"  Arm runs multiplier: {pitcher.arm_runs_multiplier():.3f}  (runs allowed)")
     print(f"  Arm IP multiplier  : {pitcher.arm_ip_multiplier():.3f}  (innings pitched)")
-    pitcher_report = sim.simulate_pitcher(pitcher)
+
+    # Show platoon K-rate shift vs opposing lineups
+    for opp_bats in ("R", "L", "S"):
+        sp = platoon_splits_for(opp_bats, pitcher.throws)
+        print(f"  vs {opp_bats}-handed lineup : K mult {sp['k']:.2f}, runs mult {sp['runs']:.2f}")
+
+    # Pitcher props vs right-handed lineup (RHB has platoon advantage over LHP)
+    pitcher_report = sim.simulate_pitcher(pitcher, opponent_bats="R")
     sim.print_results(pitcher_report)
 
-    # Batter — pure power hitter (power_rating=85)
+    # Batter — right-handed power hitter (power_rating=85, bats="R")
+    # facing the left-handed pitcher → batter has platoon advantage
     batter = BatterStats(
         name="Demo Slugger",
         avg=0.255,
@@ -910,11 +1029,20 @@ def _demo() -> None:  # pragma: no cover
         doubles_per_600_pa=30,
         games_played=162,
         power_rating=85,
+        bats="R",
     )
-    print(f"\nBatter  : {batter.name}  (power_rating={batter.power_rating})")
+    print(f"\nBatter  : {batter.name}  (power_rating={batter.power_rating}, bats={batter.bats})")
     print(f"  Power HR multiplier     : {batter.power_hr_multiplier():.3f}  (home run rate)")
     print(f"  Power doubles multiplier: {batter.power_doubles_multiplier():.3f}  (doubles rate)")
-    batter_report = sim.simulate_batter(batter)
+
+    # Show platoon hit-rate shift vs different pitcher arms
+    for opp_throws in ("R", "L"):
+        sp = platoon_splits_for(batter.bats, opp_throws)
+        print(f"  vs {opp_throws}-handed pitcher : hits mult {sp['hits']:.2f}, "
+              f"HR mult {sp['hr']:.2f}, 2B mult {sp['doubles']:.2f}")
+
+    # Simulate with platoon split applied (RHB vs LHP → batter boost)
+    batter_report = sim.simulate_batter(batter, opponent_throws=pitcher.throws)
     sim.print_results(batter_report)
 
 

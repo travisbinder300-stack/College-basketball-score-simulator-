@@ -15,6 +15,7 @@ from mlb_player_props import (
     Stadium,
     WeatherConditions,
     WindConditions,
+    platoon_splits_for,
 )
 
 
@@ -317,6 +318,21 @@ class TestPitcherStatsValidation(unittest.TestCase):
         p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0, whip=1.20)
         self.assertEqual(p.arm_strength, 50.0)
 
+    def test_throws_invalid_raises(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0,
+                         whip=1.20, throws="B")
+        with self.assertRaises(ValueError):
+            p.validate()
+
+    def test_throws_defaults_to_R(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0, whip=1.20)
+        self.assertEqual(p.throws, "R")
+
+    def test_throws_L_is_valid(self):
+        p = PitcherStats(name="X", era=4.0, k_per_9=8.0, innings_per_start=6.0,
+                         whip=1.20, throws="L")
+        p.validate()  # Should not raise
+
 
 class TestBatterStatsValidation(unittest.TestCase):
 
@@ -372,6 +388,30 @@ class TestBatterStatsValidation(unittest.TestCase):
         b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
                         hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30)
         self.assertEqual(b.power_rating, 50.0)
+
+    def test_bats_invalid_raises(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        bats="X")
+        with self.assertRaises(ValueError):
+            b.validate()
+
+    def test_bats_defaults_to_R(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30)
+        self.assertEqual(b.bats, "R")
+
+    def test_bats_L_is_valid(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        bats="L")
+        b.validate()  # Should not raise
+
+    def test_bats_S_is_valid(self):
+        b = BatterStats(name="X", avg=0.27, obp=0.34, slg=0.45,
+                        hr_per_600_pa=20, sb_per_season=10, doubles_per_600_pa=30,
+                        bats="S")
+        b.validate()  # Should not raise
 
 
 # ---------------------------------------------------------------------------
@@ -878,6 +918,269 @@ class TestEnvironmentalEffects(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# platoon_splits_for() unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestPlatoonSplitsFor(unittest.TestCase):
+    """Unit tests for the platoon_splits_for free function."""
+
+    def _keys(self) -> set:
+        return {"hits", "hr", "doubles", "k", "runs"}
+
+    def test_returns_all_five_keys(self):
+        sp = platoon_splits_for("R", "R")
+        self.assertEqual(set(sp.keys()), self._keys())
+
+    # --- Same-hand matchups (pitcher advantage) ---
+
+    def test_rhb_vs_rhp_pitcher_advantage(self):
+        sp = platoon_splits_for("R", "R")
+        self.assertLess(sp["hits"], 1.0, "Same-hand: hits should be < 1")
+        self.assertLess(sp["hr"], 1.0, "Same-hand: HRs should be < 1")
+        self.assertGreater(sp["k"], 1.0, "Same-hand: pitcher K rate should be > 1")
+
+    def test_lhb_vs_lhp_pitcher_advantage(self):
+        sp = platoon_splits_for("L", "L")
+        self.assertLess(sp["hits"], 1.0)
+        self.assertLess(sp["hr"], 1.0)
+        self.assertGreater(sp["k"], 1.0)
+
+    # --- Opposite-hand matchups (batter advantage) ---
+
+    def test_rhb_vs_lhp_batter_advantage(self):
+        sp = platoon_splits_for("R", "L")
+        self.assertGreater(sp["hits"], 1.0, "Opposite-hand: hits should be > 1")
+        self.assertGreater(sp["hr"], 1.0, "Opposite-hand: HRs should be > 1")
+        self.assertLess(sp["k"], 1.0, "Opposite-hand: pitcher K rate should be < 1")
+
+    def test_lhb_vs_rhp_batter_advantage(self):
+        sp = platoon_splits_for("L", "R")
+        self.assertGreater(sp["hits"], 1.0)
+        self.assertGreater(sp["hr"], 1.0)
+        self.assertLess(sp["k"], 1.0)
+
+    # --- Switch hitters: always neutral ---
+
+    def test_switch_vs_rhp_neutral(self):
+        sp = platoon_splits_for("S", "R")
+        for key in self._keys():
+            self.assertAlmostEqual(sp[key], 1.0, msg=f"Switch hitter key '{key}' should be 1.0")
+
+    def test_switch_vs_lhp_neutral(self):
+        sp = platoon_splits_for("S", "L")
+        for key in self._keys():
+            self.assertAlmostEqual(sp[key], 1.0, msg=f"Switch hitter key '{key}' should be 1.0")
+
+    # --- Consistency: batter advantage run multiplier matches hit direction ---
+
+    def test_batter_advantage_runs_multiplier_above_1(self):
+        # When batter has platoon advantage, runs allowed by pitcher should rise.
+        sp_rhb_lhp = platoon_splits_for("R", "L")
+        sp_lhb_rhp = platoon_splits_for("L", "R")
+        self.assertGreater(sp_rhb_lhp["runs"], 1.0)
+        self.assertGreater(sp_lhb_rhp["runs"], 1.0)
+
+    def test_pitcher_advantage_runs_multiplier_below_1(self):
+        # When pitcher has platoon advantage, fewer runs allowed.
+        sp_rhb_rhp = platoon_splits_for("R", "R")
+        sp_lhb_lhp = platoon_splits_for("L", "L")
+        self.assertLess(sp_rhb_rhp["runs"], 1.0)
+        self.assertLess(sp_lhb_lhp["runs"], 1.0)
+
+    # --- Unknown combination falls back to neutral ---
+
+    def test_unknown_combination_returns_neutral(self):
+        sp = platoon_splits_for("X", "Q")
+        for key in self._keys():
+            self.assertAlmostEqual(sp[key], 1.0)
+
+    # --- LHB platoon advantage is slightly larger than RHB (historical data) ---
+
+    def test_lhb_rhp_batter_advantage_at_least_as_large_as_rhb_lhp(self):
+        sp_lhb = platoon_splits_for("L", "R")
+        sp_rhb = platoon_splits_for("R", "L")
+        self.assertGreaterEqual(sp_lhb["hits"], sp_rhb["hits"])
+        self.assertGreaterEqual(sp_lhb["hr"], sp_rhb["hr"])
+
+
+# ---------------------------------------------------------------------------
+# Platoon split end-to-end simulation tests
+# ---------------------------------------------------------------------------
+
+
+class TestPlatoonMatchupSimulation(unittest.TestCase):
+    """Verify that platoon splits shift simulated prop distributions correctly."""
+
+    def _batter_prop(
+        self,
+        bats: str,
+        opponent_throws: str,
+        prop: str,
+        n: int = 3_000,
+    ) -> float:
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=n,
+            random_seed=42,
+        )
+        batter = BatterStats(
+            name="B", avg=0.270, obp=0.340, slg=0.460,
+            hr_per_600_pa=25, sb_per_season=15, doubles_per_600_pa=35,
+            bats=bats,
+        )
+        report = sim.simulate_batter(batter, opponent_throws=opponent_throws)
+        return next(p for p in report.props if p.prop_name == prop).mean
+
+    def _pitcher_prop(
+        self,
+        throws: str,
+        opponent_bats: str,
+        prop: str,
+        n: int = 3_000,
+    ) -> float:
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=n,
+            random_seed=42,
+        )
+        pitcher = PitcherStats(
+            name="P", era=4.0, k_per_9=8.5,
+            innings_per_start=5.5, whip=1.25,
+            throws=throws,
+        )
+        report = sim.simulate_pitcher(pitcher, opponent_bats=opponent_bats)
+        return next(p for p in report.props if p.prop_name == prop).mean
+
+    # --- Batter: opposite-hand matchups boost hits and HRs ---
+
+    def test_rhb_vs_lhp_more_hits_than_vs_rhp(self):
+        hits_lhp = self._batter_prop("R", "L", "Hits")
+        hits_rhp = self._batter_prop("R", "R", "Hits")
+        self.assertGreater(hits_lhp, hits_rhp)
+
+    def test_lhb_vs_rhp_more_hits_than_vs_lhp(self):
+        hits_rhp = self._batter_prop("L", "R", "Hits")
+        hits_lhp = self._batter_prop("L", "L", "Hits")
+        self.assertGreater(hits_rhp, hits_lhp)
+
+    def test_rhb_vs_lhp_more_hr_than_vs_rhp(self):
+        hr_lhp = self._batter_prop("R", "L", "Home Runs")
+        hr_rhp = self._batter_prop("R", "R", "Home Runs")
+        self.assertGreater(hr_lhp, hr_rhp)
+
+    def test_lhb_vs_rhp_more_hr_than_vs_lhp(self):
+        hr_rhp = self._batter_prop("L", "R", "Home Runs")
+        hr_lhp = self._batter_prop("L", "L", "Home Runs")
+        self.assertGreater(hr_rhp, hr_lhp)
+
+    def test_rhb_vs_lhp_more_doubles_than_vs_rhp(self):
+        d_lhp = self._batter_prop("R", "L", "Doubles")
+        d_rhp = self._batter_prop("R", "R", "Doubles")
+        self.assertGreater(d_lhp, d_rhp)
+
+    # --- Batter: same-hand matchups suppress hits vs no-split baseline ---
+
+    def test_rhb_vs_rhp_fewer_hits_than_no_platoon_split(self):
+        # No opponent specified → neutral (no platoon adjustment).
+        # RHB vs RHP → same-hand pitcher advantage → fewer hits than neutral.
+        hits_same_hand = self._batter_prop("R", "R", "Hits")
+        # Simulate with no platoon adjustment as the neutral baseline.
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=3_000,
+            random_seed=42,
+        )
+        batter = BatterStats(name="B", avg=0.270, obp=0.340, slg=0.460,
+                             hr_per_600_pa=25, sb_per_season=15, doubles_per_600_pa=35,
+                             bats="R")
+        report_no_split = sim.simulate_batter(batter, opponent_throws=None)
+        hits_no_split = next(p for p in report_no_split.props if p.prop_name == "Hits").mean
+        self.assertLess(hits_same_hand, hits_no_split)
+
+    # --- Switch hitter: always neutral regardless of pitcher hand ---
+
+    def test_switch_hitter_same_hits_vs_both_hands(self):
+        hits_vs_r = self._batter_prop("S", "R", "Hits")
+        hits_vs_l = self._batter_prop("S", "L", "Hits")
+        # Switch hitter neutral → same result (same seed → identical)
+        self.assertAlmostEqual(hits_vs_r, hits_vs_l, delta=hits_vs_r * 0.01)
+
+    def test_switch_hitter_same_hr_vs_both_hands(self):
+        hr_vs_r = self._batter_prop("S", "R", "Home Runs")
+        hr_vs_l = self._batter_prop("S", "L", "Home Runs")
+        self.assertAlmostEqual(hr_vs_r, hr_vs_l, delta=hr_vs_r * 0.01)
+
+    # --- Pitcher: same-hand matchup → more Ks ---
+
+    def test_rhp_more_ks_vs_rhb_than_vs_lhb(self):
+        k_vs_r = self._pitcher_prop("R", "R", "Strikeouts")
+        k_vs_l = self._pitcher_prop("R", "L", "Strikeouts")
+        self.assertGreater(k_vs_r, k_vs_l)
+
+    def test_lhp_more_ks_vs_lhb_than_vs_rhb(self):
+        k_vs_l = self._pitcher_prop("L", "L", "Strikeouts")
+        k_vs_r = self._pitcher_prop("L", "R", "Strikeouts")
+        self.assertGreater(k_vs_l, k_vs_r)
+
+    # --- Pitcher: opposite-hand matchup → more runs allowed ---
+
+    def test_rhp_more_runs_vs_lhb_than_vs_rhb(self):
+        runs_vs_l = self._pitcher_prop("R", "L", "Runs Allowed")
+        runs_vs_r = self._pitcher_prop("R", "R", "Runs Allowed")
+        self.assertGreater(runs_vs_l, runs_vs_r)
+
+    def test_lhp_more_runs_vs_rhb_than_vs_lhb(self):
+        runs_vs_r = self._pitcher_prop("L", "R", "Runs Allowed")
+        runs_vs_l = self._pitcher_prop("L", "L", "Runs Allowed")
+        self.assertGreater(runs_vs_r, runs_vs_l)
+
+    # --- No opponent provided → no platoon adjustment (neutral) ---
+
+    def test_no_opponent_throws_means_no_platoon_adjustment_batter(self):
+        # When opponent_throws is None the platoon block is skipped entirely.
+        # Confirm the call succeeds and produces a positive hit count in both
+        # the keyword-None and implicit-default forms.
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=2_000,
+            random_seed=42,
+        )
+        batter = BatterStats(name="B", avg=0.270, obp=0.340, slg=0.460,
+                             hr_per_600_pa=25, sb_per_season=15, doubles_per_600_pa=35)
+        report_none = sim.simulate_batter(batter, opponent_throws=None)
+        report_default = sim.simulate_batter(batter)  # default is also None
+        hits_none = next(p for p in report_none.props if p.prop_name == "Hits").mean
+        hits_default = next(p for p in report_default.props if p.prop_name == "Hits").mean
+        # Both calls use the same platoon logic (no split) — results differ only
+        # because the RNG state has advanced between calls.
+        self.assertGreater(hits_none, 0)
+        self.assertGreater(hits_default, 0)
+
+    def test_no_opponent_bats_means_no_platoon_adjustment_pitcher(self):
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=2_000,
+            random_seed=42,
+        )
+        pitcher = PitcherStats(name="P", era=4.0, k_per_9=8.5,
+                               innings_per_start=5.5, whip=1.25)
+        report = sim.simulate_pitcher(pitcher, opponent_bats=None)
+        k_mean = next(p for p in report.props if p.prop_name == "Strikeouts").mean
+        self.assertGreater(k_mean, 0)
+
+
+# ---------------------------------------------------------------------------
 # Matchup / convenience API tests
 # ---------------------------------------------------------------------------
 
@@ -910,6 +1213,37 @@ class TestSimulateMatchup(unittest.TestCase):
         results = sim.simulate_matchup(pitcher, [])
         self.assertEqual(len(results), 1)
         self.assertIn(pitcher.name, results)
+
+    def test_simulate_matchup_applies_platoon_splits(self):
+        # LHP facing RHB should produce more hits for the batter than
+        # a RHP facing the same batter (platoon advantage for RHB vs LHP).
+        sim_r = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=2_000,
+            random_seed=42,
+        )
+        sim_l = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=2_000,
+            random_seed=42,
+        )
+        rhp = PitcherStats(name="RHP", era=4.0, k_per_9=8.5,
+                           innings_per_start=5.5, whip=1.25, throws="R")
+        lhp = PitcherStats(name="LHP", era=4.0, k_per_9=8.5,
+                           innings_per_start=5.5, whip=1.25, throws="L")
+        rhb = BatterStats(name="RHB", avg=0.270, obp=0.340, slg=0.460,
+                          hr_per_600_pa=25, sb_per_season=15, doubles_per_600_pa=35,
+                          bats="R")
+        # RHB has platoon advantage vs LHP → should see more hits
+        results_rhp = sim_r.simulate_matchup(rhp, [rhb])
+        results_lhp = sim_l.simulate_matchup(lhp, [rhb])
+        hits_vs_rhp = next(p for p in results_rhp["RHB"].props if p.prop_name == "Hits").mean
+        hits_vs_lhp = next(p for p in results_lhp["RHB"].props if p.prop_name == "Hits").mean
+        self.assertGreater(hits_vs_lhp, hits_vs_rhp)
 
 
 # ---------------------------------------------------------------------------
