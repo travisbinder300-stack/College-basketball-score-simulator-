@@ -9,6 +9,11 @@ Simulates individual player prop outcomes for MLB games including:
 Environmental modifiers applied to every simulation:
   - Weather conditions  (temperature, precipitation, humidity)
   - Wind conditions     (speed, direction relative to field)
+  - Air density         (altitude and barometric pressure)
+      * Thin air (high altitude / low pressure) boosts HR, hits, and runs;
+        slightly reduces K rate (less pitch-break effectiveness).
+      * Standard sea-level density produces neutral multipliers (1.0).
+      * See AirDensity class.  Examples: Denver ≈ 5 280 ft, New York ≈ 0 ft.
   - Stadium / Park factors (per-venue adjustments for each stat type)
   - Game time           (``"day"`` | ``"night"`` | ``"dome"``)
       * ``"day"``  – noon/afternoon game: solar heating amplifies temperature
@@ -47,6 +52,7 @@ Usage example
         MLBPlayerPropsSimulator,
         WeatherConditions,
         WindConditions,
+        AirDensity,
         Stadium,
         PitcherStats,
         BatterStats,
@@ -56,9 +62,10 @@ Usage example
     weather = WeatherConditions(temp_f=72, precipitation="none", humidity=0.55,
                                 game_time="night")   # "day" | "night" | "dome"
     wind    = WindConditions(speed_mph=15, direction="out_to_center")
+    air     = AirDensity(altitude_ft=0, barometric_pressure_inhg=29.92)  # sea level
 
     sim = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind,
-                                  num_simulations=10_000)
+                                  air_density=air, num_simulations=10_000)
 
     # Left-handed pitcher — pitching at home (is_home=True)
     pitcher = PitcherStats(name="Ace Pitcher", era=3.50, k_per_9=9.5,
@@ -219,6 +226,38 @@ WIND_K_OTHER_RATE: float = 0.001  # +0.1 % per mph for other directions
 # represents the runs-adjustment increment per 5-mph of wind speed per unit of
 # directional deviation.
 WIND_RUNS_SPEED_FACTOR: float = 0.015
+
+# ---------------------------------------------------------------------------
+# Air density constants
+# ---------------------------------------------------------------------------
+# Air density affects how far a batted ball carries (less-dense air = less
+# drag = more distance = more HR and hits).  At altitude, thinner air also
+# slightly reduces pitcher break / spin effectiveness, lowering K rates.
+#
+# Physical model (International Standard Atmosphere):
+#   density_ratio(h, P) = ISA_alt_factor(h) × (P_actual / P_std)
+#
+#   ISA_alt_factor(h) = (1 - ALTITUDE_LAPSE × h) ^ ALTITUDE_EXPONENT
+#   where h is feet above sea level.
+#
+# Calibration: Denver / Coors Field (5 280 ft) → density ≈ 85 % of sea level.
+#   Empirically this produces roughly +9 % HR carry and +4 % hit carry, which
+#   is distinct from the full Coors park factor (which also includes park
+#   dimensions, local hitting culture, etc.).
+
+# Standard sea-level barometric pressure used as the baseline.
+AIR_DENSITY_STD_PRESSURE_INHG: float = 29.92  # inches of mercury (ISA sea level)
+
+# ISA barometric-formula coefficients (altitude in feet).
+AIR_DENSITY_ALTITUDE_LAPSE:    float = 6.87559e-6   # ft⁻¹ temperature lapse coefficient
+AIR_DENSITY_ALTITUDE_EXPONENT: float = 4.25587       # dimensionless ISA exponent
+
+# Sensitivity constants: multiply (1 − density_ratio) to get the fractional
+# change in each stat.  Positive → thin air boosts the stat; negative → reduces.
+AIR_DENSITY_HR_SENSITIVITY:    float = 0.60  # 60 % of density deficit → HR boost
+AIR_DENSITY_HITS_SENSITIVITY:  float = 0.25  # 25 % of density deficit → hits boost
+AIR_DENSITY_K_SENSITIVITY:     float = 0.15  # 15 % of density deficit → K reduction
+AIR_DENSITY_RUNS_SENSITIVITY:  float = 0.40  # 40 % of density deficit → runs boost
 
 # ---------------------------------------------------------------------------
 # Game-time (day / night / dome) constants
@@ -481,6 +520,94 @@ class WindConditions:
         elif base < 1.0:
             return base - magnitude * (1.0 - base) * 5
         return 1.00
+
+
+@dataclass
+class AirDensity:
+    """
+    Describes the air density at the game venue.
+
+    Air density determines how much drag a batted ball experiences in flight:
+
+    * **Thin air** (high altitude or low barometric pressure) reduces aerodynamic
+      drag, causing fly balls to carry farther.  This boosts HR probability, hit
+      rate, and run scoring while slightly reducing pitcher break effectiveness
+      (lower K rate).
+    * **Dense air** (near sea level or high barometric pressure) increases drag,
+      suppressing carry distance (slight HR and hits penalty).
+    * **Sea-level baseline** (``altitude_ft=0``, ``barometric_pressure_inhg=29.92``)
+      produces a ``density_ratio`` of exactly 1.0 and all multipliers equal 1.0.
+
+    Parameters
+    ----------
+    altitude_ft : float
+        Venue elevation above sea level in feet.  Examples: Denver ≈ 5 280 ft,
+        Atlanta ≈ 1 050 ft, New York / Boston ≈ 0–50 ft.
+    barometric_pressure_inhg : float
+        Actual barometric pressure at game time in inches of mercury.
+        Defaults to the International Standard Atmosphere (ISA) sea-level value
+        of 29.92 inHg.  Low pressure (e.g., a storm system) further reduces
+        density; high pressure (e.g., cold high-pressure ridge) increases it.
+    """
+
+    altitude_ft: float = 0.0
+    barometric_pressure_inhg: float = AIR_DENSITY_STD_PRESSURE_INHG
+
+    def density_ratio(self) -> float:
+        """
+        Ratio of actual air density to the ISA sea-level standard density.
+
+        Uses the International Standard Atmosphere barometric formula:
+
+        ``density_ratio = (1 − LAPSE × altitude_ft)^EXPONENT × (P_actual / P_std)``
+
+        Returns 1.0 at sea level with standard pressure; < 1.0 in thin air
+        (high altitude or low pressure); > 1.0 in dense air (below sea level
+        or high barometric pressure).
+        """
+        alt_factor = (
+            (1.0 - AIR_DENSITY_ALTITUDE_LAPSE * self.altitude_ft)
+            ** AIR_DENSITY_ALTITUDE_EXPONENT
+        )
+        pressure_factor = self.barometric_pressure_inhg / AIR_DENSITY_STD_PRESSURE_INHG
+        return alt_factor * pressure_factor
+
+    def hr_multiplier(self) -> float:
+        """
+        Home-run probability multiplier from air density.
+
+        Thin air (density < 1) boosts HR carry; dense air (density > 1)
+        suppresses it.  Linear scaling by AIR_DENSITY_HR_SENSITIVITY.
+        """
+        return 1.0 + (1.0 - self.density_ratio()) * AIR_DENSITY_HR_SENSITIVITY
+
+    def hits_multiplier(self) -> float:
+        """
+        Overall hit-rate multiplier from air density.
+
+        Thinner air carries fly balls and line drives slightly farther, turning
+        more outs into hits.  Effect is smaller than the HR effect.
+        """
+        return 1.0 + (1.0 - self.density_ratio()) * AIR_DENSITY_HITS_SENSITIVITY
+
+    def k_multiplier(self) -> float:
+        """
+        Pitcher strikeout-rate multiplier from air density.
+
+        In thin air, breaking balls have reduced spin effectiveness, making them
+        easier to track and lay off.  This slightly reduces K rate.
+        Returns < 1 at altitude; > 1 in dense (sea-level) air.
+        """
+        return 1.0 - (1.0 - self.density_ratio()) * AIR_DENSITY_K_SENSITIVITY
+
+    def runs_multiplier(self) -> float:
+        """
+        Runs-allowed multiplier from air density.
+
+        Mirrors the HR multiplier logic (thin air → more run scoring) but with
+        a slightly smaller sensitivity constant.
+        """
+        return 1.0 + (1.0 - self.density_ratio()) * AIR_DENSITY_RUNS_SENSITIVITY
 
 
 @dataclass
@@ -884,6 +1011,9 @@ class MLBPlayerPropsSimulator:
     wind           : WindConditions
     num_simulations: int      – number of Monte Carlo trials (default 10 000)
     random_seed    : int|None – optional seed for reproducibility
+    air_density    : AirDensity | None – altitude and barometric-pressure effects
+                     on ball carry.  Pass ``None`` (default) to use sea-level
+                     neutral conditions (no air density adjustment).
     """
 
     def __init__(
@@ -893,10 +1023,12 @@ class MLBPlayerPropsSimulator:
         wind: WindConditions,
         num_simulations: int = 10_000,
         random_seed: Optional[int] = None,
+        air_density: Optional[AirDensity] = None,
     ) -> None:
         self.stadium = stadium
         self.weather = weather
         self.wind = wind
+        self.air_density = air_density if air_density is not None else AirDensity()
         self.num_simulations = num_simulations
         if random_seed is not None:
             random.seed(random_seed)
@@ -928,6 +1060,7 @@ class MLBPlayerPropsSimulator:
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
             * self._effective_wind_mult(self.wind.hr_multiplier())
+            * self.air_density.hr_multiplier()
         )
 
     def _env_hits_multiplier(self) -> float:
@@ -937,6 +1070,7 @@ class MLBPlayerPropsSimulator:
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
             * self._effective_wind_mult(self.wind.hit_multiplier())
+            * self.air_density.hits_multiplier()
         )
 
     def _env_doubles_multiplier(self) -> float:
@@ -946,6 +1080,7 @@ class MLBPlayerPropsSimulator:
             * self.weather.precip_factor()
             * self.weather.humidity_hit_multiplier()
             * self._effective_wind_mult(self.wind.hit_multiplier())
+            * self.air_density.hits_multiplier()
         )
 
     def _env_k_multiplier(self) -> float:
@@ -954,6 +1089,7 @@ class MLBPlayerPropsSimulator:
             * self.weather.temp_k_multiplier()
             * self.weather.precip_factor()
             * self._effective_wind_mult(self.wind.k_multiplier())
+            * self.air_density.k_multiplier()
         )
 
     def _env_runs_multiplier(self) -> float:
@@ -962,6 +1098,7 @@ class MLBPlayerPropsSimulator:
             * self.weather.temp_hr_multiplier()
             * self.weather.precip_factor()
             * self._effective_wind_mult(self.wind.runs_multiplier())
+            * self.air_density.runs_multiplier()
         )
 
     # ------------------------------------------------------------------
@@ -1441,6 +1578,35 @@ def _demo() -> None:  # pragma: no cover
         ]
         print(f"  {label:<35}  {fn(vals[0]):>8.3f}  {fn(vals[1]):>8.3f}  {fn(vals[2]):>8.3f}")
 
+    # ----------------------------------------------------------------
+    # Air density comparison
+    # ----------------------------------------------------------------
+    altitudes = [
+        ("Sea level (0 ft)",     0),
+        ("Atlanta (~1 050 ft)",  1_050),
+        ("Denver (~5 280 ft)",   5_280),
+        ("Mexico City (~7 400 ft)", 7_400),
+    ]
+    print("\nAir density comparison (standard pressure 29.92 inHg, 72°F):")
+    print(f"  {'Venue':<28}  {'Density':>9}  {'HR mult':>9}  {'Hits mult':>9}  "
+          f"{'K mult':>9}  {'Runs mult':>9}")
+    print(f"  {'-'*28}  {'-'*9}  {'-'*9}  {'-'*9}  {'-'*9}  {'-'*9}")
+    for label, alt in altitudes:
+        ad = AirDensity(altitude_ft=alt)
+        print(f"  {label:<28}  {ad.density_ratio():>9.4f}  {ad.hr_multiplier():>9.3f}  "
+              f"{ad.hits_multiplier():>9.3f}  {ad.k_multiplier():>9.3f}  "
+              f"{ad.runs_multiplier():>9.3f}")
+
+    # Also show the effect of low barometric pressure (storm system)
+    print("\nBarometric pressure effect (sea level, 72°F):")
+    for pressure in (31.00, 29.92, 29.20, 28.50):
+        ad = AirDensity(altitude_ft=0, barometric_pressure_inhg=pressure)
+        tag = " (high-pressure ridge)" if pressure > 29.92 else (
+              " (standard)" if pressure == 29.92 else (
+              " (low-pressure system)" if pressure >= 29.00 else " (strong storm)"))
+        print(f"  {pressure:.2f} inHg{tag:<25}  density={ad.density_ratio():.4f}  "
+              f"HR mult={ad.hr_multiplier():.3f}")
+
     # Weather for actual sim — night game (default)
     weather = WeatherConditions(temp_f=68, precipitation="light", humidity=0.65,
                                 game_time="night")
@@ -1457,6 +1623,7 @@ def _demo() -> None:  # pragma: no cover
         stadium=stadium,
         weather=weather,
         wind=wind,
+        air_density=AirDensity(altitude_ft=0),   # sea-level baseline
         num_simulations=5_000,
         random_seed=42,
     )

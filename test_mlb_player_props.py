@@ -15,6 +15,7 @@ from mlb_player_props import (
     Stadium,
     WeatherConditions,
     WindConditions,
+    AirDensity,
     platoon_splits_for,
     home_away_batter_splits_for,
     home_away_pitcher_splits_for,
@@ -25,6 +26,11 @@ from mlb_player_props import (
     DOME_TEMP_AMPLIFIER,
     DOME_WIND_AMPLIFIER,
     VALID_GAME_TIMES,
+    AIR_DENSITY_STD_PRESSURE_INHG,
+    AIR_DENSITY_HR_SENSITIVITY,
+    AIR_DENSITY_HITS_SENSITIVITY,
+    AIR_DENSITY_K_SENSITIVITY,
+    AIR_DENSITY_RUNS_SENSITIVITY,
 )
 
 
@@ -2169,6 +2175,221 @@ class TestGameTimeSimulationImpact(unittest.TestCase):
         hits_clear = next(p for p in r_clear.props if p.prop_name == "Hits").mean
         # Dome neutralises precipitation, so results should be essentially equal
         self.assertAlmostEqual(hits_rainy, hits_clear, delta=0.05)
+
+
+# ---------------------------------------------------------------------------
+# AirDensity tests
+# ---------------------------------------------------------------------------
+
+# Denver / Coors Field elevation — the canonical high-altitude MLB venue.
+_COORS_ALTITUDE_FT: float = 5_280.0
+
+
+class TestAirDensityClass(unittest.TestCase):
+    """Unit tests for the AirDensity dataclass."""
+
+    # --- Default (sea level) ---
+
+    def test_sea_level_density_ratio_is_1(self):
+        ad = AirDensity(altitude_ft=0, barometric_pressure_inhg=AIR_DENSITY_STD_PRESSURE_INHG)
+        self.assertAlmostEqual(ad.density_ratio(), 1.0, places=6)
+
+    def test_sea_level_multipliers_are_all_1(self):
+        ad = AirDensity()
+        self.assertAlmostEqual(ad.hr_multiplier(), 1.0, places=6)
+        self.assertAlmostEqual(ad.hits_multiplier(), 1.0, places=6)
+        self.assertAlmostEqual(ad.k_multiplier(), 1.0, places=6)
+        self.assertAlmostEqual(ad.runs_multiplier(), 1.0, places=6)
+
+    # --- High altitude produces thin air (density < 1) ---
+
+    def test_high_altitude_decreases_density_ratio(self):
+        sea = AirDensity(altitude_ft=0)
+        denver = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertLess(denver.density_ratio(), sea.density_ratio())
+
+    def test_denver_density_ratio_in_expected_range(self):
+        # ISA model: Denver (~5 280 ft) → density ≈ 84–87 % of sea level
+        denver = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        ratio = denver.density_ratio()
+        self.assertGreater(ratio, 0.82)
+        self.assertLess(ratio, 0.90)
+
+    def test_altitude_boosts_hr_multiplier(self):
+        sea = AirDensity(altitude_ft=0)
+        high = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertGreater(high.hr_multiplier(), sea.hr_multiplier())
+
+    def test_altitude_boosts_hits_multiplier(self):
+        sea = AirDensity(altitude_ft=0)
+        high = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertGreater(high.hits_multiplier(), sea.hits_multiplier())
+
+    def test_altitude_reduces_k_multiplier(self):
+        sea = AirDensity(altitude_ft=0)
+        high = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertLess(high.k_multiplier(), sea.k_multiplier())
+
+    def test_altitude_boosts_runs_multiplier(self):
+        sea = AirDensity(altitude_ft=0)
+        high = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertGreater(high.runs_multiplier(), sea.runs_multiplier())
+
+    # --- Higher altitude = more extreme effect ---
+
+    def test_higher_altitude_lower_density(self):
+        low = AirDensity(altitude_ft=1_000)
+        mid = AirDensity(altitude_ft=3_000)
+        high = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertGreater(low.density_ratio(), mid.density_ratio())
+        self.assertGreater(mid.density_ratio(), high.density_ratio())
+
+    def test_higher_altitude_larger_hr_boost(self):
+        low = AirDensity(altitude_ft=1_000)
+        high = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertGreater(high.hr_multiplier(), low.hr_multiplier())
+
+    def test_higher_altitude_smaller_k_multiplier(self):
+        low = AirDensity(altitude_ft=1_000)
+        high = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertLess(high.k_multiplier(), low.k_multiplier())
+
+    # --- Barometric pressure ---
+
+    def test_low_pressure_decreases_density(self):
+        standard = AirDensity(barometric_pressure_inhg=AIR_DENSITY_STD_PRESSURE_INHG)
+        low_p = AirDensity(barometric_pressure_inhg=28.50)
+        self.assertLess(low_p.density_ratio(), standard.density_ratio())
+
+    def test_high_pressure_increases_density(self):
+        standard = AirDensity(barometric_pressure_inhg=AIR_DENSITY_STD_PRESSURE_INHG)
+        high_p = AirDensity(barometric_pressure_inhg=30.50)
+        self.assertGreater(high_p.density_ratio(), standard.density_ratio())
+
+    def test_low_pressure_boosts_hr_multiplier(self):
+        standard = AirDensity(barometric_pressure_inhg=AIR_DENSITY_STD_PRESSURE_INHG)
+        low_p = AirDensity(barometric_pressure_inhg=28.50)
+        self.assertGreater(low_p.hr_multiplier(), standard.hr_multiplier())
+
+    def test_high_pressure_reduces_hr_multiplier(self):
+        standard = AirDensity(barometric_pressure_inhg=AIR_DENSITY_STD_PRESSURE_INHG)
+        high_p = AirDensity(barometric_pressure_inhg=30.50)
+        self.assertLess(high_p.hr_multiplier(), standard.hr_multiplier())
+
+    # --- Sensitivity constants are reflected correctly ---
+
+    def test_hr_multiplier_formula(self):
+        """HR multiplier = 1 + (1 - density_ratio) × HR_SENSITIVITY."""
+        ad = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        expected = 1.0 + (1.0 - ad.density_ratio()) * AIR_DENSITY_HR_SENSITIVITY
+        self.assertAlmostEqual(ad.hr_multiplier(), expected, places=10)
+
+    def test_k_multiplier_formula(self):
+        """K multiplier = 1 − (1 − density_ratio) × K_SENSITIVITY."""
+        ad = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        expected = 1.0 - (1.0 - ad.density_ratio()) * AIR_DENSITY_K_SENSITIVITY
+        self.assertAlmostEqual(ad.k_multiplier(), expected, places=10)
+
+    def test_hits_multiplier_formula(self):
+        ad = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        expected = 1.0 + (1.0 - ad.density_ratio()) * AIR_DENSITY_HITS_SENSITIVITY
+        self.assertAlmostEqual(ad.hits_multiplier(), expected, places=10)
+
+    def test_runs_multiplier_formula(self):
+        ad = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        expected = 1.0 + (1.0 - ad.density_ratio()) * AIR_DENSITY_RUNS_SENSITIVITY
+        self.assertAlmostEqual(ad.runs_multiplier(), expected, places=10)
+
+    # --- hr_mult > hits_mult > 1 at altitude (sensitivity ordering) ---
+
+    def test_hr_sensitivity_greater_than_hits(self):
+        # HR_SENSITIVITY > HITS_SENSITIVITY, so HR boost > hits boost at altitude
+        self.assertGreater(AIR_DENSITY_HR_SENSITIVITY, AIR_DENSITY_HITS_SENSITIVITY)
+
+    def test_hr_multiplier_greater_than_hits_multiplier_at_altitude(self):
+        ad = AirDensity(altitude_ft=_COORS_ALTITUDE_FT)
+        self.assertGreater(ad.hr_multiplier(), ad.hits_multiplier())
+
+
+class TestAirDensitySimulatorDefault(unittest.TestCase):
+    """Tests that the simulator defaults to sea-level neutral when air_density=None."""
+
+    def test_default_air_density_is_sea_level(self):
+        sim = _default_sim()
+        self.assertAlmostEqual(sim.air_density.density_ratio(), 1.0, places=6)
+
+    def test_default_env_hr_multiplier_unaffected(self):
+        # At sea level, neutral weather, calm wind → env_hr = stadium factor only
+        sim = _default_sim()
+        # Neutral stadium hr_factor = 1.0; neutral weather + wind → 1.0; air = 1.0
+        self.assertAlmostEqual(sim._env_hr_multiplier(), 1.0, places=4)
+
+
+class TestAirDensitySimulationImpact(unittest.TestCase):
+    """Integration tests: air density affects simulated prop outcomes."""
+
+    def _sim_at_altitude(self, altitude_ft: float) -> MLBPlayerPropsSimulator:
+        return MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(temp_f=72, precipitation="none", humidity=0.50,
+                                      game_time="night"),
+            wind=WindConditions(speed_mph=0, direction="calm"),
+            num_simulations=3_000,
+            random_seed=77,
+            air_density=AirDensity(altitude_ft=altitude_ft),
+        )
+
+    def test_high_altitude_increases_hr_mean(self):
+        batter = _hrb_batter()
+        r_sea = self._sim_at_altitude(0).simulate_batter(batter)
+        r_denver = self._sim_at_altitude(_COORS_ALTITUDE_FT).simulate_batter(batter)
+        hr_sea = next(p for p in r_sea.props if p.prop_name == "Home Runs").mean
+        hr_denver = next(p for p in r_denver.props if p.prop_name == "Home Runs").mean
+        self.assertGreater(hr_denver, hr_sea)
+
+    def test_high_altitude_increases_hits_mean(self):
+        batter = _hrb_batter()
+        r_sea = self._sim_at_altitude(0).simulate_batter(batter)
+        r_denver = self._sim_at_altitude(_COORS_ALTITUDE_FT).simulate_batter(batter)
+        hits_sea = next(p for p in r_sea.props if p.prop_name == "Hits").mean
+        hits_denver = next(p for p in r_denver.props if p.prop_name == "Hits").mean
+        self.assertGreater(hits_denver, hits_sea)
+
+    def test_high_altitude_reduces_pitcher_k_mean(self):
+        pitcher = _default_pitcher()
+        r_sea = self._sim_at_altitude(0).simulate_pitcher(pitcher)
+        r_denver = self._sim_at_altitude(_COORS_ALTITUDE_FT).simulate_pitcher(pitcher)
+        k_sea = next(p for p in r_sea.props if p.prop_name == "Strikeouts").mean
+        k_denver = next(p for p in r_denver.props if p.prop_name == "Strikeouts").mean
+        self.assertLess(k_denver, k_sea)
+
+    def test_high_altitude_increases_runs_allowed_mean(self):
+        pitcher = _default_pitcher()
+        r_sea = self._sim_at_altitude(0).simulate_pitcher(pitcher)
+        r_denver = self._sim_at_altitude(_COORS_ALTITUDE_FT).simulate_pitcher(pitcher)
+        runs_sea = next(p for p in r_sea.props if p.prop_name == "Runs Allowed").mean
+        runs_denver = next(p for p in r_denver.props if p.prop_name == "Runs Allowed").mean
+        self.assertGreater(runs_denver, runs_sea)
+
+    def test_low_pressure_increases_hr_mean(self):
+        batter = _hrb_batter()
+        sim_std = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(), wind=WindConditions(),
+            num_simulations=3_000, random_seed=77,
+            air_density=AirDensity(barometric_pressure_inhg=AIR_DENSITY_STD_PRESSURE_INHG),
+        )
+        sim_low = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(), wind=WindConditions(),
+            num_simulations=3_000, random_seed=77,
+            air_density=AirDensity(barometric_pressure_inhg=28.50),
+        )
+        hr_std = next(p for p in sim_std.simulate_batter(batter).props
+                      if p.prop_name == "Home Runs").mean
+        hr_low = next(p for p in sim_low.simulate_batter(batter).props
+                      if p.prop_name == "Home Runs").mean
+        self.assertGreater(hr_low, hr_std)
 
 
 if __name__ == "__main__":
