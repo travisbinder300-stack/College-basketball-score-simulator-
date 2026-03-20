@@ -1,5 +1,25 @@
 """
 Unit tests for mlb_player_props.py
+====================================
+Test classes are organised by the component they exercise:
+
+  WindConditions         – TestWindConditions
+  AirDensity             – TestAirDensityClass, TestAirDensitySimulatorDefault,
+                           TestAirDensitySimulationImpact
+  WeatherConditions      – TestWeatherConditionsBasic, TestWeatherConditionsTemp,
+                           TestWeatherConditionsGameTime
+  Stadium                – TestStadiumFactory
+  PitcherStats           – TestPitcherStatsArmStrength
+  BatterStats            – TestBatterStatsPower
+  Platoon splits         – TestPlatoonSplits
+  Home / away splits     – TestHomeAwaySplits
+  Simulator – pitcher    – TestSimulatePitcherBasic, TestWeatherEffectsOnPitcher,
+                           TestWindEffectsOnPitcher, TestGameTimeEffectsSimulator
+  Simulator – batter     – TestSimulateBatterBasic, TestWeatherEffectsOnBatter
+  Simulator – matchup    – TestSimulateMatchup
+  ML calibration         – TestGameLogRecord, TestPropCalibratorUnfitted,
+                           TestPropCalibratorFit, TestPropCalibratorPredict,
+                           TestPropCalibratorSimulatorIntegration
 """
 
 import math
@@ -16,6 +36,8 @@ from mlb_player_props import (
     WeatherConditions,
     WindConditions,
     AirDensity,
+    GameLogRecord,
+    PropCalibrator,
     platoon_splits_for,
     home_away_batter_splits_for,
     home_away_pitcher_splits_for,
@@ -31,6 +53,13 @@ from mlb_player_props import (
     AIR_DENSITY_HITS_SENSITIVITY,
     AIR_DENSITY_K_SENSITIVITY,
     AIR_DENSITY_RUNS_SENSITIVITY,
+    ML_LEARNING_RATE,
+    ML_L2_LAMBDA,
+    ML_MAX_EPOCHS,
+    ML_CONVERGENCE_TOL,
+    ML_MIN_RECORDS_PER_PROP,
+    ML_MULTIPLIER_MIN,
+    ML_MULTIPLIER_MAX,
 )
 
 
@@ -2390,6 +2419,442 @@ class TestAirDensitySimulationImpact(unittest.TestCase):
         hr_low = next(p for p in sim_low.simulate_batter(batter).props
                       if p.prop_name == "Home Runs").mean
         self.assertGreater(hr_low, hr_std)
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared by ML tests
+# ---------------------------------------------------------------------------
+
+_PITCHER_FEATURES = {
+    "era": 3.50,
+    "k_per_9": 9.5,
+    "whip": 1.15,
+    "innings_per_start": 6.0,
+    "arm_strength": 65.0,
+    "pitches_per_pa": 3.9,
+    "temp_f": 72.0,
+    "humidity": 0.50,
+    "altitude_ft": 0.0,
+    "wind_speed_mph": 5.0,
+    "stadium_k_factor": 1.0,
+    "stadium_runs_factor": 1.0,
+}
+
+_BATTER_FEATURES = {
+    "avg": 0.275,
+    "obp": 0.345,
+    "slg": 0.450,
+    "hr_per_600_pa": 22.0,
+    "doubles_per_600_pa": 35.0,
+    "power_rating": 60.0,
+    "pitches_per_pa": 3.9,
+    "sb_per_season": 10.0,
+    "temp_f": 72.0,
+    "humidity": 0.50,
+    "altitude_ft": 0.0,
+    "wind_speed_mph": 5.0,
+    "stadium_hr_factor": 1.0,
+    "stadium_hits_factor": 1.0,
+}
+
+
+def _make_pitcher_records(
+    prop: str,
+    n: int,
+    sim_mean: float,
+    actual_mean: float,
+) -> list:
+    """Create ``n`` GameLogRecords with the given sim/actual means + small noise."""
+    import random as _random
+    rng = _random.Random(42)
+    return [
+        GameLogRecord(
+            prop=prop,
+            actual=max(0.0, actual_mean + rng.uniform(-0.3, 0.3)),
+            sim_mean=sim_mean,
+            features=dict(_PITCHER_FEATURES),
+            player_name="TestPitcher",
+        )
+        for _ in range(n)
+    ]
+
+
+def _make_batter_records(
+    prop: str,
+    n: int,
+    sim_mean: float,
+    actual_mean: float,
+) -> list:
+    """Create ``n`` GameLogRecords for a batter prop."""
+    import random as _random
+    rng = _random.Random(99)
+    return [
+        GameLogRecord(
+            prop=prop,
+            actual=max(0.0, actual_mean + rng.uniform(-0.1, 0.1)),
+            sim_mean=sim_mean,
+            features=dict(_BATTER_FEATURES),
+            player_name="TestBatter",
+        )
+        for _ in range(n)
+    ]
+
+
+# ---------------------------------------------------------------------------
+# GameLogRecord tests
+# ---------------------------------------------------------------------------
+
+
+class TestGameLogRecord(unittest.TestCase):
+    """Unit tests for the GameLogRecord dataclass."""
+
+    def test_basic_construction(self):
+        rec = GameLogRecord(
+            prop="Strikeouts",
+            actual=7.0,
+            sim_mean=5.5,
+            features={"era": 3.0, "k_per_9": 10.0},
+        )
+        self.assertEqual(rec.prop, "Strikeouts")
+        self.assertAlmostEqual(rec.actual, 7.0)
+        self.assertAlmostEqual(rec.sim_mean, 5.5)
+        self.assertIn("era", rec.features)
+
+    def test_player_name_defaults_to_empty_string(self):
+        rec = GameLogRecord("Hits", 1.5, 1.3, {})
+        self.assertEqual(rec.player_name, "")
+
+    def test_player_name_can_be_set(self):
+        rec = GameLogRecord("Hits", 1.5, 1.3, {}, player_name="Shohei Ohtani")
+        self.assertEqual(rec.player_name, "Shohei Ohtani")
+
+    def test_features_can_be_empty(self):
+        rec = GameLogRecord("Home Runs", 1.0, 0.8, {})
+        self.assertEqual(rec.features, {})
+
+    def test_features_contains_expected_keys(self):
+        rec = GameLogRecord("Strikeouts", 6.0, 5.0, {"era": 3.1, "k_per_9": 9.5})
+        self.assertAlmostEqual(rec.features["era"], 3.1)
+        self.assertAlmostEqual(rec.features["k_per_9"], 9.5)
+
+
+# ---------------------------------------------------------------------------
+# PropCalibrator unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestPropCalibratorUnfitted(unittest.TestCase):
+    """Tests for a freshly constructed, not-yet-fitted PropCalibrator."""
+
+    def setUp(self):
+        self.cal = PropCalibrator()
+
+    def test_predict_adjustment_returns_1_when_not_fitted(self):
+        adj = self.cal.predict_adjustment({"era": 3.5}, "Strikeouts")
+        self.assertAlmostEqual(adj, 1.0)
+
+    def test_is_fitted_returns_false(self):
+        self.assertFalse(self.cal.is_fitted("Strikeouts"))
+
+    def test_props_fitted_empty(self):
+        self.assertEqual(self.cal.props_fitted(), [])
+
+    def test_feature_importances_empty_when_not_fitted(self):
+        self.assertEqual(self.cal.feature_importances("Strikeouts"), [])
+
+    def test_training_rmse_zero_when_not_fitted(self):
+        self.assertAlmostEqual(self.cal.training_rmse("Strikeouts"), 0.0)
+
+    def test_epochs_run_zero_when_not_fitted(self):
+        self.assertEqual(self.cal.epochs_run("Strikeouts"), 0)
+
+    def test_default_hyperparams_match_constants(self):
+        self.assertAlmostEqual(self.cal.learning_rate, ML_LEARNING_RATE)
+        self.assertAlmostEqual(self.cal.l2_lambda, ML_L2_LAMBDA)
+        self.assertEqual(self.cal.max_epochs, ML_MAX_EPOCHS)
+        self.assertAlmostEqual(self.cal.convergence_tol, ML_CONVERGENCE_TOL)
+
+
+class TestPropCalibratorFit(unittest.TestCase):
+    """Tests for PropCalibrator.fit()."""
+
+    def _make_cal(self, n=20, sim_mean=5.0, actual_mean=5.0):
+        records = _make_pitcher_records("Strikeouts", n, sim_mean, actual_mean)
+        cal = PropCalibrator()
+        result = cal.fit(records)
+        return cal, result
+
+    def test_fit_returns_self(self):
+        records = _make_pitcher_records("Strikeouts", 10, 5.0, 5.0)
+        cal = PropCalibrator()
+        ret = cal.fit(records)
+        self.assertIs(ret, cal)
+
+    def test_prop_is_fitted_after_sufficient_records(self):
+        cal, _ = self._make_cal(n=ML_MIN_RECORDS_PER_PROP)
+        self.assertTrue(cal.is_fitted("Strikeouts"))
+
+    def test_prop_not_fitted_below_min_records(self):
+        records = _make_pitcher_records("Strikeouts", ML_MIN_RECORDS_PER_PROP - 1, 5.0, 5.0)
+        cal = PropCalibrator()
+        cal.fit(records)
+        self.assertFalse(cal.is_fitted("Strikeouts"))
+
+    def test_zero_sim_mean_records_are_skipped(self):
+        # All records have sim_mean=0 → cannot compute ratio → prop not fitted.
+        records = [
+            GameLogRecord("Strikeouts", actual=5.0, sim_mean=0.0,
+                          features={"era": 3.5})
+            for _ in range(20)
+        ]
+        cal = PropCalibrator()
+        cal.fit(records)
+        self.assertFalse(cal.is_fitted("Strikeouts"))
+
+    def test_multiple_props_fitted_independently(self):
+        records = (
+            _make_pitcher_records("Strikeouts", 10, 5.0, 5.0)
+            + _make_pitcher_records("Runs Allowed", 10, 3.0, 3.0)
+        )
+        cal = PropCalibrator()
+        cal.fit(records)
+        self.assertTrue(cal.is_fitted("Strikeouts"))
+        self.assertTrue(cal.is_fitted("Runs Allowed"))
+
+    def test_props_fitted_sorted(self):
+        records = (
+            _make_pitcher_records("Strikeouts", 10, 5.0, 5.0)
+            + _make_pitcher_records("Runs Allowed", 10, 3.0, 3.0)
+        )
+        cal = PropCalibrator()
+        cal.fit(records)
+        self.assertEqual(cal.props_fitted(), sorted(cal.props_fitted()))
+
+    def test_training_rmse_positive_after_fit(self):
+        cal, _ = self._make_cal(n=20, sim_mean=5.0, actual_mean=6.0)
+        self.assertGreater(cal.training_rmse("Strikeouts"), 0.0)
+
+    def test_epochs_run_within_bounds(self):
+        cal, _ = self._make_cal(n=20)
+        ep = cal.epochs_run("Strikeouts")
+        self.assertGreaterEqual(ep, 1)
+        self.assertLessEqual(ep, ML_MAX_EPOCHS)
+
+    def test_feature_importances_sorted_by_magnitude(self):
+        records = _make_pitcher_records("Strikeouts", 20, 5.0, 5.0)
+        cal = PropCalibrator()
+        cal.fit(records)
+        pairs = cal.feature_importances("Strikeouts")
+        abs_weights = [abs(w) for _, w in pairs]
+        self.assertEqual(abs_weights, sorted(abs_weights, reverse=True))
+
+    def test_feature_importances_covers_all_trained_features(self):
+        records = _make_pitcher_records("Strikeouts", 20, 5.0, 5.0)
+        cal = PropCalibrator()
+        cal.fit(records)
+        names = {n for n, _ in cal.feature_importances("Strikeouts")}
+        # All feature keys from the training records should appear.
+        self.assertIn("era", names)
+        self.assertIn("k_per_9", names)
+
+    def test_fit_chaining(self):
+        records = _make_pitcher_records("Strikeouts", 10, 5.0, 5.0)
+        cal = PropCalibrator().fit(records)
+        self.assertTrue(cal.is_fitted("Strikeouts"))
+
+
+class TestPropCalibratorPredict(unittest.TestCase):
+    """Tests for PropCalibrator.predict_adjustment()."""
+
+    def _fit_calibrator_overpredict(self) -> PropCalibrator:
+        """Train on data where sim over-predicts → calibrator should return < 1."""
+        # sim_mean = 6.0, actual ≈ 4.0 → ratio ≈ 0.667 → adj < 1.0
+        records = _make_pitcher_records("Strikeouts", 30, sim_mean=6.0, actual_mean=4.0)
+        return PropCalibrator(max_epochs=200).fit(records)
+
+    def _fit_calibrator_underpredict(self) -> PropCalibrator:
+        """Train on data where sim under-predicts → calibrator should return > 1."""
+        # sim_mean = 4.0, actual ≈ 6.0 → ratio ≈ 1.5 → adj > 1.0
+        records = _make_pitcher_records("Strikeouts", 30, sim_mean=4.0, actual_mean=6.0)
+        return PropCalibrator(max_epochs=200).fit(records)
+
+    def test_overprediction_gives_adjustment_below_1(self):
+        cal = self._fit_calibrator_overpredict()
+        adj = cal.predict_adjustment(_PITCHER_FEATURES, "Strikeouts")
+        self.assertLess(adj, 1.0)
+
+    def test_underprediction_gives_adjustment_above_1(self):
+        cal = self._fit_calibrator_underpredict()
+        adj = cal.predict_adjustment(_PITCHER_FEATURES, "Strikeouts")
+        self.assertGreater(adj, 1.0)
+
+    def test_adjustment_clamped_at_multiplier_min(self):
+        # Extreme under-prediction: sim = 10, actual ≈ 1 → raw ratio ≈ 0.1
+        records = _make_pitcher_records("Strikeouts", 30, sim_mean=10.0, actual_mean=1.0)
+        cal = PropCalibrator(max_epochs=500).fit(records)
+        adj = cal.predict_adjustment(_PITCHER_FEATURES, "Strikeouts")
+        self.assertGreaterEqual(adj, ML_MULTIPLIER_MIN)
+
+    def test_adjustment_clamped_at_multiplier_max(self):
+        # Extreme over-prediction: sim = 1, actual ≈ 10 → raw ratio ≈ 10
+        records = _make_pitcher_records("Strikeouts", 30, sim_mean=1.0, actual_mean=10.0)
+        cal = PropCalibrator(max_epochs=500).fit(records)
+        adj = cal.predict_adjustment(_PITCHER_FEATURES, "Strikeouts")
+        self.assertLessEqual(adj, ML_MULTIPLIER_MAX)
+
+    def test_adjustment_always_positive(self):
+        cal = self._fit_calibrator_overpredict()
+        adj = cal.predict_adjustment(_PITCHER_FEATURES, "Strikeouts")
+        self.assertGreater(adj, 0.0)
+
+    def test_unknown_features_treated_as_zero(self):
+        records = _make_pitcher_records("Strikeouts", 20, 5.0, 5.0)
+        cal = PropCalibrator().fit(records)
+        # Passing empty features should not raise.
+        adj = cal.predict_adjustment({}, "Strikeouts")
+        self.assertGreaterEqual(adj, ML_MULTIPLIER_MIN)
+        self.assertLessEqual(adj, ML_MULTIPLIER_MAX)
+
+    def test_unfitted_prop_returns_1(self):
+        records = _make_pitcher_records("Strikeouts", 20, 5.0, 5.0)
+        cal = PropCalibrator().fit(records)
+        # "Hits" was never trained.
+        self.assertAlmostEqual(cal.predict_adjustment(_BATTER_FEATURES, "Hits"), 1.0)
+
+    def test_neutral_training_data_gives_adjustment_near_1(self):
+        # sim_mean ≈ actual → ratio ≈ 1 → calibrator should predict near 1.
+        records = _make_pitcher_records("Strikeouts", 50, sim_mean=5.0, actual_mean=5.0)
+        cal = PropCalibrator(max_epochs=300).fit(records)
+        adj = cal.predict_adjustment(_PITCHER_FEATURES, "Strikeouts")
+        self.assertAlmostEqual(adj, 1.0, delta=0.15)
+
+    def test_batter_prop_calibration(self):
+        records = _make_batter_records("Hits", 30, sim_mean=1.5, actual_mean=1.2)
+        cal = PropCalibrator(max_epochs=200).fit(records)
+        adj = cal.predict_adjustment(_BATTER_FEATURES, "Hits")
+        # sim over-predicted → adj should be ≤ 1.0
+        self.assertLessEqual(adj, 1.0)
+
+
+class TestPropCalibratorSimulatorIntegration(unittest.TestCase):
+    """End-to-end tests: PropCalibrator wired into MLBPlayerPropsSimulator."""
+
+    def _sim(self, calibrator=None):
+        return MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(temp_f=72, precipitation="none",
+                                      humidity=0.50, game_time="night"),
+            wind=WindConditions(speed_mph=0, direction="calm"),
+            num_simulations=2_000,
+            random_seed=55,
+            calibrator=calibrator,
+        )
+
+    def test_no_calibrator_same_as_none_default(self):
+        """Passing calibrator=None is identical to omitting the argument."""
+        pitcher = _default_pitcher()
+        r1 = self._sim(calibrator=None).simulate_pitcher(pitcher)
+        r2 = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(),
+            wind=WindConditions(),
+            num_simulations=2_000,
+            random_seed=55,
+        ).simulate_pitcher(pitcher)
+        k1 = next(p for p in r1.props if p.prop_name == "Strikeouts").mean
+        k2 = next(p for p in r2.props if p.prop_name == "Strikeouts").mean
+        self.assertAlmostEqual(k1, k2, delta=0.02)
+
+    def test_downward_calibrator_reduces_pitcher_k_mean(self):
+        """A calibrator trained to reduce K should lower the simulated K mean."""
+        records = _make_pitcher_records("Strikeouts", 30, sim_mean=5.5, actual_mean=4.0)
+        cal = PropCalibrator(max_epochs=300).fit(records)
+
+        pitcher = _default_pitcher()
+        r_cal = self._sim(calibrator=cal).simulate_pitcher(pitcher)
+        r_raw = self._sim(calibrator=None).simulate_pitcher(pitcher)
+        k_cal = next(p for p in r_cal.props if p.prop_name == "Strikeouts").mean
+        k_raw = next(p for p in r_raw.props if p.prop_name == "Strikeouts").mean
+        self.assertLess(k_cal, k_raw)
+
+    def test_upward_calibrator_increases_pitcher_k_mean(self):
+        records = _make_pitcher_records("Strikeouts", 30, sim_mean=4.0, actual_mean=6.0)
+        cal = PropCalibrator(max_epochs=300).fit(records)
+
+        pitcher = _default_pitcher()
+        r_cal = self._sim(calibrator=cal).simulate_pitcher(pitcher)
+        r_raw = self._sim(calibrator=None).simulate_pitcher(pitcher)
+        k_cal = next(p for p in r_cal.props if p.prop_name == "Strikeouts").mean
+        k_raw = next(p for p in r_raw.props if p.prop_name == "Strikeouts").mean
+        self.assertGreater(k_cal, k_raw)
+
+    def test_downward_calibrator_reduces_batter_hits_mean(self):
+        records = _make_batter_records("Hits", 30, sim_mean=1.5, actual_mean=1.1)
+        cal = PropCalibrator(max_epochs=300).fit(records)
+
+        batter = _hrb_batter()
+        r_cal = self._sim(calibrator=cal).simulate_batter(batter)
+        r_raw = self._sim(calibrator=None).simulate_batter(batter)
+        hits_cal = next(p for p in r_cal.props if p.prop_name == "Hits").mean
+        hits_raw = next(p for p in r_raw.props if p.prop_name == "Hits").mean
+        self.assertLess(hits_cal, hits_raw)
+
+    def test_upward_calibrator_increases_batter_hr_mean(self):
+        records = _make_batter_records("Home Runs", 30, sim_mean=0.1, actual_mean=0.18)
+        cal = PropCalibrator(max_epochs=300).fit(records)
+
+        batter = _hrb_batter()
+        r_cal = self._sim(calibrator=cal).simulate_batter(batter)
+        r_raw = self._sim(calibrator=None).simulate_batter(batter)
+        hr_cal = next(p for p in r_cal.props if p.prop_name == "Home Runs").mean
+        hr_raw = next(p for p in r_raw.props if p.prop_name == "Home Runs").mean
+        self.assertGreater(hr_cal, hr_raw)
+
+    def test_unfitted_prop_unchanged_in_simulation(self):
+        """Calibrator trained on Strikeouts only → Runs Allowed unaffected."""
+        records = _make_pitcher_records("Strikeouts", 30, sim_mean=5.5, actual_mean=4.0)
+        cal = PropCalibrator(max_epochs=300).fit(records)
+        self.assertFalse(cal.is_fitted("Runs Allowed"))
+
+        pitcher = _default_pitcher()
+        r_cal = self._sim(calibrator=cal).simulate_pitcher(pitcher)
+        r_raw = self._sim(calibrator=None).simulate_pitcher(pitcher)
+        ra_cal = next(p for p in r_cal.props if p.prop_name == "Runs Allowed").mean
+        ra_raw = next(p for p in r_raw.props if p.prop_name == "Runs Allowed").mean
+        # The difference should be zero (or negligible floating point noise).
+        self.assertAlmostEqual(ra_cal, ra_raw, delta=0.02)
+
+    def test_pitcher_features_helper_returns_expected_keys(self):
+        sim = self._sim()
+        pitcher = _default_pitcher()
+        feats = sim._pitcher_features(pitcher)
+        for key in ("era", "k_per_9", "whip", "arm_strength",
+                    "temp_f", "humidity", "altitude_ft", "wind_speed_mph",
+                    "stadium_k_factor"):
+            self.assertIn(key, feats, msg=f"Missing key: {key}")
+
+    def test_batter_features_helper_returns_expected_keys(self):
+        sim = self._sim()
+        batter = _hrb_batter()
+        feats = sim._batter_features(batter)
+        for key in ("avg", "obp", "slg", "hr_per_600_pa", "power_rating",
+                    "temp_f", "altitude_ft", "stadium_hr_factor"):
+            self.assertIn(key, feats, msg=f"Missing key: {key}")
+
+    def test_apply_calibration_multiplier_1_returns_same_list(self):
+        """_apply_calibration with mult=1.0 returns the identical list object."""
+        sim = self._sim()
+        values = [1.0, 2.0, 3.0]
+        result = sim._apply_calibration(values, 1.0)
+        self.assertIs(result, values)
+
+    def test_apply_calibration_scales_values(self):
+        sim = self._sim()
+        values = [2.0, 4.0, 6.0]
+        result = sim._apply_calibration(values, 0.5)
+        self.assertAlmostEqual(result[0], 1.0)
+        self.assertAlmostEqual(result[1], 2.0)
+        self.assertAlmostEqual(result[2], 3.0)
 
 
 if __name__ == "__main__":

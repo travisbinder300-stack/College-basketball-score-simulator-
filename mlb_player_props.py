@@ -82,6 +82,34 @@ Usage example
 
     sim.print_results(pitcher_results)
     sim.print_results(batter_results)
+
+Machine Learning — Prop Calibration
+------------------------------------
+:class:`PropCalibrator` trains one Ridge Regression model per prop type
+(pure Python, no external dependencies) via stochastic gradient descent with
+L2 regularisation.  After fitting on historical :class:`GameLogRecord` data it
+predicts a calibration multiplier that corrects systematic bias in the raw
+Monte Carlo output.
+
+::
+
+    from mlb_player_props import GameLogRecord, PropCalibrator
+
+    records = [
+        GameLogRecord("Strikeouts", actual=7, sim_mean=5.5,
+                      features={"era": 3.0, "k_per_9": 11.0, "temp_f": 70}),
+        # … many more records …
+    ]
+    cal = PropCalibrator().fit(records)
+    # Pass the fitted calibrator to the simulator:
+    sim = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind,
+                                  calibrator=cal)
+    # Subsequent simulate_pitcher / simulate_batter calls apply calibration
+    # automatically.
+
+    # Inspect which features the model learned were most predictive:
+    for feat, weight in cal.feature_importances("Strikeouts"):
+        print(f"  {feat}: {weight:+.4f}")
 """
 
 from __future__ import annotations
@@ -258,6 +286,39 @@ AIR_DENSITY_HR_SENSITIVITY:    float = 0.60  # 60 % of density deficit → HR bo
 AIR_DENSITY_HITS_SENSITIVITY:  float = 0.25  # 25 % of density deficit → hits boost
 AIR_DENSITY_K_SENSITIVITY:     float = 0.15  # 15 % of density deficit → K reduction
 AIR_DENSITY_RUNS_SENSITIVITY:  float = 0.40  # 40 % of density deficit → runs boost
+
+# ---------------------------------------------------------------------------
+# Machine Learning — Prop Calibration constants
+# ---------------------------------------------------------------------------
+# PropCalibrator trains one L2-regularised linear model (Ridge Regression) per
+# prop type via stochastic gradient descent (SGD).  Once trained, it predicts a
+# calibration multiplier that adjusts the raw Monte Carlo simulation mean to
+# reduce systematic bias when historical game-log data is available.
+#
+# The entire implementation is pure Python — no numpy or scikit-learn required.
+
+# SGD learning rate (step size for each parameter update).
+ML_LEARNING_RATE: float = 0.01
+
+# L2 regularisation strength (ridge penalty applied to weights, not the bias).
+# Larger values keep weights small and reduce overfitting.
+ML_L2_LAMBDA: float = 0.001
+
+# Maximum number of SGD passes over the training data (epochs).
+ML_MAX_EPOCHS: int = 500
+
+# Early-stopping threshold: training halts when the epoch-to-epoch loss
+# improvement falls below this absolute value (avoids unnecessary iterations).
+ML_CONVERGENCE_TOL: float = 1e-6
+
+# Minimum number of historical records required for a given prop before the
+# calibrator will train a model for that prop.
+ML_MIN_RECORDS_PER_PROP: int = 5
+
+# The calibration multiplier is clamped to this range to prevent extreme
+# corrections that would override the physics-based simulation entirely.
+ML_MULTIPLIER_MIN: float = 0.70   # at most 30 % downward correction
+ML_MULTIPLIER_MAX: float = 1.30   # at most 30 % upward correction
 
 # ---------------------------------------------------------------------------
 # Game-time (day / night / dome) constants
@@ -947,6 +1008,339 @@ class BatterStats:
 
 
 # ---------------------------------------------------------------------------
+# Machine Learning — game-log record and prop calibrator
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class GameLogRecord:
+    """
+    One historical player-game observation used to train a :class:`PropCalibrator`.
+
+    Each record pairs the raw simulation-predicted mean (``sim_mean``) with the
+    actual observed outcome (``actual``) for a single prop in a single game,
+    alongside the feature values that describe the player and environment for
+    that game.
+
+    Parameters
+    ----------
+    prop : str
+        Prop type being recorded, e.g. ``"Strikeouts"``, ``"Hits"``,
+        ``"Home Runs"``, ``"Runs Allowed"``.  Must match the prop names used in
+        :meth:`PropCalibrator.predict_adjustment`.
+    actual : float
+        The real observed outcome for this player in this game
+        (e.g. 7 strikeouts, 2 hits).
+    sim_mean : float
+        The raw Monte Carlo simulation mean for this prop before any calibration.
+        Records with ``sim_mean <= 0`` are ignored during training.
+    features : Dict[str, float]
+        Numeric feature vector describing the player and environment.
+        Typical pitcher keys: ``"era"``, ``"k_per_9"``, ``"whip"``,
+        ``"innings_per_start"``, ``"arm_strength"``, ``"pitches_per_pa"``,
+        ``"temp_f"``, ``"humidity"``, ``"altitude_ft"``, ``"wind_speed_mph"``,
+        ``"stadium_k_factor"``, ``"stadium_runs_factor"``.
+        Typical batter keys: ``"avg"``, ``"obp"``, ``"slg"``,
+        ``"hr_per_600_pa"``, ``"doubles_per_600_pa"``, ``"power_rating"``,
+        ``"pitches_per_pa"``, ``"sb_per_season"``, ``"temp_f"``,
+        ``"humidity"``, ``"altitude_ft"``, ``"wind_speed_mph"``,
+        ``"stadium_hr_factor"``, ``"stadium_hits_factor"``.
+        Any numeric key is accepted; unknown keys are treated as zero at
+        prediction time.
+    player_name : str
+        Optional annotation for logging and diagnostics.
+    """
+
+    prop: str
+    actual: float
+    sim_mean: float
+    features: Dict[str, float]
+    player_name: str = ""
+
+
+class PropCalibrator:
+    """
+    Pure-Python Ridge Regression calibrator for prop simulation outputs.
+
+    Trains one L2-regularised linear model per prop type using stochastic
+    gradient descent (SGD).  After fitting on historical :class:`GameLogRecord`
+    data, :meth:`predict_adjustment` returns a calibration multiplier that
+    adjusts the raw Monte Carlo simulation mean toward observed historical
+    outcomes.
+
+    The entire implementation uses only the Python standard library — no
+    numpy, pandas, or scikit-learn is required.
+
+    Algorithm
+    ---------
+    For each prop type with enough records:
+
+    1. **Target construction** — compute the calibration ratio
+       ``y = actual / sim_mean`` for each record.  A ratio < 1 means the
+       simulation over-predicted; > 1 means it under-predicted.
+    2. **Feature standardisation** — z-score each feature column so all
+       features have roughly equal gradient magnitudes.
+    3. **SGD with L2 penalty** — update weights and bias per sample::
+
+           err    = ŷ − y
+           w[j]  -= lr × (2 × err × x[j]  +  2 × λ × w[j])
+           bias  -= lr × 2 × err
+
+    4. **Early stopping** — training halts when the epoch-level MSE loss
+       improves by less than ``ML_CONVERGENCE_TOL``.
+    5. **Output clamping** — the predicted multiplier is clamped to
+       ``[ML_MULTIPLIER_MIN, ML_MULTIPLIER_MAX]`` (default 0.70 – 1.30)
+       to prevent extreme corrections.
+
+    Parameters
+    ----------
+    learning_rate : float
+        SGD step size.  Default: ``ML_LEARNING_RATE`` (0.01).
+    l2_lambda : float
+        L2 regularisation strength.  Default: ``ML_L2_LAMBDA`` (0.001).
+    max_epochs : int
+        Maximum SGD passes over the training data.  Default: ``ML_MAX_EPOCHS``.
+    convergence_tol : float
+        Early-stopping threshold on loss improvement.
+        Default: ``ML_CONVERGENCE_TOL``.
+
+    Examples
+    --------
+    ::
+
+        from mlb_player_props import GameLogRecord, PropCalibrator
+
+        records = [
+            GameLogRecord("Strikeouts", actual=6, sim_mean=5.2,
+                          features={"era": 3.1, "k_per_9": 10.5, "temp_f": 68}),
+            # … many more records …
+        ]
+        cal = PropCalibrator().fit(records)
+        adj = cal.predict_adjustment({"era": 3.1, "k_per_9": 10.5, "temp_f": 68},
+                                      prop="Strikeouts")
+        # adj is a float near 1.0; multiply raw sim mean by adj.
+    """
+
+    def __init__(
+        self,
+        learning_rate: float = ML_LEARNING_RATE,
+        l2_lambda: float = ML_L2_LAMBDA,
+        max_epochs: int = ML_MAX_EPOCHS,
+        convergence_tol: float = ML_CONVERGENCE_TOL,
+    ) -> None:
+        self.learning_rate = learning_rate
+        self.l2_lambda = l2_lambda
+        self.max_epochs = max_epochs
+        self.convergence_tol = convergence_tol
+
+        # Per-prop model parameters (populated by fit)
+        self._weights: Dict[str, List[float]] = {}
+        self._bias: Dict[str, float] = {}
+        self._feature_names: Dict[str, List[str]] = {}
+        self._feature_means: Dict[str, List[float]] = {}
+        self._feature_stds: Dict[str, List[float]] = {}
+        self._train_rmse_: Dict[str, float] = {}
+        self._epochs_run_: Dict[str, int] = {}
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def fit(self, records: List[GameLogRecord]) -> "PropCalibrator":
+        """
+        Train one Ridge Regression model per prop type.
+
+        Records whose ``sim_mean`` is ≤ 0 are silently skipped (the
+        calibration ratio would be undefined).  Props with fewer than
+        ``ML_MIN_RECORDS_PER_PROP`` usable records are also skipped.
+
+        Parameters
+        ----------
+        records : list of GameLogRecord
+
+        Returns
+        -------
+        PropCalibrator
+            Returns ``self`` for method chaining.
+        """
+        by_prop: Dict[str, List[GameLogRecord]] = {}
+        for rec in records:
+            if rec.sim_mean > 0.0:
+                by_prop.setdefault(rec.prop, []).append(rec)
+
+        for prop, prop_records in by_prop.items():
+            if len(prop_records) >= ML_MIN_RECORDS_PER_PROP:
+                self._fit_prop(prop, prop_records)
+
+        return self
+
+    def predict_adjustment(
+        self,
+        features: Dict[str, float],
+        prop: str,
+    ) -> float:
+        """
+        Return a calibration multiplier for the simulation mean.
+
+        If no model has been trained for ``prop``, returns ``1.0``
+        (no adjustment).  The result is always clamped to
+        ``[ML_MULTIPLIER_MIN, ML_MULTIPLIER_MAX]``.
+
+        Parameters
+        ----------
+        features : Dict[str, float]
+            Feature vector for the prediction context.  Unknown keys are
+            treated as zero (the standardised mean value).
+        prop : str
+            Prop type, e.g. ``"Strikeouts"`` or ``"Hits"``.
+
+        Returns
+        -------
+        float
+            Calibration multiplier.  Multiply the raw simulation mean (or each
+            element of the raw simulation values list) by this value to obtain
+            the calibrated estimate.
+        """
+        if not self.is_fitted(prop):
+            return 1.0
+
+        feat_names = self._feature_names[prop]
+        feat_means = self._feature_means[prop]
+        feat_stds = self._feature_stds[prop]
+        w = self._weights[prop]
+        b = self._bias[prop]
+
+        # Standardise input features the same way as during training.
+        x_std = [
+            (features.get(k, 0.0) - feat_means[j]) / feat_stds[j]
+            for j, k in enumerate(feat_names)
+        ]
+        predicted = sum(w[j] * x_std[j] for j in range(len(w))) + b
+        return max(ML_MULTIPLIER_MIN, min(ML_MULTIPLIER_MAX, predicted))
+
+    def is_fitted(self, prop: str) -> bool:
+        """Return ``True`` if a model has been trained for ``prop``."""
+        return prop in self._weights
+
+    def props_fitted(self) -> List[str]:
+        """Sorted list of prop types for which a model has been trained."""
+        return sorted(self._weights)
+
+    def feature_importances(self, prop: str) -> List[Tuple[str, float]]:
+        """
+        Sorted list of ``(feature_name, weight)`` pairs for ``prop``.
+
+        Pairs are ordered by absolute weight magnitude descending.  Weights
+        are expressed in the standardised feature space (one unit = one
+        standard deviation of that feature in the training data).
+
+        Returns an empty list if no model has been trained for ``prop``.
+        """
+        if not self.is_fitted(prop):
+            return []
+        pairs = list(zip(self._feature_names[prop], self._weights[prop]))
+        pairs.sort(key=lambda p: abs(p[1]), reverse=True)
+        return pairs
+
+    def training_rmse(self, prop: str) -> float:
+        """
+        Root-mean-squared error on the training set for ``prop``.
+
+        Measured in units of the calibration ratio (actual / sim_mean).
+        Returns ``0.0`` if no model has been trained.
+        """
+        return self._train_rmse_.get(prop, 0.0)
+
+    def epochs_run(self, prop: str) -> int:
+        """Number of SGD epochs actually completed for ``prop``."""
+        return self._epochs_run_.get(prop, 0)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _fit_prop(self, prop: str, records: List[GameLogRecord]) -> None:
+        """Fit a ridge regression model for one prop type via SGD."""
+        # Collect all feature names (sorted for determinism).
+        all_keys: List[str] = sorted({k for r in records for k in r.features})
+        n = len(records)
+        d = len(all_keys)
+
+        # Build design matrix X (n × d) and target vector y (n,).
+        # Target: calibration ratio = actual / sim_mean.
+        X = [[r.features.get(k, 0.0) for k in all_keys] for r in records]
+        y = [r.actual / r.sim_mean for r in records]
+
+        # Compute per-feature mean and std for z-score standardisation.
+        feat_means = [sum(X[i][j] for i in range(n)) / n for j in range(d)]
+        feat_vars = [
+            sum((X[i][j] - feat_means[j]) ** 2 for i in range(n)) / max(n - 1, 1)
+            for j in range(d)
+        ]
+        feat_stds = [math.sqrt(max(v, 1e-8)) for v in feat_vars]
+
+        # Standardise X.
+        X_std = [
+            [(X[i][j] - feat_means[j]) / feat_stds[j] for j in range(d)]
+            for i in range(n)
+        ]
+
+        # Initialise weights to zero; initialise bias to the mean target.
+        w = [0.0] * d
+        b = sum(y) / n
+
+        lr = self.learning_rate
+        lam = self.l2_lambda
+        prev_loss = float("inf")
+        epochs_run = 0
+
+        for _epoch in range(self.max_epochs):
+            # Shuffle record order each epoch (SGD).
+            indices = list(range(n))
+            random.shuffle(indices)
+
+            for i in indices:
+                xi = X_std[i]
+                yi = y[i]
+                # Forward pass.
+                y_hat = sum(w[j] * xi[j] for j in range(d)) + b
+                err = y_hat - yi
+                # Gradient descent update with L2 penalty on weights (not bias).
+                for j in range(d):
+                    w[j] -= lr * (2.0 * err * xi[j] + 2.0 * lam * w[j])
+                b -= lr * (2.0 * err)
+
+            # Compute epoch MSE + L2 loss for convergence check.
+            loss = 0.0
+            for i in range(n):
+                xi = X_std[i]
+                y_hat = sum(w[j] * xi[j] for j in range(d)) + b
+                loss += (y_hat - y[i]) ** 2
+            loss = loss / n + lam * sum(wj ** 2 for wj in w)
+            epochs_run += 1
+
+            if abs(prev_loss - loss) < self.convergence_tol:
+                break
+            prev_loss = loss
+
+        # Compute final training RMSE.
+        sse = sum(
+            (sum(w[j] * X_std[i][j] for j in range(d)) + b - y[i]) ** 2
+            for i in range(n)
+        )
+        rmse = math.sqrt(sse / n)
+
+        # Store fitted model.
+        self._weights[prop] = w
+        self._bias[prop] = b
+        self._feature_names[prop] = all_keys
+        self._feature_means[prop] = feat_means
+        self._feature_stds[prop] = feat_stds
+        self._train_rmse_[prop] = rmse
+        self._epochs_run_[prop] = epochs_run
+
+
+# ---------------------------------------------------------------------------
 # Simulation result containers
 # ---------------------------------------------------------------------------
 
@@ -1014,6 +1408,13 @@ class MLBPlayerPropsSimulator:
     air_density    : AirDensity | None – altitude and barometric-pressure effects
                      on ball carry.  Pass ``None`` (default) to use sea-level
                      neutral conditions (no air density adjustment).
+    calibrator     : PropCalibrator | None – a fitted ML calibrator that adjusts
+                     the raw Monte Carlo simulation output toward observed
+                     historical outcomes.  Pass ``None`` (default) to skip ML
+                     calibration (pure physics-based simulation).  When provided
+                     the calibrator's multiplier is applied to every simulated
+                     value before summary statistics are computed, preserving the
+                     full distribution shape while shifting location.
     """
 
     def __init__(
@@ -1024,11 +1425,13 @@ class MLBPlayerPropsSimulator:
         num_simulations: int = 10_000,
         random_seed: Optional[int] = None,
         air_density: Optional[AirDensity] = None,
+        calibrator: Optional[PropCalibrator] = None,
     ) -> None:
         self.stadium = stadium
         self.weather = weather
         self.wind = wind
         self.air_density = air_density if air_density is not None else AirDensity()
+        self.calibrator = calibrator
         self.num_simulations = num_simulations
         if random_seed is not None:
             random.seed(random_seed)
@@ -1100,6 +1503,97 @@ class MLBPlayerPropsSimulator:
             * self._effective_wind_mult(self.wind.runs_multiplier())
             * self.air_density.runs_multiplier()
         )
+
+    # ------------------------------------------------------------------
+    # ML calibration: feature extraction helpers
+    # ------------------------------------------------------------------
+
+    def _pitcher_features(self, stats: "PitcherStats") -> Dict[str, float]:
+        """
+        Build the numeric feature dictionary for a pitcher simulation context.
+
+        This dictionary can be passed directly to
+        :meth:`PropCalibrator.predict_adjustment` or used to construct a
+        :class:`GameLogRecord` for calibrator training.
+
+        All four stadium factors are included: HR-friendly parks correlate with
+        more home runs and hits *allowed* by pitchers, while high-K parks
+        correlate with more strikeouts.  The ML model will learn which factors
+        are predictive for each pitcher prop; unused factors shrink toward zero
+        under the L2 penalty.
+        """
+        return {
+            "era": stats.era,
+            "k_per_9": stats.k_per_9,
+            "whip": stats.whip,
+            "innings_per_start": stats.innings_per_start,
+            "arm_strength": float(stats.arm_strength),
+            "pitches_per_pa": stats.pitches_per_pa,
+            "temp_f": self.weather.temp_f,
+            "humidity": self.weather.humidity,
+            "altitude_ft": self.air_density.altitude_ft,
+            "barometric_pressure_inhg": self.air_density.barometric_pressure_inhg,
+            "wind_speed_mph": float(self.wind.speed_mph),
+            # All stadium factors included: HR/hits factors affect pitcher
+            # performance in hitter-friendly parks; K/runs factors encode
+            # overall park character which the model can weight as needed.
+            "stadium_hr_factor": self.stadium.hr_factor,
+            "stadium_hits_factor": self.stadium.hits_factor,
+            "stadium_k_factor": self.stadium.k_factor,
+            "stadium_runs_factor": self.stadium.runs_factor,
+        }
+
+    def _batter_features(self, stats: "BatterStats") -> Dict[str, float]:
+        """
+        Build the numeric feature dictionary for a batter simulation context.
+
+        This dictionary can be passed directly to
+        :meth:`PropCalibrator.predict_adjustment` or used to construct a
+        :class:`GameLogRecord` for calibrator training.
+
+        All four stadium factors are included: HR and hits factors directly
+        affect batter output; K and runs factors encode overall park character
+        (high-K parks suppress contact rates).  The L2 regulariser will
+        suppress irrelevant factors that are not predictive in the training
+        data.
+        """
+        return {
+            "avg": stats.avg,
+            "obp": stats.obp,
+            "slg": stats.slg,
+            "hr_per_600_pa": float(stats.hr_per_600_pa),
+            "doubles_per_600_pa": float(stats.doubles_per_600_pa),
+            "power_rating": float(stats.power_rating),
+            "pitches_per_pa": stats.pitches_per_pa,
+            "sb_per_season": float(stats.sb_per_season),
+            "temp_f": self.weather.temp_f,
+            "humidity": self.weather.humidity,
+            "altitude_ft": self.air_density.altitude_ft,
+            "barometric_pressure_inhg": self.air_density.barometric_pressure_inhg,
+            "wind_speed_mph": float(self.wind.speed_mph),
+            # All stadium factors included: HR/hits factors directly drive
+            # batter production; K/runs factors encode park context that
+            # may suppress contact or scoring rates.
+            "stadium_hr_factor": self.stadium.hr_factor,
+            "stadium_hits_factor": self.stadium.hits_factor,
+            "stadium_k_factor": self.stadium.k_factor,
+            "stadium_runs_factor": self.stadium.runs_factor,
+        }
+
+    @staticmethod
+    def _apply_calibration(
+        values: List[float],
+        multiplier: float,
+    ) -> List[float]:
+        """
+        Scale every value in ``values`` by ``multiplier``.
+
+        Returns a new list; the original is not mutated.  If ``multiplier``
+        equals 1.0 the original list is returned unchanged (no allocation).
+        """
+        if multiplier == 1.0:
+            return values
+        return [v * multiplier for v in values]
 
     # ------------------------------------------------------------------
     # Helper: build a result from a list of simulation values
@@ -1345,6 +1839,22 @@ class MLBPlayerPropsSimulator:
             runs_results.append(runs)
             pitch_count_results.append(pitches)
 
+        # Apply ML calibration if a fitted calibrator is available.
+        if self.calibrator is not None:
+            features = self._pitcher_features(stats)
+            k_results = self._apply_calibration(
+                k_results, self.calibrator.predict_adjustment(features, "Strikeouts")
+            )
+            outs_results = self._apply_calibration(
+                outs_results, self.calibrator.predict_adjustment(features, "Outs Recorded")
+            )
+            runs_results = self._apply_calibration(
+                runs_results, self.calibrator.predict_adjustment(features, "Runs Allowed")
+            )
+            pitch_count_results = self._apply_calibration(
+                pitch_count_results, self.calibrator.predict_adjustment(features, "Pitch Count")
+            )
+
         report = PlayerPropsReport(player_name=stats.name)
         report.props.append(
             self._summarise(k_results, stats.name, "Strikeouts", k_lines or [3.5, 4.5, 5.5, 6.5, 7.5])
@@ -1445,6 +1955,28 @@ class MLBPlayerPropsSimulator:
             sb_results.append(sb)
             pa_results.append(pa)
             hrb_results.append(h + runs + rbi)
+
+        # Apply ML calibration if a fitted calibrator is available.
+        if self.calibrator is not None:
+            features = self._batter_features(stats)
+            hits_results = self._apply_calibration(
+                hits_results, self.calibrator.predict_adjustment(features, "Hits")
+            )
+            doubles_results = self._apply_calibration(
+                doubles_results, self.calibrator.predict_adjustment(features, "Doubles")
+            )
+            hr_results = self._apply_calibration(
+                hr_results, self.calibrator.predict_adjustment(features, "Home Runs")
+            )
+            sb_results = self._apply_calibration(
+                sb_results, self.calibrator.predict_adjustment(features, "Stolen Bases")
+            )
+            pa_results = self._apply_calibration(
+                pa_results, self.calibrator.predict_adjustment(features, "Plate Appearances")
+            )
+            hrb_results = self._apply_calibration(
+                hrb_results, self.calibrator.predict_adjustment(features, "H+R+RBI")
+            )
 
         report = PlayerPropsReport(player_name=stats.name)
         report.props.append(
