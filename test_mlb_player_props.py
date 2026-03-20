@@ -1962,33 +1962,33 @@ class TestWeatherConditionsGameTime(unittest.TestCase):
 
     def test_day_temp_hr_multiplier_greater_than_night(self):
         # Hot day game → stronger ball-travel effect than same temp at night
-        w_night = _hot_day_weather("night")
-        w_day = _hot_day_weather("day")
+        w_night = _hot_weather("night")
+        w_day = _hot_weather("day")
         self.assertGreater(w_day.temp_hr_multiplier(), w_night.temp_hr_multiplier())
 
     def test_day_temp_hit_multiplier_greater_than_night(self):
-        w_night = _hot_day_weather("night")
-        w_day = _hot_day_weather("day")
+        w_night = _hot_weather("night")
+        w_day = _hot_weather("day")
         self.assertGreater(w_day.temp_hit_multiplier(), w_night.temp_hit_multiplier())
 
     def test_day_cold_k_multiplier_greater_than_night(self):
         # Cold day game → amplified cold grip → even higher K rate
-        w_night = _cold_night_weather("night")
-        w_day = _cold_night_weather("day")
+        w_night = _cold_weather("night")
+        w_day = _cold_weather("day")
         self.assertGreater(w_day.temp_k_multiplier(), w_night.temp_k_multiplier())
 
     def test_day_hot_stamina_penalty_worse_than_night(self):
         # Heat fatigue is amplified in direct sunlight
-        w_night = _hot_day_weather("night")
-        w_day = _hot_day_weather("day")
+        w_night = _hot_weather("night")
+        w_day = _hot_weather("day")
         self.assertLess(
             w_day.temp_pitcher_stamina_multiplier(),
             w_night.temp_pitcher_stamina_multiplier(),
         )
 
     def test_day_cold_stamina_penalty_worse_than_night(self):
-        w_night = _cold_night_weather("night")
-        w_day = _cold_night_weather("day")
+        w_night = _cold_weather("night")
+        w_day = _cold_weather("day")
         self.assertLess(
             w_day.temp_pitcher_stamina_multiplier(),
             w_night.temp_pitcher_stamina_multiplier(),
