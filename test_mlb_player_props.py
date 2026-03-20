@@ -24,6 +24,7 @@ Test classes are organised by the component they exercise:
   EdgeResult             – TestEdgeResult
   Unabated client        – TestUnabatedClient
   Unabated edge screener – TestUnabatedEdgeScreener
+  Blue Jays 2026 roster  – TestBlueJaysRoster
 """
 
 import json
@@ -3421,6 +3422,288 @@ class TestUnabatedEdgeScreener(unittest.TestCase):
     def test_base_url_is_string(self):
         self.assertIsInstance(UNABATED_BASE_URL, str)
         self.assertTrue(UNABATED_BASE_URL.startswith("https://"))
+
+
+# ---------------------------------------------------------------------------
+# Blue Jays 2026 Roster tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    BlueJaysRoster,
+    BLUE_JAYS_LINEUP_2026,
+    BLUE_JAYS_ROTATION_2026,
+)
+
+# Expected names in batting-order position (0-indexed)
+_LINEUP_NAMES = [
+    "George Springer",
+    "Addison Barger",
+    "Vladimir Guerrero Jr.",
+    "Alejandro Kirk",
+    "Daulton Varsho",
+    "Nathan Lukes",
+    "Kazuma Okamoto",
+    "Ernie Clement",
+    "Andrés Giménez",
+]
+
+_ROTATION_NAMES = [
+    "Dylan Cease",
+    "Kevin Gausman",
+    "Max Scherzer",
+    "Cody Ponce",
+    "Eric Lauer",
+]
+
+
+class TestBlueJaysRoster(unittest.TestCase):
+    """Tests for BLUE_JAYS_LINEUP_2026, BLUE_JAYS_ROTATION_2026, BlueJaysRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(BLUE_JAYS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_starters(self):
+        self.assertEqual(len(BLUE_JAYS_ROTATION_2026), 5)
+
+    def test_lineup_names_in_order(self):
+        names = [b.name for b in BLUE_JAYS_LINEUP_2026]
+        self.assertEqual(names, _LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        names = [p.name for p in BLUE_JAYS_ROTATION_2026]
+        self.assertEqual(names, _ROTATION_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()  # must not raise
+
+    def test_batter_avg_in_range(self):
+        for b in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_per_600_pa_nonnegative(self):
+        for b in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in BLUE_JAYS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — key players
+    # ------------------------------------------------------------------
+
+    def test_guerrero_bats_right(self):
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[2].bats, "R")
+
+    def test_barger_bats_left(self):
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[1].bats, "L")
+
+    def test_varsho_bats_left(self):
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[4].bats, "L")
+
+    def test_lukes_bats_left(self):
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[5].bats, "L")
+
+    def test_gimenez_switch_hitter(self):
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[8].bats, "S")
+
+    def test_springer_bats_right(self):
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[0].bats, "R")
+
+    def test_okamoto_bats_right(self):
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[6].bats, "R")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_pitchers_pass_validation(self):
+        for pitcher in BLUE_JAYS_ROTATION_2026:
+            with self.subTest(player=pitcher.name):
+                pitcher.validate()  # must not raise
+
+    def test_pitcher_era_positive(self):
+        for p in BLUE_JAYS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_pitcher_k_per_9_in_range(self):
+        for p in BLUE_JAYS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_pitcher_innings_per_start_in_range(self):
+        for p in BLUE_JAYS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.innings_per_start, 0.0)
+                self.assertLessEqual(p.innings_per_start, 9.0)
+
+    def test_pitcher_arm_strength_in_range(self):
+        for p in BLUE_JAYS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreaterEqual(p.arm_strength, 0.0)
+                self.assertLessEqual(p.arm_strength, 100.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_lauer_throws_left(self):
+        lauer = BLUE_JAYS_ROTATION_2026[4]
+        self.assertEqual(lauer.throws, "L")
+
+    def test_cease_throws_right(self):
+        self.assertEqual(BLUE_JAYS_ROTATION_2026[0].throws, "R")
+
+    def test_gausman_throws_right(self):
+        self.assertEqual(BLUE_JAYS_ROTATION_2026[1].throws, "R")
+
+    def test_scherzer_throws_right(self):
+        self.assertEqual(BLUE_JAYS_ROTATION_2026[2].throws, "R")
+
+    def test_ponce_throws_right(self):
+        self.assertEqual(BLUE_JAYS_ROTATION_2026[3].throws, "R")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_ace_has_lower_era_than_fifth_starter(self):
+        self.assertLess(BLUE_JAYS_ROTATION_2026[0].era, BLUE_JAYS_ROTATION_2026[4].era)
+
+    def test_guerrero_has_highest_power_in_lineup(self):
+        max_power = max(b.power_rating for b in BLUE_JAYS_LINEUP_2026)
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[2].power_rating, max_power)
+
+    def test_guerrero_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in BLUE_JAYS_LINEUP_2026)
+        self.assertEqual(BLUE_JAYS_LINEUP_2026[2].hr_per_600_pa, max_hr)
+
+    def test_gausman_has_highest_k_per_9(self):
+        max_k = max(p.k_per_9 for p in BLUE_JAYS_ROTATION_2026)
+        self.assertAlmostEqual(BLUE_JAYS_ROTATION_2026[1].k_per_9, max_k)
+
+    # ------------------------------------------------------------------
+    # BlueJaysRoster factory
+    # ------------------------------------------------------------------
+
+    def test_default_returns_blueJaysRoster_instance(self):
+        self.assertIsInstance(BlueJaysRoster.default(), BlueJaysRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(BlueJaysRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(BlueJaysRoster.default().rotation), 5)
+
+    def test_default_lineup_is_copy(self):
+        r1 = BlueJaysRoster.default()
+        r2 = BlueJaysRoster.default()
+        r1.lineup.append(r1.lineup[0])  # mutate r1
+        self.assertEqual(len(r2.lineup), 9)  # r2 unchanged
+
+    def test_default_rotation_names_match_constants(self):
+        roster = BlueJaysRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.rotation],
+            [p.name for p in BLUE_JAYS_ROTATION_2026],
+        )
+
+    def test_default_lineup_names_match_constants(self):
+        roster = BlueJaysRoster.default()
+        self.assertEqual(
+            [b.name for b in roster.lineup],
+            [b.name for b in BLUE_JAYS_LINEUP_2026],
+        )
+
+    # ------------------------------------------------------------------
+    # Simulator integration
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_cease_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(BLUE_JAYS_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Strikeouts", prop_names)
+
+    def test_simulate_batter_guerrero_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(BLUE_JAYS_LINEUP_2026[2])
+        self.assertIsNotNone(report)
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_cease_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Dylan Cease", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(BLUE_JAYS_ROTATION_2026[0], market_lines=lines)
+        # At a very low K line vs a 10.5 K/9 pitcher, over edge must exist.
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Dylan Cease")
+
+    def test_screen_batter_guerrero_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Vladimir Guerrero Jr.", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(BLUE_JAYS_LINEUP_2026[2], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_matchup_full_roster(self):
+        """screen_matchup with the full lineup against the ace returns results."""
+        sim = _make_screener_sim(seed=99)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = BlueJaysRoster.default()
+        lines = (
+            _make_market_lines("Dylan Cease", "strikeouts", 3.5, +350, -600)
+            + _make_market_lines("Vladimir Guerrero Jr.", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Dylan Cease", player_names)
+        self.assertIn("Vladimir Guerrero Jr.", player_names)
 
 
 if __name__ == "__main__":

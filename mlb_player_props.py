@@ -142,6 +142,28 @@ is surfaced as an :class:`EdgeResult`.
         # e.g.  ★ EDGE  Corbin Burnes | Strikeouts | O6.5
         #               Model 64.2 %  vs  Market 51.3 %  (+12.9 pp)
         #               Market odds: +95
+
+Toronto Blue Jays 2026 Roster
+------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Toronto Blue Jays lineup and starting rotation are available
+as module-level constants and via the :class:`BlueJaysRoster` helper:
+
+* ``BLUE_JAYS_LINEUP_2026``   – ``List[BatterStats]``, batting order 1–9
+* ``BLUE_JAYS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+
+::
+
+    from mlb_player_props import BlueJaysRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = BlueJaysRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Dylan Cease) against Unabated's live lines
+    edges = screener.screen_pitcher(roster.rotation[0])
+
+    # Screen Vladdy Guerrero for batter props
+    edges += screener.screen_batter(roster.lineup[2])
 """
 
 from __future__ import annotations
@@ -2634,6 +2656,326 @@ class UnabatedEdgeScreener:
 
         edges.sort(key=lambda e: -e.edge)
         return edges
+
+
+# ---------------------------------------------------------------------------
+# Toronto Blue Jays — 2026 roster
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the Toronto Blue Jays'
+# projected 2026 lineup and starting rotation.  Statistics are modelled on
+# each player's recent MLB (and, for Okamoto, NPB) performance.
+#
+# Usage — run the entire lineup through the Unabated edge screener:
+#
+#   from mlb_player_props import (
+#       BlueJaysRoster,
+#       MLBPlayerPropsSimulator,
+#       WeatherConditions,
+#       WindConditions,
+#       Stadium,
+#       UnabatedClient,
+#       UnabatedEdgeScreener,
+#   )
+#
+#   roster  = BlueJaysRoster.default()
+#   sim     = MLBPlayerPropsSimulator(Stadium.from_name("Rogers Centre"),
+#                 WeatherConditions(temp_f=72, precipitation="none",
+#                                   humidity=0.55, game_time="dome"),
+#                 WindConditions(speed_mph=0, direction="calm"))
+#   client  = UnabatedClient(api_key="YOUR_KEY")
+#   screener = UnabatedEdgeScreener(sim, client, min_edge=0.05)
+#
+#   # Screen the ace starter
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen every batter in the lineup against the opener
+#   for batter in roster.lineup:
+#       for edge in screener.screen_batter(batter, opponent_throws="R"):
+#           print(edge)
+#
+# Note on lineup construction (2026):
+#   Bo Bichette's departure leaves Vladimir Guerrero Jr. as the unquestioned
+#   lineup anchor.  Toronto is expected to platoon several spots (LF, 3B, 2B)
+#   heavily and bat Vladdy 3rd against both right-handed and left-handed
+#   starters.  Anthony Santander is projected to miss most of the season
+#   following shoulder surgery, making Nathan Lukes the de-facto starting LF.
+#   Kazuma Okamoto arrives from the NPB (Tokyo Yakult Swallows) as a power bat
+#   at 3B.  Ernie Clement provides a low-cost, high-contact option at 2B.
+#   Andrés Giménez was acquired in the off-season to shore up SS defence.
+# ---------------------------------------------------------------------------
+
+
+# -- Nine-man batting order --------------------------------------------------
+
+#: George Springer — DH, bats right, strong power/speed combo.
+_BJ_SPRINGER = BatterStats(
+    name="George Springer",
+    avg=0.262,
+    obp=0.347,
+    slg=0.462,
+    hr_per_600_pa=25.0,
+    sb_per_season=7.0,
+    doubles_per_600_pa=28.0,
+    games_played=130,
+    power_rating=72.0,
+    bats="R",
+    pitches_per_pa=3.92,
+    rbi_per_season=66.0,
+    runs_per_season=80.0,
+)
+
+#: Addison Barger — RF, bats left, ascending contact/power profile.
+_BJ_BARGER = BatterStats(
+    name="Addison Barger",
+    avg=0.242,
+    obp=0.305,
+    slg=0.425,
+    hr_per_600_pa=18.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=32.0,
+    games_played=145,
+    power_rating=60.0,
+    bats="L",
+    pitches_per_pa=3.72,
+    rbi_per_season=55.0,
+    runs_per_season=62.0,
+)
+
+#: Vladimir Guerrero Jr. — 1B, bats right, franchise cornerstone.
+_BJ_GUERRERO = BatterStats(
+    name="Vladimir Guerrero Jr.",
+    avg=0.285,
+    obp=0.357,
+    slg=0.502,
+    hr_per_600_pa=32.0,
+    sb_per_season=3.0,
+    doubles_per_600_pa=38.0,
+    games_played=158,
+    power_rating=88.0,
+    bats="R",
+    pitches_per_pa=4.02,
+    rbi_per_season=100.0,
+    runs_per_season=85.0,
+)
+
+#: Alejandro Kirk — C, bats right, elite contact, below-average power.
+_BJ_KIRK = BatterStats(
+    name="Alejandro Kirk",
+    avg=0.258,
+    obp=0.348,
+    slg=0.390,
+    hr_per_600_pa=12.0,
+    sb_per_season=0.0,
+    doubles_per_600_pa=26.0,
+    games_played=120,
+    power_rating=44.0,
+    bats="R",
+    pitches_per_pa=4.10,
+    rbi_per_season=50.0,
+    runs_per_season=44.0,
+)
+
+#: Daulton Varsho — CF, bats left, speed/power combination.
+_BJ_VARSHO = BatterStats(
+    name="Daulton Varsho",
+    avg=0.228,
+    obp=0.298,
+    slg=0.418,
+    hr_per_600_pa=22.0,
+    sb_per_season=20.0,
+    doubles_per_600_pa=30.0,
+    games_played=148,
+    power_rating=65.0,
+    bats="L",
+    pitches_per_pa=3.62,
+    rbi_per_season=62.0,
+    runs_per_season=72.0,
+)
+
+#: Nathan Lukes — LF, bats left, contact-oriented bench-to-starter.
+_BJ_LUKES = BatterStats(
+    name="Nathan Lukes",
+    avg=0.258,
+    obp=0.318,
+    slg=0.372,
+    hr_per_600_pa=6.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=30.0,
+    games_played=135,
+    power_rating=35.0,
+    bats="L",
+    pitches_per_pa=3.58,
+    rbi_per_season=40.0,
+    runs_per_season=52.0,
+)
+
+#: Kazuma Okamoto — 3B, bats right, NPB power import (Tokyo Yakult Swallows).
+_BJ_OKAMOTO = BatterStats(
+    name="Kazuma Okamoto",
+    avg=0.265,
+    obp=0.330,
+    slg=0.478,
+    hr_per_600_pa=28.0,
+    sb_per_season=3.0,
+    doubles_per_600_pa=35.0,
+    games_played=155,
+    power_rating=78.0,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=82.0,
+    runs_per_season=70.0,
+)
+
+#: Ernie Clement — 2B, bats right, high-contact utility/starter.
+_BJ_CLEMENT = BatterStats(
+    name="Ernie Clement",
+    avg=0.248,
+    obp=0.292,
+    slg=0.338,
+    hr_per_600_pa=5.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=25.0,
+    games_played=130,
+    power_rating=30.0,
+    bats="R",
+    pitches_per_pa=3.42,
+    rbi_per_season=35.0,
+    runs_per_season=46.0,
+)
+
+#: Andrés Giménez — SS, switch-hitter, defence-first profile.
+_BJ_GIMENEZ = BatterStats(
+    name="Andrés Giménez",
+    avg=0.248,
+    obp=0.308,
+    slg=0.372,
+    hr_per_600_pa=10.0,
+    sb_per_season=15.0,
+    doubles_per_600_pa=28.0,
+    games_played=152,
+    power_rating=42.0,
+    bats="S",
+    pitches_per_pa=3.70,
+    rbi_per_season=46.0,
+    runs_per_season=62.0,
+)
+
+#: 2026 Blue Jays projected lineup (batting order 1–9).
+BLUE_JAYS_LINEUP_2026: List[BatterStats] = [
+    _BJ_SPRINGER,
+    _BJ_BARGER,
+    _BJ_GUERRERO,
+    _BJ_KIRK,
+    _BJ_VARSHO,
+    _BJ_LUKES,
+    _BJ_OKAMOTO,
+    _BJ_CLEMENT,
+    _BJ_GIMENEZ,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Dylan Cease — RHP, ace, high-K sinker/slider arsenal.
+_BJ_CEASE = PitcherStats(
+    name="Dylan Cease",
+    era=3.50,
+    k_per_9=10.5,
+    innings_per_start=5.8,
+    whip=1.20,
+    arm_strength=78.0,
+    throws="R",
+    pitches_per_pa=4.08,
+)
+
+#: Kevin Gausman — RHP, forkball specialist, plus swing-and-miss.
+_BJ_GAUSMAN = PitcherStats(
+    name="Kevin Gausman",
+    era=3.30,
+    k_per_9=10.8,
+    innings_per_start=6.0,
+    whip=1.10,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: Max Scherzer — RHP, veteran presence, durability questions at age 41.
+_BJ_SCHERZER = PitcherStats(
+    name="Max Scherzer",
+    era=4.00,
+    k_per_9=9.5,
+    innings_per_start=5.5,
+    whip=1.25,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=4.00,
+)
+
+#: Cody Ponce — RHP, back-of-rotation innings-eater.
+_BJ_PONCE = PitcherStats(
+    name="Cody Ponce",
+    era=5.20,
+    k_per_9=7.5,
+    innings_per_start=4.8,
+    whip=1.45,
+    arm_strength=48.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: Eric Lauer — LHP, fifth starter, average stuff but experienced.
+_BJ_LAUER = PitcherStats(
+    name="Eric Lauer",
+    era=4.50,
+    k_per_9=8.2,
+    innings_per_start=5.2,
+    whip=1.35,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: 2026 Blue Jays projected starting rotation (rotation order 1–5).
+BLUE_JAYS_ROTATION_2026: List[PitcherStats] = [
+    _BJ_CEASE,
+    _BJ_GAUSMAN,
+    _BJ_SCHERZER,
+    _BJ_PONCE,
+    _BJ_LAUER,
+]
+
+
+@dataclass
+class BlueJaysRoster:
+    """
+    Bundle of Toronto Blue Jays projected 2026 lineup and starting rotation.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine-man batting order (positions 1–9 as listed in the 2026 depth chart).
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+
+    Examples
+    --------
+    ::
+
+        roster = BlueJaysRoster.default()
+        print(roster.rotation[0].name)  # "Dylan Cease"
+        print(roster.lineup[2].name)    # "Vladimir Guerrero Jr."
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "BlueJaysRoster":
+        """Return the projected 2026 roster (deep-copies the module-level lists)."""
+        return cls(
+            lineup=list(BLUE_JAYS_LINEUP_2026),
+            rotation=list(BLUE_JAYS_ROTATION_2026),
+        )
 
 
 # ---------------------------------------------------------------------------
