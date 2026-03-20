@@ -20,11 +20,17 @@ Test classes are organised by the component they exercise:
   ML calibration         – TestGameLogRecord, TestPropCalibratorUnfitted,
                            TestPropCalibratorFit, TestPropCalibratorPredict,
                            TestPropCalibratorSimulatorIntegration
+  Odds helpers           – TestOddsHelpers
+  EdgeResult             – TestEdgeResult
+  Unabated client        – TestUnabatedClient
+  Unabated edge screener – TestUnabatedEdgeScreener
 """
 
+import json
 import math
 import random
 import unittest
+import urllib.error
 
 from mlb_player_props import (
     BatterStats,
@@ -2855,6 +2861,566 @@ class TestPropCalibratorSimulatorIntegration(unittest.TestCase):
         self.assertAlmostEqual(result[0], 1.0)
         self.assertAlmostEqual(result[1], 2.0)
         self.assertAlmostEqual(result[2], 3.0)
+
+
+# ---------------------------------------------------------------------------
+# Unabated edge-screener tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402 – imported here to keep diff minimal
+    EdgeResult,
+    UnabatedAPIError,
+    UnabatedClient,
+    UnabatedEdgeScreener,
+    odds_to_implied_prob,
+    implied_prob_to_american_odds,
+    UNABATED_BASE_URL,
+    UNABATED_DEFAULT_MIN_EDGE,
+    UNABATED_DEFAULT_REQUEST_TIMEOUT,
+)
+
+
+# ---------------------------------------------------------------------------
+# Odds helper tests
+# ---------------------------------------------------------------------------
+
+
+class TestOddsHelpers(unittest.TestCase):
+    """Unit tests for odds_to_implied_prob / implied_prob_to_american_odds."""
+
+    def test_negative_odds_favourite(self):
+        prob = odds_to_implied_prob(-110)
+        self.assertAlmostEqual(prob, 110 / 210, places=5)
+
+    def test_positive_odds_underdog(self):
+        prob = odds_to_implied_prob(+150)
+        self.assertAlmostEqual(prob, 100 / 250, places=5)
+
+    def test_even_odds(self):
+        self.assertAlmostEqual(odds_to_implied_prob(100), 0.5, places=5)
+
+    def test_minus_100(self):
+        self.assertAlmostEqual(odds_to_implied_prob(-100), 0.5, places=5)
+
+    def test_round_trip_negative(self):
+        original_odds = -130.0
+        prob = odds_to_implied_prob(original_odds)
+        back = implied_prob_to_american_odds(prob)
+        self.assertAlmostEqual(back, original_odds, places=3)
+
+    def test_round_trip_positive(self):
+        original_odds = +180.0
+        prob = odds_to_implied_prob(original_odds)
+        back = implied_prob_to_american_odds(prob)
+        self.assertAlmostEqual(back, original_odds, places=3)
+
+    def test_implied_prob_zero_raises(self):
+        with self.assertRaises(ValueError):
+            implied_prob_to_american_odds(0.0)
+
+    def test_implied_prob_one_raises(self):
+        with self.assertRaises(ValueError):
+            implied_prob_to_american_odds(1.0)
+
+    def test_implied_prob_above_one_raises(self):
+        with self.assertRaises(ValueError):
+            implied_prob_to_american_odds(1.5)
+
+    def test_implied_prob_below_zero_raises(self):
+        with self.assertRaises(ValueError):
+            implied_prob_to_american_odds(-0.1)
+
+    def test_favourite_prob_above_half(self):
+        self.assertGreater(odds_to_implied_prob(-200), 0.5)
+
+    def test_underdog_prob_below_half(self):
+        self.assertLess(odds_to_implied_prob(+200), 0.5)
+
+
+# ---------------------------------------------------------------------------
+# EdgeResult tests
+# ---------------------------------------------------------------------------
+
+
+class TestEdgeResult(unittest.TestCase):
+    """Unit tests for the EdgeResult dataclass."""
+
+    def _make(self, **kwargs):
+        defaults = dict(
+            player_name="Ace Pitcher",
+            prop="Strikeouts",
+            line=6.5,
+            side="over",
+            sim_prob=0.63,
+            market_prob=0.51,
+            edge=0.12,
+            american_odds=+95,
+        )
+        defaults.update(kwargs)
+        return EdgeResult(**defaults)
+
+    def test_basic_construction(self):
+        e = self._make()
+        self.assertEqual(e.player_name, "Ace Pitcher")
+        self.assertEqual(e.prop, "Strikeouts")
+        self.assertAlmostEqual(e.line, 6.5)
+        self.assertEqual(e.side, "over")
+        self.assertAlmostEqual(e.sim_prob, 0.63)
+        self.assertAlmostEqual(e.market_prob, 0.51)
+        self.assertAlmostEqual(e.edge, 0.12)
+        self.assertAlmostEqual(e.american_odds, 95)
+
+    def test_book_defaults_to_empty_string(self):
+        e = self._make()
+        self.assertEqual(e.book, "")
+
+    def test_book_can_be_set(self):
+        e = self._make(book="DraftKings")
+        self.assertEqual(e.book, "DraftKings")
+
+    def test_str_contains_player_name(self):
+        e = self._make()
+        self.assertIn("Ace Pitcher", str(e))
+
+    def test_str_contains_prop_and_line(self):
+        e = self._make()
+        s = str(e)
+        self.assertIn("Strikeouts", s)
+        self.assertIn("6.5", s)
+
+    def test_str_over_side_uses_O_prefix(self):
+        e = self._make(side="over")
+        self.assertIn("O6.5", str(e))
+
+    def test_str_under_side_uses_U_prefix(self):
+        e = self._make(side="under", american_odds=-110)
+        self.assertIn("U6.5", str(e))
+
+    def test_str_includes_book(self):
+        e = self._make(book="FanDuel")
+        self.assertIn("FanDuel", str(e))
+
+    def test_str_no_book_omits_brackets(self):
+        e = self._make(book="")
+        self.assertNotIn("[", str(e))
+
+
+# ---------------------------------------------------------------------------
+# UnabatedClient tests
+# ---------------------------------------------------------------------------
+
+
+class TestUnabatedClient(unittest.TestCase):
+    """Unit tests for UnabatedClient (HTTP is mocked)."""
+
+    def _make_client(self, key="test-key"):
+        return UnabatedClient(api_key=key)
+
+    def test_default_base_url(self):
+        c = self._make_client()
+        self.assertEqual(c.base_url, UNABATED_BASE_URL.rstrip("/"))
+
+    def test_default_timeout(self):
+        c = self._make_client()
+        self.assertEqual(c.timeout, UNABATED_DEFAULT_REQUEST_TIMEOUT)
+
+    def test_api_key_stored(self):
+        c = UnabatedClient(api_key="my-key")
+        self.assertEqual(c.api_key, "my-key")
+
+    def test_non_string_api_key_raises(self):
+        with self.assertRaises(TypeError):
+            UnabatedClient(api_key=12345)
+
+    def test_custom_base_url_stored(self):
+        c = UnabatedClient(api_key="k", base_url="https://example.com/api/")
+        self.assertEqual(c.base_url, "https://example.com/api")
+
+    def test_normalise_response_list(self):
+        raw = [
+            {"player_name": "J. Doe", "prop_type": "strikeouts",
+             "line": 6.5, "over_odds": -115, "under_odds": -105, "book": "DK"},
+        ]
+        result = UnabatedClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["player_name"], "J. Doe")
+        self.assertAlmostEqual(result[0]["line"], 6.5)
+
+    def test_normalise_response_data_envelope(self):
+        raw = {"data": [{"player_name": "A. Smith", "prop_type": "hits",
+                          "line": 1.5, "over_odds": +100, "under_odds": -120}]}
+        result = UnabatedClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["player_name"], "A. Smith")
+
+    def test_normalise_response_markets_envelope(self):
+        raw = {"markets": [{"player_name": "B. Jones", "prop_type": "home runs",
+                             "line": 0.5, "over_odds": +220, "under_odds": -280}]}
+        result = UnabatedClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+
+    def test_normalise_response_empty_list(self):
+        self.assertEqual(UnabatedClient._normalise_response([]), [])
+
+    def test_normalise_response_non_list_non_dict(self):
+        self.assertEqual(UnabatedClient._normalise_response("bad"), [])
+
+    def test_normalise_response_skips_non_dict_items(self):
+        raw = [{"player_name": "A", "prop_type": "hits", "line": 1.5,
+                "over_odds": 100, "under_odds": -120}, "not a dict"]
+        result = UnabatedClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+
+    def test_normalise_response_alternate_field_names(self):
+        # Unabated sometimes uses 'name', 'stat_type', 'value', 'over', 'under'
+        raw = [{"name": "C. Lee", "stat_type": "stolen bases",
+                "value": 0.5, "over": +200, "under": -250, "sportsbook": "FD"}]
+        result = UnabatedClient._normalise_response(raw)
+        self.assertEqual(result[0]["player_name"], "C. Lee")
+        self.assertEqual(result[0]["prop_type"], "stolen bases")
+        self.assertAlmostEqual(result[0]["line"], 0.5)
+        self.assertEqual(result[0]["book"], "FD")
+
+    def _mock_urlopen(self, response_bytes):
+        """Return a context-manager mock that yields a response with read()."""
+        import io
+        import unittest.mock as mock
+
+        cm = mock.MagicMock()
+        cm.__enter__ = mock.MagicMock(return_value=cm)
+        cm.__exit__ = mock.MagicMock(return_value=False)
+        cm.read = mock.MagicMock(return_value=response_bytes)
+        return cm
+
+    def test_fetch_player_props_success(self):
+        import unittest.mock as mock
+        payload = json.dumps([
+            {"player_name": "Test Player", "prop_type": "strikeouts",
+             "line": 5.5, "over_odds": -110, "under_odds": -110, "book": "MGM"},
+        ]).encode()
+        with mock.patch("urllib.request.urlopen", return_value=self._mock_urlopen(payload)):
+            client = self._make_client()
+            results = client.fetch_player_props()
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["player_name"], "Test Player")
+
+    def test_fetch_player_props_http_error_raises(self):
+        import unittest.mock as mock
+        with mock.patch(
+            "urllib.request.urlopen",
+            side_effect=urllib.error.HTTPError("url", 401, "Unauthorized", {}, None),
+        ):
+            with self.assertRaises(UnabatedAPIError) as ctx:
+                self._make_client().fetch_player_props()
+        self.assertIn("401", str(ctx.exception))
+
+    def test_fetch_player_props_url_error_raises(self):
+        import unittest.mock as mock
+        with mock.patch(
+            "urllib.request.urlopen",
+            side_effect=urllib.error.URLError("Connection refused"),
+        ):
+            with self.assertRaises(UnabatedAPIError):
+                self._make_client().fetch_player_props()
+
+    def test_fetch_player_props_bad_json_raises(self):
+        import unittest.mock as mock
+        with mock.patch(
+            "urllib.request.urlopen",
+            return_value=self._mock_urlopen(b"not json {{{"),
+        ):
+            with self.assertRaises(UnabatedAPIError):
+                self._make_client().fetch_player_props()
+
+
+# ---------------------------------------------------------------------------
+# UnabatedEdgeScreener tests
+# ---------------------------------------------------------------------------
+
+def _make_screener_sim(seed=42):
+    return MLBPlayerPropsSimulator(
+        stadium=Stadium.from_name("Neutral"),
+        weather=WeatherConditions(temp_f=72, precipitation="none",
+                                  humidity=0.50, game_time="night"),
+        wind=WindConditions(speed_mph=0, direction="calm"),
+        num_simulations=3_000,
+        random_seed=seed,
+    )
+
+
+def _make_market_lines(player_name, prop_type, line, over_odds, under_odds,
+                       book="TestBook"):
+    """Build a single-item normalised market-lines list."""
+    return [{
+        "player_name": player_name,
+        "prop_type": prop_type,
+        "line": line,
+        "over_odds": over_odds,
+        "under_odds": under_odds,
+        "book": book,
+    }]
+
+
+class TestUnabatedEdgeScreener(unittest.TestCase):
+    """Tests for UnabatedEdgeScreener using pre-fetched market lines (no HTTP)."""
+
+    def _client(self):
+        return UnabatedClient(api_key="test")
+
+    def _screener(self, min_edge=0.0):
+        return UnabatedEdgeScreener(_make_screener_sim(), self._client(),
+                                    min_edge=min_edge)
+
+    # ------------------------------------------------------------------
+    # Prop type mapping
+    # ------------------------------------------------------------------
+
+    def test_normalise_prop_type_strikeouts(self):
+        self.assertEqual(
+            UnabatedEdgeScreener._normalise_prop_type("strikeouts"), "Strikeouts"
+        )
+
+    def test_normalise_prop_type_case_insensitive(self):
+        self.assertEqual(
+            UnabatedEdgeScreener._normalise_prop_type("HITS"), "Hits"
+        )
+
+    def test_normalise_prop_type_with_whitespace(self):
+        self.assertEqual(
+            UnabatedEdgeScreener._normalise_prop_type("  home runs  "), "Home Runs"
+        )
+
+    def test_normalise_prop_type_unknown_returns_none(self):
+        self.assertIsNone(
+            UnabatedEdgeScreener._normalise_prop_type("assists")
+        )
+
+    def test_prop_type_map_covers_all_pitcher_props(self):
+        for unabated_key in ("strikeouts", "outs recorded", "runs allowed", "pitch count"):
+            self.assertIsNotNone(
+                UnabatedEdgeScreener._normalise_prop_type(unabated_key),
+                f"Missing mapping for '{unabated_key}'"
+            )
+
+    def test_prop_type_map_covers_all_batter_props(self):
+        for unabated_key in ("hits", "doubles", "home runs", "stolen bases",
+                             "plate appearances", "h+r+rbi"):
+            self.assertIsNotNone(
+                UnabatedEdgeScreener._normalise_prop_type(unabated_key),
+                f"Missing mapping for '{unabated_key}'"
+            )
+
+    # ------------------------------------------------------------------
+    # _find_edges
+    # ------------------------------------------------------------------
+
+    def test_no_lines_for_player_returns_empty(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(_default_pitcher())
+        screener = self._screener(min_edge=0.0)
+        edges = screener._find_edges("Unknown Player", report, [
+            _make_market_lines("Someone Else", "strikeouts", 4.5, -110, -110)[0]
+        ])
+        self.assertEqual(edges, [])
+
+    def test_unknown_prop_type_skipped(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(_default_pitcher())
+        screener = self._screener(min_edge=0.0)
+        edges = screener._find_edges("Test Pitcher", report, [
+            _make_market_lines("Test Pitcher", "assists", 2.5, -110, -110)[0]
+        ])
+        self.assertEqual(edges, [])
+
+    def test_over_edge_found_when_sim_prob_much_higher(self):
+        sim = _make_screener_sim()
+        # Give the pitcher extreme K stats so over-prob on a low line is very high.
+        pitcher = PitcherStats("Ace P", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        report = sim.simulate_pitcher(pitcher)
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        # Line 3.5 → sim over-prob should be very high; market odds +200 → implied 33%
+        lines = _make_market_lines("Ace P", "strikeouts", 3.5, +200, -300)
+        edges = screener._find_edges("Ace P", report, lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(len(over_edges) >= 1)
+        self.assertGreater(over_edges[0].edge, 0.0)
+
+    def test_edge_result_fields_populated_correctly(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Big K", era=2.5, k_per_9=13.0,
+                               innings_per_start=7.0, whip=0.95)
+        report = sim.simulate_pitcher(pitcher)
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        lines = _make_market_lines("Big K", "strikeouts", 3.5, +250, -350)
+        edges = screener._find_edges("Big K", report, lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        e = over_edges[0]
+        self.assertEqual(e.player_name, "Big K")
+        self.assertEqual(e.prop, "Strikeouts")
+        self.assertAlmostEqual(e.line, 3.5)
+        self.assertEqual(e.side, "over")
+        self.assertAlmostEqual(e.american_odds, 250.0)
+        self.assertEqual(e.book, "TestBook")
+
+    def test_min_edge_filters_small_edges(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Mid K", era=3.5, k_per_9=8.5,
+                               innings_per_start=6.0, whip=1.2)
+        report = sim.simulate_pitcher(pitcher)
+        screener_strict = UnabatedEdgeScreener(sim, self._client(), min_edge=0.99)
+        lines = _make_market_lines("Mid K", "strikeouts", 5.5, -110, -110)
+        edges = screener_strict._find_edges("Mid K", report, lines)
+        self.assertEqual(edges, [])
+
+    def test_under_edge_found(self):
+        # Low K pitcher vs very low line — under edge should appear with a
+        # tiny min_edge so the under is detectable.
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Low K", era=5.0, k_per_9=5.0,
+                               innings_per_start=5.0, whip=1.5)
+        report = sim.simulate_pitcher(pitcher)
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        # Line 7.5 → under-prob should be high; market odds -110 on under
+        lines = _make_market_lines("Low K", "strikeouts", 7.5, +300, -450)
+        edges = screener._find_edges("Low K", report, lines)
+        under_edges = [e for e in edges if e.side == "under"]
+        self.assertTrue(len(under_edges) >= 1)
+        self.assertGreater(under_edges[0].edge, 0.0)
+
+    def test_none_odds_skipped(self):
+        sim = _make_screener_sim()
+        pitcher = _default_pitcher()
+        report = sim.simulate_pitcher(pitcher)
+        screener = self._screener(min_edge=0.0)
+        lines = [{
+            "player_name": "Test Pitcher",
+            "prop_type": "strikeouts",
+            "line": 4.5,
+            "over_odds": None,   # both None → nothing to process
+            "under_odds": None,
+            "book": "",
+        }]
+        edges = screener._find_edges("Test Pitcher", report, lines)
+        self.assertEqual(edges, [])
+
+    def test_non_numeric_odds_skipped(self):
+        sim = _make_screener_sim()
+        pitcher = _default_pitcher()
+        report = sim.simulate_pitcher(pitcher)
+        screener = self._screener(min_edge=0.0)
+        lines = [{
+            "player_name": "Test Pitcher",
+            "prop_type": "strikeouts",
+            "line": 4.5,
+            "over_odds": "N/A",
+            "under_odds": "N/A",
+            "book": "",
+        }]
+        edges = screener._find_edges("Test Pitcher", report, lines)
+        self.assertEqual(edges, [])
+
+    def test_edges_sorted_by_edge_descending(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Sort K", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        report = sim.simulate_pitcher(pitcher)
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        # Two different lines.
+        lines = (
+            _make_market_lines("Sort K", "strikeouts", 3.5, +250, -350)
+            + _make_market_lines("Sort K", "strikeouts", 4.5, +150, -200)
+        )
+        edges = screener._find_edges("Sort K", report, lines)
+        if len(edges) >= 2:
+            for i in range(len(edges) - 1):
+                self.assertGreaterEqual(edges[i].edge, edges[i + 1].edge)
+
+    # ------------------------------------------------------------------
+    # screen_pitcher / screen_batter (market_lines injected, no HTTP)
+    # ------------------------------------------------------------------
+
+    def test_screen_pitcher_uses_injected_market_lines(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        pitcher = PitcherStats("Ace P", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        lines = _make_market_lines("Ace P", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(pitcher, market_lines=lines)
+        self.assertIsInstance(edges, list)
+        # At least the over edge should appear for a dominant pitcher at a low line.
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_batter_uses_injected_market_lines(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        batter = _hrb_batter()
+        # Very generous odds → big implied under-prob → over edge possible.
+        lines = _make_market_lines(batter.name, "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(batter, market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertIsInstance(edges, list)
+        self.assertTrue(over_edges)
+
+    def test_screen_matchup_returns_combined_results(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        pitcher = PitcherStats("P1", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        batter = _hrb_batter()
+        lines = (
+            _make_market_lines("P1", "strikeouts", 3.5, +300, -500)
+            + _make_market_lines(batter.name, "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(pitcher, [batter], market_lines=lines)
+        player_names = {e.player_name for e in edges}
+        # Both pitcher and batter should be represented.
+        self.assertIn("P1", player_names)
+        self.assertIn(batter.name, player_names)
+
+    def test_screen_matchup_sorted_by_edge_descending(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        pitcher = PitcherStats("P1", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        batter = _hrb_batter()
+        lines = (
+            _make_market_lines("P1", "strikeouts", 3.5, +300, -500)
+            + _make_market_lines(batter.name, "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(pitcher, [batter], market_lines=lines)
+        for i in range(len(edges) - 1):
+            self.assertGreaterEqual(edges[i].edge, edges[i + 1].edge)
+
+    def test_screen_pitcher_empty_market_returns_empty(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        pitcher = _default_pitcher()
+        self.assertEqual(screener.screen_pitcher(pitcher, market_lines=[]), [])
+
+    def test_screen_batter_empty_market_returns_empty(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, self._client(), min_edge=0.0)
+        self.assertEqual(
+            screener.screen_batter(_default_batter(), market_lines=[]), []
+        )
+
+    # ------------------------------------------------------------------
+    # Constants
+    # ------------------------------------------------------------------
+
+    def test_default_min_edge_constant(self):
+        self.assertAlmostEqual(UNABATED_DEFAULT_MIN_EDGE, 0.05)
+
+    def test_default_request_timeout_constant(self):
+        self.assertIsInstance(UNABATED_DEFAULT_REQUEST_TIMEOUT, int)
+        self.assertGreater(UNABATED_DEFAULT_REQUEST_TIMEOUT, 0)
+
+    def test_base_url_is_string(self):
+        self.assertIsInstance(UNABATED_BASE_URL, str)
+        self.assertTrue(UNABATED_BASE_URL.startswith("https://"))
 
 
 if __name__ == "__main__":

@@ -110,13 +110,48 @@ Monte Carlo output.
     # Inspect which features the model learned were most predictive:
     for feat, weight in cal.feature_importances("Strikeouts"):
         print(f"  {feat}: {weight:+.4f}")
+
+Unabated API Edge Screener
+---------------------------
+:class:`UnabatedEdgeScreener` fetches live MLB player-prop lines from the
+`Unabated <https://unabated.com>`_ API and compares the market's implied
+probability against the simulator's probability for each line.  When the
+difference (the *edge*) exceeds a configurable threshold, the opportunity
+is surfaced as an :class:`EdgeResult`.
+
+::
+
+    from mlb_player_props import (
+        MLBPlayerPropsSimulator,
+        UnabatedClient,
+        UnabatedEdgeScreener,
+        PitcherStats,
+        BatterStats,
+    )
+
+    client  = UnabatedClient(api_key="YOUR_UNABATED_API_KEY")
+    sim     = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind)
+    screener = UnabatedEdgeScreener(sim, client, min_edge=0.05)
+
+    pitcher = PitcherStats(name="Corbin Burnes", era=3.10, k_per_9=10.2,
+                           innings_per_start=6.1, whip=1.05)
+    edges = screener.screen_pitcher(pitcher)
+
+    for e in edges:
+        print(e)
+        # e.g.  ★ EDGE  Corbin Burnes | Strikeouts | O6.5
+        #               Model 64.2 %  vs  Market 51.3 %  (+12.9 pp)
+        #               Market odds: +95
 """
 
 from __future__ import annotations
 
+import json
 import math
 import random
 import statistics
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict, List, Optional, Tuple
 
@@ -319,6 +354,22 @@ ML_MIN_RECORDS_PER_PROP: int = 5
 # corrections that would override the physics-based simulation entirely.
 ML_MULTIPLIER_MIN: float = 0.70   # at most 30 % downward correction
 ML_MULTIPLIER_MAX: float = 1.30   # at most 30 % upward correction
+
+# ---------------------------------------------------------------------------
+# Unabated API — edge-screener constants
+# ---------------------------------------------------------------------------
+# Base URL for the Unabated public REST API (v1).  All requests are sent as
+# GET requests; authentication is via an ``X-Api-Key`` header.
+UNABATED_BASE_URL: str = "https://api.unabated.com/v1"
+
+# Default minimum edge (in probability percentage points) required before an
+# opportunity is surfaced as an :class:`EdgeResult`.  A value of 0.05 means
+# the simulator's probability must be at least 5 percentage points higher
+# than the market's implied probability.
+UNABATED_DEFAULT_MIN_EDGE: float = 0.05
+
+# Default HTTP request timeout in seconds for all Unabated API calls.
+UNABATED_DEFAULT_REQUEST_TIMEOUT: int = 10
 
 # ---------------------------------------------------------------------------
 # Game-time (day / night / dome) constants
@@ -2054,6 +2105,535 @@ class MLBPlayerPropsSimulator:
                 batter, opponent_throws=pitcher.throws, is_home=batter_is_home
             )
         return results
+
+
+# ---------------------------------------------------------------------------
+# Odds helpers
+# ---------------------------------------------------------------------------
+
+
+def odds_to_implied_prob(american_odds: float) -> float:
+    """
+    Convert American (moneyline) odds to an implied probability.
+
+    Parameters
+    ----------
+    american_odds : float
+        Positive (e.g. ``+150``) or negative (e.g. ``-110``) American odds.
+
+    Returns
+    -------
+    float
+        Implied probability in the range (0, 1).  The returned value is the
+        *raw* (vig-inclusive) probability; no vig-stripping is applied.
+
+    Examples
+    --------
+    >>> round(odds_to_implied_prob(-110), 4)
+    0.5238
+    >>> round(odds_to_implied_prob(+100), 4)
+    0.5
+    """
+    if american_odds < 0:
+        return (-american_odds) / (-american_odds + 100.0)
+    return 100.0 / (american_odds + 100.0)
+
+
+def implied_prob_to_american_odds(prob: float) -> float:
+    """
+    Convert an implied probability to American (moneyline) odds.
+
+    Parameters
+    ----------
+    prob : float
+        Probability in the range (0, 1).  Values outside this range raise
+        :class:`ValueError`.
+
+    Returns
+    -------
+    float
+        American odds.  Returns negative odds when ``prob > 0.5``, positive
+        when ``prob < 0.5``, and exactly ``+100`` / ``-100`` at 50 %.
+
+    Examples
+    --------
+    >>> implied_prob_to_american_odds(0.5238)
+    -109.96...
+    """
+    if not (0.0 < prob < 1.0):
+        raise ValueError("prob must be strictly between 0 and 1")
+    if prob >= 0.5:
+        return -(prob * 100.0) / (1.0 - prob)
+    return (1.0 - prob) * 100.0 / prob
+
+
+# ---------------------------------------------------------------------------
+# Unabated edge-screening
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class EdgeResult:
+    """
+    A single prop-line opportunity where the simulator disagrees with the market.
+
+    Attributes
+    ----------
+    player_name : str
+        Display name of the player.
+    prop : str
+        Prop type, e.g. ``"Strikeouts"``, ``"Hits"``, ``"Home Runs"``.
+    line : float
+        The over/under line value (e.g. ``6.5`` for O/U 6.5 strikeouts).
+    side : str
+        ``"over"`` or ``"under"``.
+    sim_prob : float
+        The simulator's probability for the bet direction (0–1).
+    market_prob : float
+        Implied probability derived from the market's American odds (0–1).
+    edge : float
+        ``sim_prob − market_prob`` (positive = model favours the bet).
+    american_odds : float
+        The American odds fetched from the market for this line/side.
+    book : str
+        Name of the sportsbook offering these odds (as reported by Unabated).
+        Empty string when book information is unavailable.
+    """
+
+    player_name: str
+    prop: str
+    line: float
+    side: str
+    sim_prob: float
+    market_prob: float
+    edge: float
+    american_odds: float
+    book: str = ""
+
+    def __str__(self) -> str:
+        direction = "O" if self.side == "over" else "U"
+        sign = "+" if self.american_odds >= 0 else ""
+        return (
+            f"★ EDGE  {self.player_name} | {self.prop} | {direction}{self.line:.1f}\n"
+            f"        Model {self.sim_prob*100:.1f}%  vs  "
+            f"Market {self.market_prob*100:.1f}%  "
+            f"(+{self.edge*100:.1f} pp)\n"
+            f"        Market odds: {sign}{self.american_odds:.0f}"
+            + (f"  [{self.book}]" if self.book else "")
+        )
+
+
+class UnabatedClient:
+    """
+    Thin HTTP client for the Unabated player-props API.
+
+    Uses only the Python standard library (:mod:`urllib.request`) — no
+    external packages are required.
+
+    Parameters
+    ----------
+    api_key : str
+        Your Unabated API key.  Sent as the ``X-Api-Key`` header on every
+        request.  When empty the header is still sent; Unabated will return
+        a ``401`` response in that case.
+    base_url : str
+        API base URL.  Defaults to :data:`UNABATED_BASE_URL`.
+    timeout : int
+        HTTP request timeout in seconds.  Defaults to
+        :data:`UNABATED_DEFAULT_REQUEST_TIMEOUT`.
+
+    Notes
+    -----
+    The Unabated REST API returns JSON.  The ``fetch_player_props`` method
+    returns the *parsed* JSON payload (a list of market-line dicts) so that
+    the caller (typically :class:`UnabatedEdgeScreener`) can process it without
+    repeated HTTP calls.
+
+    If the request fails for any reason (network error, non-2xx response, or
+    malformed JSON) a :class:`UnabatedAPIError` is raised.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = UNABATED_BASE_URL,
+        timeout: int = UNABATED_DEFAULT_REQUEST_TIMEOUT,
+    ) -> None:
+        if not isinstance(api_key, str):
+            raise TypeError("api_key must be a string")
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def fetch_player_props(
+        self,
+        sport: str = "mlb",
+        market_type: str = "player_props",
+    ) -> List[Dict]:
+        """
+        Fetch live player-prop lines from the Unabated API.
+
+        Parameters
+        ----------
+        sport : str
+            Sport slug.  Defaults to ``"mlb"``.
+        market_type : str
+            Market-type filter.  Defaults to ``"player_props"``.
+
+        Returns
+        -------
+        list of dict
+            Each dict represents one market line with at minimum the keys:
+
+            ``player_name`` (str), ``prop_type`` (str), ``line`` (float),
+            ``over_odds`` (float), ``under_odds`` (float),
+            ``book`` (str).
+
+            The exact schema is normalised in :meth:`_normalise_response`
+            before being returned.
+
+        Raises
+        ------
+        UnabatedAPIError
+            On any HTTP error, timeout, or JSON decode failure.
+        """
+        url = f"{self.base_url}/markets?sport={sport}&market_type={market_type}"
+        req = urllib.request.Request(
+            url,
+            headers={"X-Api-Key": self.api_key, "Accept": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310
+                raw = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            raise UnabatedAPIError(
+                f"Unabated API returned HTTP {exc.code}: {exc.reason}"
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise UnabatedAPIError(
+                f"Unabated API request failed: {exc.reason}"
+            ) from exc
+
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise UnabatedAPIError(
+                f"Unabated API returned non-JSON response: {exc}"
+            ) from exc
+
+        return self._normalise_response(payload)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalise_response(payload: object) -> List[Dict]:
+        """
+        Normalise a raw Unabated API response to a flat list of line dicts.
+
+        The Unabated API may wrap the data inside a ``"data"`` key or return
+        a list directly.  Each normalised dict is guaranteed to have:
+
+        ``player_name``, ``prop_type``, ``line``, ``over_odds``,
+        ``under_odds``, ``book``.
+
+        Unknown / missing fields default to sensible values (empty string /
+        ``None`` for odds / 0 for line).
+        """
+        # Unwrap {"data": [...]} envelope if present.
+        if isinstance(payload, dict):
+            items = payload.get("data", payload.get("markets", []))
+            if not isinstance(items, list):
+                items = [payload]
+        elif isinstance(payload, list):
+            items = payload
+        else:
+            return []
+
+        normalised: List[Dict] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            normalised.append({
+                "player_name": str(item.get("player_name", item.get("name", ""))),
+                "prop_type":   str(item.get("prop_type", item.get("stat_type", ""))),
+                "line":        float(item.get("line", item.get("value", 0))),
+                "over_odds":   item.get("over_odds", item.get("over", None)),
+                "under_odds":  item.get("under_odds", item.get("under", None)),
+                "book":        str(item.get("book", item.get("sportsbook", ""))),
+            })
+        return normalised
+
+
+class UnabatedAPIError(Exception):
+    """Raised when an Unabated API request fails."""
+
+
+class UnabatedEdgeScreener:
+    """
+    Screen MLB player props for edges by comparing the simulator's
+    probabilities against Unabated's live market lines.
+
+    An *edge* exists when:
+
+        ``sim_prob − market_implied_prob ≥ min_edge``
+
+    Both the over and the under side of every line are evaluated.  Only
+    results that clear the threshold are returned.
+
+    Parameters
+    ----------
+    simulator : MLBPlayerPropsSimulator
+        A configured simulator instance (stadium, weather, wind, optional
+        calibrator already set).
+    client : UnabatedClient
+        An authenticated Unabated API client.
+    min_edge : float
+        Minimum edge in probability percentage points for a result to be
+        surfaced.  Defaults to :data:`UNABATED_DEFAULT_MIN_EDGE` (0.05 = 5 pp).
+
+    Examples
+    --------
+    ::
+
+        screener = UnabatedEdgeScreener(sim, client, min_edge=0.04)
+        edges = screener.screen_pitcher(pitcher_stats)
+        for e in sorted(edges, key=lambda x: -x.edge):
+            print(e)
+    """
+
+    # Map from Unabated ``prop_type`` strings (case-insensitive) to the
+    # simulator's internal prop names used in PropResult.prop_name.
+    _PROP_TYPE_MAP: ClassVar[Dict[str, str]] = {
+        "strikeouts": "Strikeouts",
+        "pitcher strikeouts": "Strikeouts",
+        "outs recorded": "Outs Recorded",
+        "pitcher outs": "Outs Recorded",
+        "runs allowed": "Runs Allowed",
+        "pitcher runs allowed": "Runs Allowed",
+        "pitch count": "Pitch Count",
+        "pitcher pitch count": "Pitch Count",
+        "hits": "Hits",
+        "batter hits": "Hits",
+        "doubles": "Doubles",
+        "batter doubles": "Doubles",
+        "home runs": "Home Runs",
+        "batter home runs": "Home Runs",
+        "stolen bases": "Stolen Bases",
+        "batter stolen bases": "Stolen Bases",
+        "plate appearances": "Plate Appearances",
+        "batter plate appearances": "Plate Appearances",
+        "h+r+rbi": "H+R+RBI",
+        "hits + runs + rbi": "H+R+RBI",
+    }
+
+    def __init__(
+        self,
+        simulator: "MLBPlayerPropsSimulator",
+        client: UnabatedClient,
+        min_edge: float = UNABATED_DEFAULT_MIN_EDGE,
+    ) -> None:
+        self.simulator = simulator
+        self.client = client
+        self.min_edge = min_edge
+
+    # ------------------------------------------------------------------
+    # Public screening API
+    # ------------------------------------------------------------------
+
+    def screen_pitcher(
+        self,
+        stats: "PitcherStats",
+        market_lines: Optional[List[Dict]] = None,
+        opponent_bats: Optional[str] = None,
+        is_home: Optional[bool] = None,
+    ) -> List[EdgeResult]:
+        """
+        Find edges for a starting pitcher.
+
+        Parameters
+        ----------
+        stats : PitcherStats
+        market_lines : list of dict, optional
+            Pre-fetched Unabated market lines (useful for testing or batching
+            many calls without repeated HTTP requests).  When ``None``,
+            :meth:`UnabatedClient.fetch_player_props` is called automatically.
+        opponent_bats : str, optional
+            Batting hand of the opposing lineup (``"R"``, ``"L"``, ``"S"``).
+        is_home : bool, optional
+            Whether the pitcher is at home.
+
+        Returns
+        -------
+        list of EdgeResult
+            Sorted by edge descending (largest edge first).
+        """
+        report = self.simulator.simulate_pitcher(
+            stats, opponent_bats=opponent_bats, is_home=is_home
+        )
+        lines = market_lines if market_lines is not None else self.client.fetch_player_props()
+        return self._find_edges(stats.name, report, lines)
+
+    def screen_batter(
+        self,
+        stats: "BatterStats",
+        market_lines: Optional[List[Dict]] = None,
+        opponent_throws: Optional[str] = None,
+        is_home: Optional[bool] = None,
+    ) -> List[EdgeResult]:
+        """
+        Find edges for a batter.
+
+        Parameters
+        ----------
+        stats : BatterStats
+        market_lines : list of dict, optional
+            Pre-fetched Unabated market lines.
+        opponent_throws : str, optional
+            Throwing hand of the opposing pitcher (``"R"`` or ``"L"``).
+        is_home : bool, optional
+            Whether the batter is at home.
+
+        Returns
+        -------
+        list of EdgeResult
+            Sorted by edge descending.
+        """
+        report = self.simulator.simulate_batter(
+            stats, opponent_throws=opponent_throws, is_home=is_home
+        )
+        lines = market_lines if market_lines is not None else self.client.fetch_player_props()
+        return self._find_edges(stats.name, report, lines)
+
+    def screen_matchup(
+        self,
+        pitcher: "PitcherStats",
+        batters: List["BatterStats"],
+        market_lines: Optional[List[Dict]] = None,
+        pitcher_is_home: Optional[bool] = None,
+    ) -> List[EdgeResult]:
+        """
+        Find edges for an entire pitcher vs lineup matchup.
+
+        Parameters
+        ----------
+        pitcher : PitcherStats
+        batters : list of BatterStats
+        market_lines : list of dict, optional
+            Pre-fetched Unabated market lines.  When ``None``, the API is
+            called once and the result shared across all players.
+        pitcher_is_home : bool, optional
+
+        Returns
+        -------
+        list of EdgeResult
+            All edges for all players in the matchup, sorted by edge descending.
+        """
+        lines = market_lines if market_lines is not None else self.client.fetch_player_props()
+        all_edges: List[EdgeResult] = []
+        batter_is_home: Optional[bool] = (
+            None if pitcher_is_home is None else not pitcher_is_home
+        )
+        rep_bats = batters[0].bats if batters else "R"
+        all_edges.extend(
+            self.screen_pitcher(pitcher, market_lines=lines,
+                                opponent_bats=rep_bats, is_home=pitcher_is_home)
+        )
+        for batter in batters:
+            all_edges.extend(
+                self.screen_batter(batter, market_lines=lines,
+                                   opponent_throws=pitcher.throws, is_home=batter_is_home)
+            )
+        all_edges.sort(key=lambda e: -e.edge)
+        return all_edges
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def _normalise_prop_type(cls, raw: str) -> Optional[str]:
+        """Map a raw Unabated prop-type string to the simulator's prop name."""
+        return cls._PROP_TYPE_MAP.get(raw.strip().lower())
+
+    def _find_edges(
+        self,
+        player_name: str,
+        report: "PlayerPropsReport",
+        market_lines: List[Dict],
+    ) -> List[EdgeResult]:
+        """
+        Compare a PlayerPropsReport against market lines and return edges.
+
+        Only lines whose player name (case-insensitive) matches ``player_name``
+        are considered.  Both the over and under side of each line are checked
+        against the simulator's ``over_probabilities`` dict in the relevant
+        :class:`PropResult`.
+        """
+        # Build a lookup: prop_name → PropResult for fast access.
+        prop_lookup: Dict[str, "PropResult"] = {
+            pr.prop_name: pr for pr in report.props
+        }
+
+        player_lower = player_name.strip().lower()
+        edges: List[EdgeResult] = []
+
+        for mkt in market_lines:
+            # Filter by player name (partial match — e.g. "Burnes" matches
+            # "Corbin Burnes").
+            mkt_player = mkt.get("player_name", "")
+            if player_lower not in mkt_player.strip().lower():
+                continue
+
+            prop_name = self._normalise_prop_type(mkt.get("prop_type", ""))
+            if prop_name is None or prop_name not in prop_lookup:
+                continue
+
+            pr = prop_lookup[prop_name]
+            line_val = float(mkt.get("line", 0))
+
+            for side, odds_key in (("over", "over_odds"), ("under", "under_odds")):
+                raw_odds = mkt.get(odds_key)
+                if raw_odds is None:
+                    continue
+                try:
+                    american_odds = float(raw_odds)
+                except (TypeError, ValueError):
+                    continue
+
+                market_prob = odds_to_implied_prob(american_odds)
+
+                # Retrieve the simulator's probability for this side/line.
+                if side == "over":
+                    sim_prob = pr.over_probabilities.get(line_val)
+                else:
+                    over_prob = pr.over_probabilities.get(line_val)
+                    sim_prob = 1.0 - over_prob if over_prob is not None else None
+
+                if sim_prob is None:
+                    continue
+
+                edge = sim_prob - market_prob
+                if edge >= self.min_edge:
+                    edges.append(EdgeResult(
+                        player_name=player_name,
+                        prop=prop_name,
+                        line=line_val,
+                        side=side,
+                        sim_prob=sim_prob,
+                        market_prob=market_prob,
+                        edge=edge,
+                        american_odds=american_odds,
+                        book=mkt.get("book", ""),
+                    ))
+
+        edges.sort(key=lambda e: -e.edge)
+        return edges
 
 
 # ---------------------------------------------------------------------------
