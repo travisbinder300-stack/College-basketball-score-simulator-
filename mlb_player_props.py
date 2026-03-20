@@ -164,6 +164,33 @@ as module-level constants and via the :class:`BlueJaysRoster` helper:
 
     # Screen Vladdy Guerrero for batter props
     edges += screener.screen_batter(roster.lineup[2])
+
+Chicago White Sox 2026 Depth Chart
+------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Chicago White Sox depth-chart starters, starting rotation,
+and bullpen are available via the :class:`WhiteSoxRoster` helper:
+
+* ``WHITE_SOX_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``WHITE_SOX_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``WHITE_SOX_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import WhiteSoxRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = WhiteSoxRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen all starters
+    for batter in roster.lineup:
+        for edge in screener.screen_batter(batter):
+            print(edge)
+
+    # Screen the closer (Seranthony Dominguez)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -2975,6 +3002,406 @@ class BlueJaysRoster:
         return cls(
             lineup=list(BLUE_JAYS_LINEUP_2026),
             rotation=list(BLUE_JAYS_ROTATION_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Chicago White Sox — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Chicago White Sox starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB (and, for Murakami,
+# NPB/international) performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Kyle Teel          1B – Munetaka Murakami  2B – Chase Meidroth
+#   3B – Miguel Vargas       SS – Colson Montgomery  LF – Andrew Benintendi
+#   CF – Luisangel Acuña    RF – Austin Hays         DH – Lenyn Sosa
+#
+# Note: Kyle Teel is listed as "O" (Out) on the official depth chart; his
+# stats represent his projected output when healthy.  Edgar Quero is the
+# expected day-to-day replacement.
+#
+# Usage:
+#
+#   from mlb_player_props import WhiteSoxRoster, UnabatedEdgeScreener
+#   roster   = WhiteSoxRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the opening-day starter
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen every batter
+#   for batter in roster.lineup:
+#       for edge in screener.screen_batter(batter):
+#           print(edge)
+#
+#   # Screen the closer
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Kyle Teel — C, bats right (listed "Out"; projected healthy-season stats).
+_WSX_TEEL = BatterStats(
+    name="Kyle Teel",
+    avg=0.258,
+    obp=0.328,
+    slg=0.390,
+    hr_per_600_pa=10.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=26.0,
+    games_played=100,
+    power_rating=44.0,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=42.0,
+    runs_per_season=40.0,
+)
+
+#: Munetaka Murakami — 1B, bats right, NPB power/contact star (Tokyo Yakult).
+_WSX_MURAKAMI = BatterStats(
+    name="Munetaka Murakami",
+    avg=0.268,
+    obp=0.342,
+    slg=0.510,
+    hr_per_600_pa=35.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=32.0,
+    games_played=155,
+    power_rating=85.0,
+    bats="R",
+    pitches_per_pa=3.85,
+    rbi_per_season=95.0,
+    runs_per_season=72.0,
+)
+
+#: Chase Meidroth — 2B, bats left, patient contact approach.
+_WSX_MEIDROTH = BatterStats(
+    name="Chase Meidroth",
+    avg=0.252,
+    obp=0.350,
+    slg=0.368,
+    hr_per_600_pa=6.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=32.0,
+    bats="L",
+    pitches_per_pa=4.05,
+    rbi_per_season=38.0,
+    runs_per_season=58.0,
+)
+
+#: Miguel Vargas — 3B, bats right, versatile bat with developing power.
+_WSX_VARGAS = BatterStats(
+    name="Miguel Vargas",
+    avg=0.248,
+    obp=0.315,
+    slg=0.400,
+    hr_per_600_pa=15.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=32.0,
+    games_played=142,
+    power_rating=52.0,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=52.0,
+    runs_per_season=55.0,
+)
+
+#: Colson Montgomery — SS, bats left, top-10 prospect, defence-first with upside.
+_WSX_MONTGOMERY = BatterStats(
+    name="Colson Montgomery",
+    avg=0.240,
+    obp=0.322,
+    slg=0.382,
+    hr_per_600_pa=12.0,
+    sb_per_season=10.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=45.0,
+    bats="L",
+    pitches_per_pa=3.95,
+    rbi_per_season=44.0,
+    runs_per_season=56.0,
+)
+
+#: Andrew Benintendi — LF, bats left, veteran contact/OBP bat.
+_WSX_BENINTENDI = BatterStats(
+    name="Andrew Benintendi",
+    avg=0.272,
+    obp=0.348,
+    slg=0.418,
+    hr_per_600_pa=14.0,
+    sb_per_season=10.0,
+    doubles_per_600_pa=34.0,
+    games_played=140,
+    power_rating=50.0,
+    bats="L",
+    pitches_per_pa=3.75,
+    rbi_per_season=60.0,
+    runs_per_season=68.0,
+)
+
+#: Luisangel Acuña — CF, bats right, elite speed and improving contact.
+_WSX_ACUNA = BatterStats(
+    name="Luisangel Acuña",
+    avg=0.248,
+    obp=0.308,
+    slg=0.365,
+    hr_per_600_pa=8.0,
+    sb_per_season=30.0,
+    doubles_per_600_pa=26.0,
+    games_played=148,
+    power_rating=35.0,
+    bats="R",
+    pitches_per_pa=3.60,
+    rbi_per_season=42.0,
+    runs_per_season=72.0,
+)
+
+#: Austin Hays — RF, bats right, solid power-contact blend.
+_WSX_HAYS = BatterStats(
+    name="Austin Hays",
+    avg=0.252,
+    obp=0.308,
+    slg=0.420,
+    hr_per_600_pa=18.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=30.0,
+    games_played=138,
+    power_rating=58.0,
+    bats="R",
+    pitches_per_pa=3.62,
+    rbi_per_season=58.0,
+    runs_per_season=54.0,
+)
+
+#: Lenyn Sosa — DH, bats right, developing power, multi-position depth.
+_WSX_SOSA = BatterStats(
+    name="Lenyn Sosa",
+    avg=0.245,
+    obp=0.295,
+    slg=0.405,
+    hr_per_600_pa=17.0,
+    sb_per_season=5.0,
+    doubles_per_600_pa=28.0,
+    games_played=138,
+    power_rating=55.0,
+    bats="R",
+    pitches_per_pa=3.55,
+    rbi_per_season=55.0,
+    runs_per_season=48.0,
+)
+
+#: 2026 White Sox projected starting lineup (depth-chart position-1 starters).
+WHITE_SOX_LINEUP_2026: List[BatterStats] = [
+    _WSX_TEEL,
+    _WSX_MURAKAMI,
+    _WSX_MEIDROTH,
+    _WSX_VARGAS,
+    _WSX_MONTGOMERY,
+    _WSX_BENINTENDI,
+    _WSX_ACUNA,
+    _WSX_HAYS,
+    _WSX_SOSA,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Shane Smith — RHP, projected opening-day starter.
+_WSX_S_SMITH = PitcherStats(
+    name="Shane Smith",
+    era=4.80,
+    k_per_9=8.5,
+    innings_per_start=5.0,
+    whip=1.40,
+    arm_strength=52.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: Sean Burke — RHP, power arm, command still developing.
+_WSX_BURKE = PitcherStats(
+    name="Sean Burke",
+    era=5.20,
+    k_per_9=8.0,
+    innings_per_start=4.8,
+    whip=1.45,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: Anthony Kay — LHP, solid mid-rotation option.
+_WSX_KAY = PitcherStats(
+    name="Anthony Kay",
+    era=4.50,
+    k_per_9=8.5,
+    innings_per_start=5.2,
+    whip=1.35,
+    arm_strength=50.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Davis Martin — RHP, contact-suppression back-of-rotation arm.
+_WSX_D_MARTIN = PitcherStats(
+    name="Davis Martin",
+    era=5.00,
+    k_per_9=7.8,
+    innings_per_start=4.9,
+    whip=1.45,
+    arm_strength=46.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: Erick Fedde — RHP, veteran innings-eater, best ERA in the rotation.
+_WSX_FEDDE = PitcherStats(
+    name="Erick Fedde",
+    era=4.20,
+    k_per_9=8.2,
+    innings_per_start=5.5,
+    whip=1.30,
+    arm_strength=55.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: 2026 White Sox projected starting rotation (rotation-turn order 1–5).
+WHITE_SOX_ROTATION_2026: List[PitcherStats] = [
+    _WSX_S_SMITH,
+    _WSX_BURKE,
+    _WSX_KAY,
+    _WSX_D_MARTIN,
+    _WSX_FEDDE,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Jordan Leasure — RHP reliever, high-K setup arm.
+_WSX_LEASURE = PitcherStats(
+    name="Jordan Leasure",
+    era=3.80,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.15,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.95,
+)
+
+#: Grant Taylor — RHP reliever.
+_WSX_G_TAYLOR = PitcherStats(
+    name="Grant Taylor",
+    era=4.20,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.25,
+    arm_strength=52.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Sean Newcomb — LHP reliever, high walk-rate but strikeout upside.
+_WSX_NEWCOMB = PitcherStats(
+    name="Sean Newcomb",
+    era=4.50,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.38,
+    arm_strength=48.0,
+    throws="L",
+    pitches_per_pa=3.90,
+)
+
+#: Chris Murphy — LHP reliever, left-on-left specialist.
+_WSX_C_MURPHY = PitcherStats(
+    name="Chris Murphy",
+    era=4.20,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=50.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Jordan Hicks — RHP reliever, elite velocity (triple-digit fastball).
+_WSX_J_HICKS = PitcherStats(
+    name="Jordan Hicks",
+    era=3.50,
+    k_per_9=10.8,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=80.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Seranthony Dominguez — CL, RHP, top-tier closer.
+_WSX_DOMINGUEZ = PitcherStats(
+    name="Seranthony Dominguez",
+    era=3.20,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=75.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: 2026 White Sox bullpen (setup + closer; closer is last entry).
+WHITE_SOX_BULLPEN_2026: List[PitcherStats] = [
+    _WSX_LEASURE,
+    _WSX_G_TAYLOR,
+    _WSX_NEWCOMB,
+    _WSX_C_MURPHY,
+    _WSX_J_HICKS,
+    _WSX_DOMINGUEZ,
+]
+
+
+@dataclass
+class WhiteSoxRoster:
+    """
+    Bundle of Chicago White Sox projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Seranthony Dominguez).
+
+    Examples
+    --------
+    ::
+
+        roster = WhiteSoxRoster.default()
+        print(roster.rotation[0].name)   # "Shane Smith"
+        print(roster.lineup[1].name)     # "Munetaka Murakami"
+        print(roster.bullpen[-1].name)   # "Seranthony Dominguez"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "WhiteSoxRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(WHITE_SOX_LINEUP_2026),
+            rotation=list(WHITE_SOX_ROTATION_2026),
+            bullpen=list(WHITE_SOX_BULLPEN_2026),
         )
 
 
