@@ -217,6 +217,32 @@ and bullpen are available via the :class:`GuardiansRoster` helper:
     # Screen the closer (Cade Smith)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Detroit Tigers 2026 Depth Chart
+---------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Detroit Tigers depth-chart starters, starting rotation,
+and bullpen are available via the :class:`TigersRoster` helper:
+
+* ``TIGERS_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``TIGERS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``TIGERS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import TigersRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = TigersRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Tarik Skubal) for strikeout props
+    for edge in screener.screen_pitcher(roster.rotation[0]):
+        print(edge)
+
+    # Screen the closer (Kenley Jansen)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -3825,6 +3851,402 @@ class GuardiansRoster:
             lineup=list(GUARDIANS_LINEUP_2026),
             rotation=list(GUARDIANS_ROTATION_2026),
             bullpen=list(GUARDIANS_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Detroit Tigers — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Detroit Tigers starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Dillon Dingler       1B – Spencer Torkelson  2B – Gleyber Torres
+#   3B – Colt Keith            SS – Kevin McGonigle    LF – Riley Greene
+#   CF – Parker Meadows       RF – Wenceel Perez       DH – Kerry Carpenter
+#
+# Note: Jake Rogers is listed as Day-to-Day (DD) as the C backup.
+#
+# Usage:
+#
+#   from mlb_player_props import TigersRoster, UnabatedEdgeScreener
+#   roster   = TigersRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Tarik Skubal)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen Riley Greene for batter props
+#   for edge in screener.screen_batter(roster.lineup[5]):
+#       print(edge)
+#
+#   # Screen the closer (Kenley Jansen)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Dillon Dingler — C, bats right, developing power with improving contact.
+_DET_DINGLER = BatterStats(
+    name="Dillon Dingler",
+    avg=0.245,
+    obp=0.318,
+    slg=0.420,
+    hr_per_600_pa=18.0,
+    sb_per_season=5.0,
+    doubles_per_600_pa=26.0,
+    games_played=125,
+    power_rating=58.0,
+    bats="R",
+    pitches_per_pa=3.88,
+    rbi_per_season=52.0,
+    runs_per_season=44.0,
+)
+
+#: Spencer Torkelson — 1B, bats right, elite power prospect.
+_DET_TORKELSON = BatterStats(
+    name="Spencer Torkelson",
+    avg=0.245,
+    obp=0.332,
+    slg=0.460,
+    hr_per_600_pa=28.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=80.0,
+    bats="R",
+    pitches_per_pa=3.98,
+    rbi_per_season=80.0,
+    runs_per_season=62.0,
+)
+
+#: Gleyber Torres — 2B, switch hitter, contact bat with gap power.
+_DET_TORRES = BatterStats(
+    name="Gleyber Torres",
+    avg=0.258,
+    obp=0.330,
+    slg=0.420,
+    hr_per_600_pa=18.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=56.0,
+    bats="S",
+    pitches_per_pa=3.82,
+    rbi_per_season=62.0,
+    runs_per_season=66.0,
+)
+
+#: Colt Keith — 3B, bats left, promising bat with solid contact skills.
+_DET_KEITH = BatterStats(
+    name="Colt Keith",
+    avg=0.262,
+    obp=0.328,
+    slg=0.415,
+    hr_per_600_pa=14.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=30.0,
+    games_played=148,
+    power_rating=50.0,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=58.0,
+    runs_per_season=62.0,
+)
+
+#: Kevin McGonigle — SS, bats right, young defensive-first shortstop.
+_DET_MCGONIGLE = BatterStats(
+    name="Kevin McGonigle",
+    avg=0.240,
+    obp=0.302,
+    slg=0.365,
+    hr_per_600_pa=9.0,
+    sb_per_season=10.0,
+    doubles_per_600_pa=24.0,
+    games_played=140,
+    power_rating=34.0,
+    bats="R",
+    pitches_per_pa=3.65,
+    rbi_per_season=38.0,
+    runs_per_season=48.0,
+)
+
+#: Riley Greene — LF, bats left, high-ceiling bat with excellent contact.
+_DET_GREENE = BatterStats(
+    name="Riley Greene",
+    avg=0.278,
+    obp=0.352,
+    slg=0.460,
+    hr_per_600_pa=22.0,
+    sb_per_season=10.0,
+    doubles_per_600_pa=32.0,
+    games_played=148,
+    power_rating=70.0,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=72.0,
+    runs_per_season=75.0,
+)
+
+#: Parker Meadows — CF, bats left, elite speed with developing power.
+_DET_MEADOWS = BatterStats(
+    name="Parker Meadows",
+    avg=0.248,
+    obp=0.310,
+    slg=0.415,
+    hr_per_600_pa=16.0,
+    sb_per_season=20.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=52.0,
+    bats="L",
+    pitches_per_pa=3.72,
+    rbi_per_season=55.0,
+    runs_per_season=65.0,
+)
+
+#: Wenceel Perez — RF, switch hitter, contact-first approach with speed.
+_DET_PEREZ = BatterStats(
+    name="Wenceel Perez",
+    avg=0.265,
+    obp=0.322,
+    slg=0.380,
+    hr_per_600_pa=8.0,
+    sb_per_season=18.0,
+    doubles_per_600_pa=26.0,
+    games_played=148,
+    power_rating=30.0,
+    bats="S",
+    pitches_per_pa=3.62,
+    rbi_per_season=40.0,
+    runs_per_season=58.0,
+)
+
+#: Kerry Carpenter — DH, bats left, powerful left-handed bat with pull approach.
+_DET_CARPENTER = BatterStats(
+    name="Kerry Carpenter",
+    avg=0.258,
+    obp=0.322,
+    slg=0.465,
+    hr_per_600_pa=26.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=26.0,
+    games_played=138,
+    power_rating=74.0,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=72.0,
+    runs_per_season=55.0,
+)
+
+#: 2026 Tigers projected starting lineup (depth-chart position-1 starters).
+TIGERS_LINEUP_2026: List[BatterStats] = [
+    _DET_DINGLER,
+    _DET_TORKELSON,
+    _DET_TORRES,
+    _DET_KEITH,
+    _DET_MCGONIGLE,
+    _DET_GREENE,
+    _DET_MEADOWS,
+    _DET_PEREZ,
+    _DET_CARPENTER,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Tarik Skubal — LHP, Cy Young-calibre ace with elite swing-and-miss stuff.
+_DET_SKUBAL = PitcherStats(
+    name="Tarik Skubal",
+    era=2.80,
+    k_per_9=11.5,
+    innings_per_start=6.5,
+    whip=1.00,
+    arm_strength=72.0,
+    throws="L",
+    pitches_per_pa=3.92,
+)
+
+#: Framber Valdez — LHP, elite groundball sinker/curveball combination.
+_DET_VALDEZ = PitcherStats(
+    name="Framber Valdez",
+    era=3.20,
+    k_per_9=9.8,
+    innings_per_start=6.5,
+    whip=1.15,
+    arm_strength=66.0,
+    throws="L",
+    pitches_per_pa=3.85,
+)
+
+#: Jack Flaherty — RHP, veteran mid-rotation arm with swing-and-miss capability.
+_DET_FLAHERTY = PitcherStats(
+    name="Jack Flaherty",
+    era=3.80,
+    k_per_9=9.5,
+    innings_per_start=5.8,
+    whip=1.25,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.95,
+)
+
+#: Justin Verlander — RHP, future Hall-of-Famer, durability questions at age 43.
+_DET_VERLANDER = PitcherStats(
+    name="Justin Verlander",
+    era=4.00,
+    k_per_9=8.8,
+    innings_per_start=5.5,
+    whip=1.25,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Casey Mize — RHP, back-end starter rebuilding after Tommy John surgery.
+_DET_MIZE = PitcherStats(
+    name="Casey Mize",
+    era=4.60,
+    k_per_9=8.2,
+    innings_per_start=5.0,
+    whip=1.35,
+    arm_strength=54.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: 2026 Tigers projected starting rotation (rotation-turn order 1–5).
+TIGERS_ROTATION_2026: List[PitcherStats] = [
+    _DET_SKUBAL,
+    _DET_VALDEZ,
+    _DET_FLAHERTY,
+    _DET_VERLANDER,
+    _DET_MIZE,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Will Vest — RHP, high-leverage setup arm.
+_DET_VEST = PitcherStats(
+    name="Will Vest",
+    era=3.80,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Kyle Finnegan — RHP, late-inning reliever with high strikeout rate.
+_DET_FINNEGAN = PitcherStats(
+    name="Kyle Finnegan",
+    era=3.60,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.15,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: Tyler Holton — LHP, southpaw specialist and multi-inning option.
+_DET_HOLTON = PitcherStats(
+    name="Tyler Holton",
+    era=3.50,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.12,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Brant Hurter — LHP, lefty reliever with solid strikeout capability.
+_DET_HURTER = PitcherStats(
+    name="Brant Hurter",
+    era=3.80,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=50.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Brenan Hanifee — RHP, versatile multi-inning reliever.
+_DET_HANIFEE = PitcherStats(
+    name="Brenan Hanifee",
+    era=4.00,
+    k_per_9=8.5,
+    innings_per_start=1.0,
+    whip=1.25,
+    arm_strength=52.0,
+    throws="R",
+    pitches_per_pa=3.75,
+)
+
+#: Kenley Jansen — CL, RHP, elite closer with top-tier save history.
+_DET_JANSEN = PitcherStats(
+    name="Kenley Jansen",
+    era=3.00,
+    k_per_9=11.2,
+    innings_per_start=1.0,
+    whip=1.05,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Tigers bullpen (setup + closer; closer is last entry).
+TIGERS_BULLPEN_2026: List[PitcherStats] = [
+    _DET_VEST,
+    _DET_FINNEGAN,
+    _DET_HOLTON,
+    _DET_HURTER,
+    _DET_HANIFEE,
+    _DET_JANSEN,
+]
+
+
+@dataclass
+class TigersRoster:
+    """
+    Bundle of Detroit Tigers projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Kenley Jansen).
+
+    Examples
+    --------
+    ::
+
+        roster = TigersRoster.default()
+        print(roster.rotation[0].name)   # "Tarik Skubal"
+        print(roster.lineup[5].name)     # "Riley Greene"
+        print(roster.bullpen[-1].name)   # "Kenley Jansen"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "TigersRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(TIGERS_LINEUP_2026),
+            rotation=list(TIGERS_ROTATION_2026),
+            bullpen=list(TIGERS_BULLPEN_2026),
         )
 
 
