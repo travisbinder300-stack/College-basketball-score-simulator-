@@ -321,6 +321,32 @@ and bullpen are available via the :class:`OriolesRoster` helper:
     # Screen the closer (Ryan Helsley)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Boston Red Sox 2026 Depth Chart
+----------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Boston Red Sox depth-chart starters, starting rotation,
+and bullpen are available via the :class:`RedSoxRoster` helper:
+
+* ``RED_SOX_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``RED_SOX_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``RED_SOX_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import RedSoxRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = RedSoxRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Garrett Crochet) for strikeout props
+    for edge in screener.screen_pitcher(roster.rotation[0]):
+        print(edge)
+
+    # Screen the closer (Aroldis Chapman)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -5542,6 +5568,420 @@ class OriolesRoster:
             lineup=list(ORIOLES_LINEUP_2026),
             rotation=list(ORIOLES_ROTATION_2026),
             bullpen=list(ORIOLES_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Boston Red Sox — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Boston Red Sox starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Carlos Narvaez      1B – Willson Contreras   2B – Marcelo Mayer
+#   3B – Caleb Durbin         SS – Trevor Story        LF – Jarren Duran
+#   CF – Ceddanne Rafaela     RF – Wilyer Abreu        DH – Roman Anthony
+#
+# Usage:
+#
+#   from mlb_player_props import RedSoxRoster, UnabatedEdgeScreener
+#   roster   = RedSoxRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Garrett Crochet)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen Roman Anthony for batter props
+#   for edge in screener.screen_batter(roster.lineup[8]):
+#       print(edge)
+#
+#   # Screen the closer (Aroldis Chapman)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Carlos Narvaez — C, bats left, strong defensive catcher with a solid
+#: walk rate and developing offensive game.
+_BSX_NARVAEZ = BatterStats(
+    name="Carlos Narvaez",
+    avg=0.248,
+    obp=0.335,
+    slg=0.380,
+    hr_per_600_pa=10.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=22.0,
+    games_played=120,
+    power_rating=36.0,
+    bats="L",
+    pitches_per_pa=3.92,
+    rbi_per_season=42.0,
+    runs_per_season=48.0,
+)
+
+#: Willson Contreras — 1B, bats right, All-Star catcher converting to first
+#: base; elite bat-to-ball skills and above-average pop.
+_BSX_CONTRERAS = BatterStats(
+    name="Willson Contreras",
+    avg=0.265,
+    obp=0.348,
+    slg=0.450,
+    hr_per_600_pa=20.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=26.0,
+    games_played=145,
+    power_rating=60.0,
+    bats="R",
+    pitches_per_pa=3.88,
+    rbi_per_season=68.0,
+    runs_per_season=64.0,
+)
+
+#: Marcelo Mayer — 2B, bats left, prized shortstop prospect shifting to
+#: second base; polished bat with above-average power projection.
+_BSX_MAYER = BatterStats(
+    name="Marcelo Mayer",
+    avg=0.268,
+    obp=0.352,
+    slg=0.440,
+    hr_per_600_pa=16.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=52.0,
+    bats="L",
+    pitches_per_pa=4.00,
+    rbi_per_season=56.0,
+    runs_per_season=70.0,
+)
+
+#: Caleb Durbin — 3B, switch hitter, versatile utility infielder with plus
+#: on-base skills and gap power; fills a key role at the hot corner.
+_BSX_DURBIN = BatterStats(
+    name="Caleb Durbin",
+    avg=0.248,
+    obp=0.325,
+    slg=0.380,
+    hr_per_600_pa=8.0,
+    sb_per_season=18.0,
+    doubles_per_600_pa=22.0,
+    games_played=135,
+    power_rating=32.0,
+    bats="S",
+    pitches_per_pa=3.85,
+    rbi_per_season=38.0,
+    runs_per_season=62.0,
+)
+
+#: Trevor Story — SS, bats right, powerful shortstop returning to full
+#: health; plus raw power and well above-average arm.
+_BSX_STORY = BatterStats(
+    name="Trevor Story",
+    avg=0.252,
+    obp=0.320,
+    slg=0.440,
+    hr_per_600_pa=20.0,
+    sb_per_season=16.0,
+    doubles_per_600_pa=26.0,
+    games_played=138,
+    power_rating=64.0,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=62.0,
+    runs_per_season=68.0,
+)
+
+#: Jarren Duran — LF, bats left, explosive leadoff threat with elite speed
+#: and improving power; one of the AL's best offensive outfielders.
+_BSX_DURAN = BatterStats(
+    name="Jarren Duran",
+    avg=0.285,
+    obp=0.355,
+    slg=0.470,
+    hr_per_600_pa=14.0,
+    sb_per_season=30.0,
+    doubles_per_600_pa=36.0,
+    games_played=155,
+    power_rating=56.0,
+    bats="L",
+    pitches_per_pa=3.72,
+    rbi_per_season=64.0,
+    runs_per_season=96.0,
+)
+
+#: Ceddanne Rafaela — CF, bats right, exceptional defensive centre fielder
+#: with above-average speed; offensively developing but exciting tools.
+_BSX_RAFAELA = BatterStats(
+    name="Ceddanne Rafaela",
+    avg=0.248,
+    obp=0.302,
+    slg=0.410,
+    hr_per_600_pa=14.0,
+    sb_per_season=24.0,
+    doubles_per_600_pa=24.0,
+    games_played=148,
+    power_rating=46.0,
+    bats="R",
+    pitches_per_pa=3.68,
+    rbi_per_season=50.0,
+    runs_per_season=68.0,
+)
+
+#: Wilyer Abreu — RF, bats right, highly athletic corner outfielder with
+#: plus defence and promising offensive ceiling in right field.
+_BSX_ABREU = BatterStats(
+    name="Wilyer Abreu",
+    avg=0.252,
+    obp=0.328,
+    slg=0.415,
+    hr_per_600_pa=12.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=24.0,
+    games_played=140,
+    power_rating=42.0,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=48.0,
+    runs_per_season=60.0,
+)
+
+#: Roman Anthony — DH, bats left, highly touted top prospect with premium
+#: bat speed, plate discipline, and tantalising power potential.
+_BSX_R_ANTHONY = BatterStats(
+    name="Roman Anthony",
+    avg=0.272,
+    obp=0.360,
+    slg=0.462,
+    hr_per_600_pa=18.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=30.0,
+    games_played=148,
+    power_rating=58.0,
+    bats="L",
+    pitches_per_pa=4.05,
+    rbi_per_season=66.0,
+    runs_per_season=78.0,
+)
+
+#: 2026 Red Sox projected starting lineup (depth-chart position-1 starters).
+RED_SOX_LINEUP_2026: List[BatterStats] = [
+    _BSX_NARVAEZ,
+    _BSX_CONTRERAS,
+    _BSX_MAYER,
+    _BSX_DURBIN,
+    _BSX_STORY,
+    _BSX_DURAN,
+    _BSX_RAFAELA,
+    _BSX_ABREU,
+    _BSX_R_ANTHONY,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Garrett Crochet — LHP, electric ace; one of the best left-handed starters
+#: in baseball with triple-digit heat and a devastating slider.
+_BSX_CROCHET = PitcherStats(
+    name="Garrett Crochet",
+    era=2.95,
+    k_per_9=11.8,
+    innings_per_start=6.1,
+    whip=1.08,
+    arm_strength=70.0,
+    throws="L",
+    pitches_per_pa=3.85,
+)
+
+#: Sonny Gray — RHP, elite command and advanced pitch sequencing; veteran
+#: ace-quality arm who pounds the zone with varied stuff.
+_BSX_S_GRAY = PitcherStats(
+    name="Sonny Gray",
+    era=3.20,
+    k_per_9=10.2,
+    innings_per_start=6.0,
+    whip=1.12,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Ranger Suarez — LHP, advanced command lefty with elite contact-management
+#: skills; ground-ball specialist who limits hard contact.
+_BSX_SUAREZ = PitcherStats(
+    name="Ranger Suarez",
+    era=3.45,
+    k_per_9=8.8,
+    innings_per_start=5.2,
+    whip=1.18,
+    arm_strength=56.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Brayan Bello — RHP, power sinker-slider combination; emerging mid-rotation
+#: arm with plus velocity and developing secondary pitches.
+_BSX_BELLO = PitcherStats(
+    name="Brayan Bello",
+    era=3.85,
+    k_per_9=9.4,
+    innings_per_start=5.2,
+    whip=1.24,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Johan Oviedo — RHP, durable innings-eater with solid four-pitch mix;
+#: reliable back-end starter who limits walks and eats innings.
+_BSX_OVIEDO = PitcherStats(
+    name="Johan Oviedo",
+    era=4.15,
+    k_per_9=8.4,
+    innings_per_start=5.1,
+    whip=1.28,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: 2026 Red Sox projected starting rotation (rotation-turn order 1–5).
+RED_SOX_ROTATION_2026: List[PitcherStats] = [
+    _BSX_CROCHET,
+    _BSX_S_GRAY,
+    _BSX_SUAREZ,
+    _BSX_BELLO,
+    _BSX_OVIEDO,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Garrett Whitlock — RHP, high-leverage setup arm with elite splitter;
+#: can work multiple innings and profile as an opener when needed.
+_BSX_WHITLOCK = PitcherStats(
+    name="Garrett Whitlock",
+    era=3.40,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.12,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Justin Slaten — RHP, hard-throwing setup reliever with a devastating
+#: sweeper; emerging as one of Boston's most valuable bridge arms.
+_BSX_SLATEN = PitcherStats(
+    name="Justin Slaten",
+    era=3.60,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.16,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Greg Weissert — RHP, power reliever with a nasty splitter; accumulated
+#: significant late-game experience as a key setup option.
+_BSX_WEISSERT = PitcherStats(
+    name="Greg Weissert",
+    era=3.75,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Danny Coulombe — LHP, veteran left-handed specialist with excellent
+#: command and a deceptive delivery that troubles left-handed hitters.
+_BSX_COULOMBE = PitcherStats(
+    name="Danny Coulombe",
+    era=3.80,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.85,
+)
+
+#: Zack Kelly — RHP, high-octane reliever with triple-digit heat; elite
+#: swing-and-miss stuff makes him a key late-inning weapon.
+_BSX_Z_KELLY = PitcherStats(
+    name="Zack Kelly",
+    era=3.90,
+    k_per_9=11.2,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Aroldis Chapman — CL, LHP, the hardest-throwing closer in baseball
+#: history; triple-digit fastball and devastating slider; elite save machine.
+_BSX_CHAPMAN = PitcherStats(
+    name="Aroldis Chapman",
+    era=2.65,
+    k_per_9=14.0,
+    innings_per_start=1.0,
+    whip=1.00,
+    arm_strength=78.0,
+    throws="L",
+    pitches_per_pa=3.70,
+)
+
+#: 2026 Red Sox bullpen (setup + closer; closer is last entry).
+RED_SOX_BULLPEN_2026: List[PitcherStats] = [
+    _BSX_WHITLOCK,
+    _BSX_SLATEN,
+    _BSX_WEISSERT,
+    _BSX_COULOMBE,
+    _BSX_Z_KELLY,
+    _BSX_CHAPMAN,
+]
+
+
+@dataclass
+class RedSoxRoster:
+    """
+    Bundle of Boston Red Sox projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Aroldis Chapman).
+
+    Examples
+    --------
+    ::
+
+        roster = RedSoxRoster.default()
+        print(roster.rotation[0].name)   # "Garrett Crochet"
+        print(roster.lineup[5].name)     # "Jarren Duran"
+        print(roster.bullpen[-1].name)   # "Aroldis Chapman"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "RedSoxRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(RED_SOX_LINEUP_2026),
+            rotation=list(RED_SOX_ROTATION_2026),
+            bullpen=list(RED_SOX_BULLPEN_2026),
         )
 
 

@@ -31,6 +31,7 @@ Test classes are organised by the component they exercise:
   Royals 2026 roster     – TestRoyalsRoster
   Twins 2026 roster      – TestTwinsRoster
   Orioles 2026 roster    – TestOriolesRoster
+  Red Sox 2026 roster    – TestRedSoxRoster
 """
 
 import json
@@ -5878,6 +5879,378 @@ class TestOriolesRoster(unittest.TestCase):
         edges = screener.screen_pitcher(ORIOLES_BULLPEN_2026[-1], market_lines=lines)
         self.assertTrue(edges)
         self.assertEqual(edges[0].player_name, "Ryan Helsley")
+
+
+# ---------------------------------------------------------------------------
+# Boston Red Sox 2026 Depth Chart tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    RedSoxRoster,
+    RED_SOX_LINEUP_2026,
+    RED_SOX_ROTATION_2026,
+    RED_SOX_BULLPEN_2026,
+)
+
+_BSX_LINEUP_NAMES = [
+    "Carlos Narvaez",
+    "Willson Contreras",
+    "Marcelo Mayer",
+    "Caleb Durbin",
+    "Trevor Story",
+    "Jarren Duran",
+    "Ceddanne Rafaela",
+    "Wilyer Abreu",
+    "Roman Anthony",
+]
+
+_BSX_ROTATION_NAMES = [
+    "Garrett Crochet",
+    "Sonny Gray",
+    "Ranger Suarez",
+    "Brayan Bello",
+    "Johan Oviedo",
+]
+
+_BSX_BULLPEN_NAMES = [
+    "Garrett Whitlock",
+    "Justin Slaten",
+    "Greg Weissert",
+    "Danny Coulombe",
+    "Zack Kelly",
+    "Aroldis Chapman",
+]
+
+
+class TestRedSoxRoster(unittest.TestCase):
+    """Tests for RED_SOX_LINEUP_2026, RED_SOX_ROTATION_2026,
+    RED_SOX_BULLPEN_2026, and RedSoxRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(RED_SOX_LINEUP_2026), 9)
+
+    def test_rotation_has_five_starters(self):
+        self.assertEqual(len(RED_SOX_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(RED_SOX_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in RED_SOX_LINEUP_2026], _BSX_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in RED_SOX_ROTATION_2026], _BSX_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in RED_SOX_BULLPEN_2026], _BSX_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in RED_SOX_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()
+
+    def test_batter_avg_in_range(self):
+        for b in RED_SOX_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in RED_SOX_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in RED_SOX_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_nonnegative(self):
+        for b in RED_SOX_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in RED_SOX_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in RED_SOX_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in RED_SOX_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — lineup
+    # ------------------------------------------------------------------
+
+    def test_narvaez_bats_left(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[0].bats, "L")
+
+    def test_contreras_bats_right(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[1].bats, "R")
+
+    def test_mayer_bats_left(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[2].bats, "L")
+
+    def test_durbin_switch_hitter(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[3].bats, "S")
+
+    def test_story_bats_right(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[4].bats, "R")
+
+    def test_duran_bats_left(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[5].bats, "L")
+
+    def test_rafaela_bats_right(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[6].bats, "R")
+
+    def test_abreu_bats_right(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[7].bats, "R")
+
+    def test_r_anthony_bats_left(self):
+        self.assertEqual(RED_SOX_LINEUP_2026[8].bats, "L")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_pass_validation(self):
+        for p in RED_SOX_ROTATION_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_all_bullpen_pass_validation(self):
+        for p in RED_SOX_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_rotation_era_positive(self):
+        for p in RED_SOX_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_bullpen_era_positive(self):
+        for p in RED_SOX_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_rotation_k_per_9_in_range(self):
+        for p in RED_SOX_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_bullpen_k_per_9_in_range(self):
+        for p in RED_SOX_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_crochet_throws_left(self):
+        self.assertEqual(RED_SOX_ROTATION_2026[0].throws, "L")
+
+    def test_s_gray_throws_right(self):
+        self.assertEqual(RED_SOX_ROTATION_2026[1].throws, "R")
+
+    def test_suarez_throws_left(self):
+        self.assertEqual(RED_SOX_ROTATION_2026[2].throws, "L")
+
+    def test_bello_throws_right(self):
+        self.assertEqual(RED_SOX_ROTATION_2026[3].throws, "R")
+
+    def test_oviedo_throws_right(self):
+        self.assertEqual(RED_SOX_ROTATION_2026[4].throws, "R")
+
+    def test_coulombe_throws_left(self):
+        coulombe = next(p for p in RED_SOX_BULLPEN_2026 if p.name == "Danny Coulombe")
+        self.assertEqual(coulombe.throws, "L")
+
+    def test_chapman_throws_left(self):
+        self.assertEqual(RED_SOX_BULLPEN_2026[-1].throws, "L")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_crochet_has_best_rotation_era(self):
+        """Garrett Crochet is modelled as the ace (best ERA in the rotation)."""
+        min_era = min(p.era for p in RED_SOX_ROTATION_2026)
+        self.assertAlmostEqual(RED_SOX_ROTATION_2026[0].era, min_era)
+
+    def test_chapman_has_best_bullpen_era(self):
+        min_era = min(p.era for p in RED_SOX_BULLPEN_2026)
+        self.assertAlmostEqual(RED_SOX_BULLPEN_2026[-1].era, min_era)
+
+    def test_closer_has_lower_era_than_ace(self):
+        self.assertLess(RED_SOX_BULLPEN_2026[-1].era, RED_SOX_ROTATION_2026[0].era)
+
+    def test_crochet_has_best_k_per_9_in_rotation(self):
+        max_k = max(p.k_per_9 for p in RED_SOX_ROTATION_2026)
+        self.assertAlmostEqual(RED_SOX_ROTATION_2026[0].k_per_9, max_k)
+
+    def test_chapman_has_best_k_per_9_in_bullpen(self):
+        max_k = max(p.k_per_9 for p in RED_SOX_BULLPEN_2026)
+        self.assertAlmostEqual(RED_SOX_BULLPEN_2026[-1].k_per_9, max_k)
+
+    def test_chapman_has_best_whip_in_bullpen(self):
+        min_whip = min(p.whip for p in RED_SOX_BULLPEN_2026)
+        self.assertAlmostEqual(RED_SOX_BULLPEN_2026[-1].whip, min_whip)
+
+    def test_duran_leads_team_in_runs(self):
+        max_runs = max(b.runs_per_season for b in RED_SOX_LINEUP_2026)
+        self.assertAlmostEqual(RED_SOX_LINEUP_2026[5].runs_per_season, max_runs)
+
+    def test_contreras_leads_team_in_rbi(self):
+        max_rbi = max(b.rbi_per_season for b in RED_SOX_LINEUP_2026)
+        self.assertAlmostEqual(RED_SOX_LINEUP_2026[1].rbi_per_season, max_rbi)
+
+    def test_story_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in RED_SOX_LINEUP_2026)
+        self.assertAlmostEqual(RED_SOX_LINEUP_2026[4].power_rating, max_power)
+
+    def test_duran_leads_team_in_avg(self):
+        max_avg = max(b.avg for b in RED_SOX_LINEUP_2026)
+        self.assertAlmostEqual(RED_SOX_LINEUP_2026[5].avg, max_avg)
+
+    # ------------------------------------------------------------------
+    # RedSoxRoster factory
+    # ------------------------------------------------------------------
+
+    def test_default_returns_red_sox_roster_instance(self):
+        self.assertIsInstance(RedSoxRoster.default(), RedSoxRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(RedSoxRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(RedSoxRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(RedSoxRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = RedSoxRoster.default()
+        r2 = RedSoxRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = RedSoxRoster.default()
+        r2 = RedSoxRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = RedSoxRoster.default()
+        r2 = RedSoxRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+    def test_default_lineup_names_match_constants(self):
+        roster = RedSoxRoster.default()
+        self.assertEqual(
+            [b.name for b in roster.lineup],
+            [b.name for b in RED_SOX_LINEUP_2026],
+        )
+
+    def test_default_rotation_names_match_constants(self):
+        roster = RedSoxRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.rotation],
+            [p.name for p in RED_SOX_ROTATION_2026],
+        )
+
+    def test_default_bullpen_names_match_constants(self):
+        roster = RedSoxRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.bullpen],
+            [p.name for p in RED_SOX_BULLPEN_2026],
+        )
+
+    # ------------------------------------------------------------------
+    # Simulator integration
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_crochet_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(RED_SOX_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Strikeouts", prop_names)
+
+    def test_simulate_pitcher_chapman_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(RED_SOX_BULLPEN_2026[-1])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_batter_duran_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(RED_SOX_LINEUP_2026[5])
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_crochet_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Garrett Crochet", "strikeouts", 4.5, +300, -500)
+        edges = screener.screen_pitcher(RED_SOX_ROTATION_2026[0], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Garrett Crochet")
+
+    def test_screen_batter_duran_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Jarren Duran", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(RED_SOX_LINEUP_2026[5], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_matchup_red_sox_roster(self):
+        """screen_matchup with the Red Sox lineup against Crochet."""
+        sim = _make_screener_sim(seed=99)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = RedSoxRoster.default()
+        lines = (
+            _make_market_lines("Garrett Crochet", "strikeouts", 4.5, +350, -600)
+            + _make_market_lines("Jarren Duran", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Garrett Crochet", player_names)
+        self.assertIn("Jarren Duran", player_names)
+
+    def test_screen_closer_chapman(self):
+        """Edge screener works for Aroldis Chapman (LHP closer)."""
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Aroldis Chapman", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(RED_SOX_BULLPEN_2026[-1], market_lines=lines)
+        self.assertTrue(edges)
+        self.assertEqual(edges[0].player_name, "Aroldis Chapman")
 
 
 if __name__ == "__main__":
