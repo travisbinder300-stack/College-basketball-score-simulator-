@@ -243,6 +243,32 @@ and bullpen are available via the :class:`TigersRoster` helper:
     # Screen the closer (Kenley Jansen)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Kansas City Royals 2026 Depth Chart
+--------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Kansas City Royals depth-chart starters, starting rotation,
+and bullpen are available via the :class:`RoyalsRoster` helper:
+
+* ``ROYALS_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``ROYALS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``ROYALS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import RoyalsRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = RoyalsRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Cole Ragans) for strikeout props
+    for edge in screener.screen_pitcher(roster.rotation[0]):
+        print(edge)
+
+    # Screen the closer (Carlos Estevez)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -4247,6 +4273,401 @@ class TigersRoster:
             lineup=list(TIGERS_LINEUP_2026),
             rotation=list(TIGERS_ROTATION_2026),
             bullpen=list(TIGERS_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Kansas City Royals — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Kansas City Royals starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Salvador Perez        1B – Vinnie Pasquantino  2B – Jonathan India
+#   3B – Maikel Garcia          SS – Bobby Witt Jr.      LF – Isaac Collins
+#   CF – Kyle Isbel             RF – Jac Caglianone      DH – Carter Jensen
+#
+# Usage:
+#
+#   from mlb_player_props import RoyalsRoster, UnabatedEdgeScreener
+#   roster   = RoyalsRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Cole Ragans)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen Bobby Witt Jr. for batter props
+#   for edge in screener.screen_batter(roster.lineup[4]):
+#       print(edge)
+#
+#   # Screen the closer (Carlos Estevez)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Salvador Perez — C, bats right, elite power for a catcher with veteran production.
+_KC_PEREZ = BatterStats(
+    name="Salvador Perez",
+    avg=0.260,
+    obp=0.310,
+    slg=0.475,
+    hr_per_600_pa=28.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=24.0,
+    games_played=140,
+    power_rating=76.0,
+    bats="R",
+    pitches_per_pa=3.55,
+    rbi_per_season=80.0,
+    runs_per_season=52.0,
+)
+
+#: Vinnie Pasquantino — 1B, bats left, high on-base skills with solid power.
+_KC_PASQUANTINO = BatterStats(
+    name="Vinnie Pasquantino",
+    avg=0.268,
+    obp=0.350,
+    slg=0.460,
+    hr_per_600_pa=22.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=30.0,
+    games_played=145,
+    power_rating=66.0,
+    bats="L",
+    pitches_per_pa=3.92,
+    rbi_per_season=74.0,
+    runs_per_season=62.0,
+)
+
+#: Jonathan India — 2B, bats right, patient approach with above-average OBP.
+_KC_INDIA = BatterStats(
+    name="Jonathan India",
+    avg=0.252,
+    obp=0.345,
+    slg=0.410,
+    hr_per_600_pa=16.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=50.0,
+    bats="R",
+    pitches_per_pa=4.05,
+    rbi_per_season=54.0,
+    runs_per_season=70.0,
+)
+
+#: Maikel Garcia — 3B, switch hitter, contact-first bat with gap power and speed.
+_KC_GARCIA = BatterStats(
+    name="Maikel Garcia",
+    avg=0.262,
+    obp=0.320,
+    slg=0.385,
+    hr_per_600_pa=8.0,
+    sb_per_season=22.0,
+    doubles_per_600_pa=26.0,
+    games_played=148,
+    power_rating=32.0,
+    bats="S",
+    pitches_per_pa=3.62,
+    rbi_per_season=44.0,
+    runs_per_season=68.0,
+)
+
+#: Bobby Witt Jr. — SS, bats right, franchise cornerstone with elite tools across
+#: the board — power, speed, contact, and defence.
+_KC_WITT = BatterStats(
+    name="Bobby Witt Jr.",
+    avg=0.302,
+    obp=0.358,
+    slg=0.540,
+    hr_per_600_pa=32.0,
+    sb_per_season=32.0,
+    doubles_per_600_pa=34.0,
+    games_played=155,
+    power_rating=88.0,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=96.0,
+    runs_per_season=98.0,
+)
+
+#: Isaac Collins — LF, bats left, speedy table-setter with developing plate skills.
+_KC_COLLINS = BatterStats(
+    name="Isaac Collins",
+    avg=0.255,
+    obp=0.315,
+    slg=0.360,
+    hr_per_600_pa=6.0,
+    sb_per_season=24.0,
+    doubles_per_600_pa=22.0,
+    games_played=135,
+    power_rating=24.0,
+    bats="L",
+    pitches_per_pa=3.65,
+    rbi_per_season=32.0,
+    runs_per_season=58.0,
+)
+
+#: Kyle Isbel — CF, bats left, solid defence with improving plate approach.
+_KC_ISBEL = BatterStats(
+    name="Kyle Isbel",
+    avg=0.248,
+    obp=0.312,
+    slg=0.380,
+    hr_per_600_pa=10.0,
+    sb_per_season=18.0,
+    doubles_per_600_pa=24.0,
+    games_played=138,
+    power_rating=36.0,
+    bats="L",
+    pitches_per_pa=3.70,
+    rbi_per_season=40.0,
+    runs_per_season=52.0,
+)
+
+#: Jac Caglianone — RF, bats left, big-bodied slugger with massive raw power.
+_KC_CAGLIANONE = BatterStats(
+    name="Jac Caglianone",
+    avg=0.248,
+    obp=0.318,
+    slg=0.490,
+    hr_per_600_pa=30.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=24.0,
+    games_played=140,
+    power_rating=82.0,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=78.0,
+    runs_per_season=56.0,
+)
+
+#: Carter Jensen — DH, bats right, young catcher-convert with developing power bat.
+_KC_JENSEN = BatterStats(
+    name="Carter Jensen",
+    avg=0.242,
+    obp=0.308,
+    slg=0.390,
+    hr_per_600_pa=12.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=22.0,
+    games_played=128,
+    power_rating=42.0,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=44.0,
+    runs_per_season=40.0,
+)
+
+#: 2026 Royals projected starting lineup (depth-chart position-1 starters).
+ROYALS_LINEUP_2026: List[BatterStats] = [
+    _KC_PEREZ,
+    _KC_PASQUANTINO,
+    _KC_INDIA,
+    _KC_GARCIA,
+    _KC_WITT,
+    _KC_COLLINS,
+    _KC_ISBEL,
+    _KC_CAGLIANONE,
+    _KC_JENSEN,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Cole Ragans — LHP, electric ace with swing-and-miss slider and elite K rate.
+_KC_RAGANS = PitcherStats(
+    name="Cole Ragans",
+    era=3.00,
+    k_per_9=11.8,
+    innings_per_start=6.2,
+    whip=1.08,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.95,
+)
+
+#: Michael Wacha — RHP, crafty veteran with strong command and changeup.
+_KC_WACHA = PitcherStats(
+    name="Michael Wacha",
+    era=3.80,
+    k_per_9=8.8,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Seth Lugo — RHP, durable mid-rotation starter with advanced pitch mix.
+_KC_LUGO = PitcherStats(
+    name="Seth Lugo",
+    era=3.70,
+    k_per_9=8.5,
+    innings_per_start=6.0,
+    whip=1.18,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Kris Bubic — LHP, lefty finesse pitcher relying on movement over velocity.
+_KC_BUBIC = PitcherStats(
+    name="Kris Bubic",
+    era=4.30,
+    k_per_9=8.0,
+    innings_per_start=5.5,
+    whip=1.30,
+    arm_strength=50.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Noah Cameron — RHP, back-end innings eater with solid groundball profile.
+_KC_CAMERON = PitcherStats(
+    name="Noah Cameron",
+    era=4.70,
+    k_per_9=7.5,
+    innings_per_start=5.0,
+    whip=1.38,
+    arm_strength=48.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: 2026 Royals projected starting rotation (rotation-turn order 1–5).
+ROYALS_ROTATION_2026: List[PitcherStats] = [
+    _KC_RAGANS,
+    _KC_WACHA,
+    _KC_LUGO,
+    _KC_BUBIC,
+    _KC_CAMERON,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Lucas Erceg — RHP, power reliever with triple-digit heat.
+_KC_ERCEG = PitcherStats(
+    name="Lucas Erceg",
+    era=3.20,
+    k_per_9=11.5,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: Matt Strahm — LHP, versatile multi-inning lefty with swing-and-miss stuff.
+_KC_STRAHM = PitcherStats(
+    name="Matt Strahm",
+    era=3.50,
+    k_per_9=10.8,
+    innings_per_start=1.0,
+    whip=1.12,
+    arm_strength=58.0,
+    throws="L",
+    pitches_per_pa=3.88,
+)
+
+#: John Schreiber — RHP, late-inning arm with quality breaking ball.
+_KC_SCHREIBER = PitcherStats(
+    name="John Schreiber",
+    era=3.60,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.15,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Nick Mears — RHP, hard-throwing setup man.
+_KC_MEARS = PitcherStats(
+    name="Nick Mears",
+    era=3.90,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Daniel Lynch IV — LHP, lefty specialist and multi-inning option.
+_KC_LYNCH = PitcherStats(
+    name="Daniel Lynch IV",
+    era=4.10,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Carlos Estevez — CL, RHP, elite closer with overpowering splitter.
+_KC_ESTEVEZ = PitcherStats(
+    name="Carlos Estevez",
+    era=2.90,
+    k_per_9=12.0,
+    innings_per_start=1.0,
+    whip=1.05,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: 2026 Royals bullpen (setup + closer; closer is last entry).
+ROYALS_BULLPEN_2026: List[PitcherStats] = [
+    _KC_ERCEG,
+    _KC_STRAHM,
+    _KC_SCHREIBER,
+    _KC_MEARS,
+    _KC_LYNCH,
+    _KC_ESTEVEZ,
+]
+
+
+@dataclass
+class RoyalsRoster:
+    """
+    Bundle of Kansas City Royals projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Carlos Estevez).
+
+    Examples
+    --------
+    ::
+
+        roster = RoyalsRoster.default()
+        print(roster.rotation[0].name)   # "Cole Ragans"
+        print(roster.lineup[4].name)     # "Bobby Witt Jr."
+        print(roster.bullpen[-1].name)   # "Carlos Estevez"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "RoyalsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(ROYALS_LINEUP_2026),
+            rotation=list(ROYALS_ROTATION_2026),
+            bullpen=list(ROYALS_BULLPEN_2026),
         )
 
 
