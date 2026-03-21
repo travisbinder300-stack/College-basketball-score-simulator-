@@ -7501,5 +7501,358 @@ class TestAthleticsRoster(unittest.TestCase):
         self.assertEqual(edges[0].player_name, "Hogan Harris")
 
 
+# ---------------------------------------------------------------------------
+# Houston Astros 2026 Depth Chart tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    AstrosRoster,
+    ASTROS_LINEUP_2026,
+    ASTROS_ROTATION_2026,
+    ASTROS_BULLPEN_2026,
+)
+
+_HOU_LINEUP_NAMES = [
+    "Yainer Diaz",
+    "Christian Walker",
+    "Jose Altuve",
+    "Carlos Correa",
+    "Jeremy Pena",
+    "Zach Cole",
+    "Jake Meyers",
+    "Cam Smith",
+    "Yordan Alvarez",
+]
+
+_HOU_ROTATION_NAMES = [
+    "Hunter Brown",
+    "Tatsuya Imai",
+    "Cristian Javier",
+    "Mike Burrows",
+    "Spencer Arrighetti",
+]
+
+_HOU_BULLPEN_NAMES = [
+    "Bennett Sousa",
+    "Bryan King",
+    "Steven Okert",
+    "Enyel De Los Santos",
+    "Roddery Munoz",
+    "Josh Hader",
+]
+
+
+class TestAstrosRoster(unittest.TestCase):
+    """Tests for ASTROS_LINEUP_2026, ASTROS_ROTATION_2026,
+    ASTROS_BULLPEN_2026, and AstrosRoster."""
+
+    # ------------------------------------------------------------------
+    # Structural / size checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(ASTROS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_pitchers(self):
+        self.assertEqual(len(ASTROS_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(ASTROS_BULLPEN_2026), 6)
+
+    # ------------------------------------------------------------------
+    # Name / identity checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_names_match_depth_chart(self):
+        self.assertEqual(
+            [b.name for b in ASTROS_LINEUP_2026],
+            _HOU_LINEUP_NAMES,
+        )
+
+    def test_rotation_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in ASTROS_ROTATION_2026],
+            _HOU_ROTATION_NAMES,
+        )
+
+    def test_bullpen_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in ASTROS_BULLPEN_2026],
+            _HOU_BULLPEN_NAMES,
+        )
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — lineup
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_in_range(self):
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreater(b.avg, 0.200, msg=b.name)
+            self.assertLess(b.avg, 0.400, msg=b.name)
+
+    def test_all_lineup_obp_gte_avg(self):
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg, msg=b.name)
+
+    def test_all_lineup_slg_gte_avg(self):
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg, msg=b.name)
+
+    def test_all_lineup_hr_positive(self):
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreater(b.hr_per_600_pa, 0, msg=b.name)
+
+    def test_all_lineup_hits_positive(self):
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreater(b.avg * b.games_played * 4, 0, msg=b.name)
+
+    def test_all_lineup_power_rating_in_range(self):
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreaterEqual(b.power_rating, 0, msg=b.name)
+            self.assertLessEqual(b.power_rating, 100, msg=b.name)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — rotation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_era_positive(self):
+        for p in ASTROS_ROTATION_2026:
+            self.assertGreater(p.era, 0.0, msg=p.name)
+
+    def test_all_rotation_k9_positive(self):
+        for p in ASTROS_ROTATION_2026:
+            self.assertGreater(p.k_per_9, 0.0, msg=p.name)
+
+    def test_all_rotation_whip_positive(self):
+        for p in ASTROS_ROTATION_2026:
+            self.assertGreater(p.whip, 0.0, msg=p.name)
+
+    def test_all_rotation_innings_per_start_positive(self):
+        for p in ASTROS_ROTATION_2026:
+            self.assertGreater(p.innings_per_start, 0.0, msg=p.name)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — bullpen
+    # ------------------------------------------------------------------
+
+    def test_all_bullpen_era_positive(self):
+        for p in ASTROS_BULLPEN_2026:
+            self.assertGreater(p.era, 0.0, msg=p.name)
+
+    def test_all_bullpen_k9_positive(self):
+        for p in ASTROS_BULLPEN_2026:
+            self.assertGreater(p.k_per_9, 0.0, msg=p.name)
+
+    # ------------------------------------------------------------------
+    # Quality ordering
+    # ------------------------------------------------------------------
+
+    def test_ace_brown_best_era_in_rotation(self):
+        """Hunter Brown (ace) should have the lowest ERA in the rotation."""
+        ace = ASTROS_ROTATION_2026[0]
+        for p in ASTROS_ROTATION_2026[1:]:
+            self.assertLessEqual(ace.era, p.era, msg=f"{ace.name} vs {p.name}")
+
+    def test_closer_hader_best_era_in_bullpen(self):
+        """Josh Hader (CL) should have the lowest ERA in the bullpen."""
+        closer = ASTROS_BULLPEN_2026[-1]
+        for p in ASTROS_BULLPEN_2026[:-1]:
+            self.assertLessEqual(
+                closer.era, p.era, msg=f"{closer.name} vs {p.name}"
+            )
+
+    def test_closer_hader_best_k9_in_bullpen(self):
+        """Josh Hader should have the highest K/9 in the bullpen."""
+        closer = ASTROS_BULLPEN_2026[-1]
+        for p in ASTROS_BULLPEN_2026[:-1]:
+            self.assertGreaterEqual(
+                closer.k_per_9, p.k_per_9, msg=f"{closer.name} vs {p.name}"
+            )
+
+    def test_alvarez_leads_power_rating(self):
+        """Yordan Alvarez (DH) should have the highest power_rating."""
+        alvarez = ASTROS_LINEUP_2026[8]
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreaterEqual(
+                alvarez.power_rating, b.power_rating, msg=b.name
+            )
+
+    def test_alvarez_leads_hr(self):
+        """Yordan Alvarez should lead the lineup in HR per 600 PA."""
+        alvarez = ASTROS_LINEUP_2026[8]
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreaterEqual(
+                alvarez.hr_per_600_pa, b.hr_per_600_pa, msg=b.name
+            )
+
+    def test_alvarez_leads_rbi(self):
+        """Yordan Alvarez should lead the lineup in RBI per season."""
+        alvarez = ASTROS_LINEUP_2026[8]
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreaterEqual(
+                alvarez.rbi_per_season, b.rbi_per_season, msg=b.name
+            )
+
+    def test_alvarez_leads_avg(self):
+        """Yordan Alvarez should have the highest batting average in lineup."""
+        alvarez = ASTROS_LINEUP_2026[8]
+        for b in ASTROS_LINEUP_2026:
+            self.assertGreaterEqual(
+                alvarez.avg, b.avg, msg=b.name
+            )
+
+    # ------------------------------------------------------------------
+    # Handedness checks
+    # ------------------------------------------------------------------
+
+    def test_catcher_y_diaz_bats_right(self):
+        self.assertEqual(ASTROS_LINEUP_2026[0].bats, "R")
+
+    def test_1b_walker_bats_right(self):
+        self.assertEqual(ASTROS_LINEUP_2026[1].bats, "R")
+
+    def test_2b_altuve_bats_right(self):
+        self.assertEqual(ASTROS_LINEUP_2026[2].bats, "R")
+
+    def test_3b_correa_bats_right(self):
+        self.assertEqual(ASTROS_LINEUP_2026[3].bats, "R")
+
+    def test_ss_pena_bats_right(self):
+        self.assertEqual(ASTROS_LINEUP_2026[4].bats, "R")
+
+    def test_lf_z_cole_bats_left(self):
+        self.assertEqual(ASTROS_LINEUP_2026[5].bats, "L")
+
+    def test_cf_meyers_bats_right(self):
+        self.assertEqual(ASTROS_LINEUP_2026[6].bats, "R")
+
+    def test_rf_c_smith_bats_right(self):
+        self.assertEqual(ASTROS_LINEUP_2026[7].bats, "R")
+
+    def test_dh_alvarez_bats_left(self):
+        self.assertEqual(ASTROS_LINEUP_2026[8].bats, "L")
+
+    def test_ace_brown_throws_right(self):
+        self.assertEqual(ASTROS_ROTATION_2026[0].throws, "R")
+
+    def test_closer_hader_throws_left(self):
+        self.assertEqual(ASTROS_BULLPEN_2026[-1].throws, "L")
+
+    def test_sousa_throws_left(self):
+        self.assertEqual(ASTROS_BULLPEN_2026[0].throws, "L")
+
+    def test_okert_throws_left(self):
+        self.assertEqual(ASTROS_BULLPEN_2026[2].throws, "L")
+
+    # ------------------------------------------------------------------
+    # AstrosRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_astros_roster_instance(self):
+        self.assertIsInstance(AstrosRoster.default(), AstrosRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(AstrosRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(AstrosRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(AstrosRoster.default().bullpen), 6)
+
+    def test_default_lineup_names_match_constants(self):
+        roster = AstrosRoster.default()
+        self.assertEqual(
+            [b.name for b in roster.lineup],
+            [b.name for b in ASTROS_LINEUP_2026],
+        )
+
+    def test_default_rotation_names_match_constants(self):
+        roster = AstrosRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.rotation],
+            [p.name for p in ASTROS_ROTATION_2026],
+        )
+
+    def test_default_bullpen_names_match_constants(self):
+        roster = AstrosRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.bullpen],
+            [p.name for p in ASTROS_BULLPEN_2026],
+        )
+
+    def test_default_returns_independent_copies(self):
+        r1 = AstrosRoster.default()
+        r2 = AstrosRoster.default()
+        r1.lineup.pop()
+        self.assertEqual(len(r2.lineup), 9)
+
+    # ------------------------------------------------------------------
+    # Simulator integration
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_brown_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(ASTROS_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Strikeouts", prop_names)
+
+    def test_simulate_pitcher_hader_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(ASTROS_BULLPEN_2026[-1])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_batter_alvarez_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(ASTROS_LINEUP_2026[8])
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_brown_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Hunter Brown", "strikeouts", 5.5, +300, -500)
+        edges = screener.screen_pitcher(ASTROS_ROTATION_2026[0], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Hunter Brown")
+
+    def test_screen_batter_alvarez_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Yordan Alvarez", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(ASTROS_LINEUP_2026[8], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_closer_hader(self):
+        """Edge screener works for Josh Hader (LHP closer)."""
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Josh Hader", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(ASTROS_BULLPEN_2026[-1], market_lines=lines)
+        self.assertTrue(edges)
+        self.assertEqual(edges[0].player_name, "Josh Hader")
+
+    def test_screen_matchup_astros_roster(self):
+        """screen_matchup with the Astros lineup against Hunter Brown."""
+        sim = _make_screener_sim(seed=99)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = AstrosRoster.default()
+        lines = (
+            _make_market_lines("Hunter Brown", "strikeouts", 5.5, +350, -600)
+            + _make_market_lines("Yordan Alvarez", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Hunter Brown", player_names)
+        self.assertIn("Yordan Alvarez", player_names)
+
+
 if __name__ == "__main__":
     unittest.main()

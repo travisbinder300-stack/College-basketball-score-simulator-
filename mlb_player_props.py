@@ -425,6 +425,26 @@ and bullpen are available via the :class:`AthleticsRoster` helper:
 
     # Screen the cleanup hitter (Brent Rooker, DH) for batter props
     edges += screener.screen_batter(roster.lineup[8])
+
+Houston Astros 2026 Depth Chart
+------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Houston Astros depth-chart starters, starting rotation,
+and bullpen are available via the :class:`AstrosRoster` helper:
+
+* ``ASTROS_LINEUP_2026``   – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``ASTROS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``ASTROS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import AstrosRoster
+
+    roster = AstrosRoster.default()
+    print(roster.rotation[0].name)   # "Hunter Brown"
+    print(roster.lineup[8].name)     # "Yordan Alvarez"
+    print(roster.bullpen[-1].name)   # "Josh Hader"
 """
 
 from __future__ import annotations
@@ -7394,6 +7414,396 @@ class AthleticsRoster:
             lineup=list(ATHLETICS_LINEUP_2026),
             rotation=list(ATHLETICS_ROTATION_2026),
             bullpen=list(ATHLETICS_BULLPEN_2026),
+        )
+
+
+
+
+# ---------------------------------------------------------------------------
+# Houston Astros 2026 — individual player objects
+# ---------------------------------------------------------------------------
+
+# -- Position starters (lineup order: C, 1B, 2B, 3B, SS, LF, CF, RF, DH) --
+
+#: Yainer Diaz — C, R, power bat behind the plate with improving plate
+#: discipline; Astros primary catcher in 2026.
+_HOU_Y_DIAZ = BatterStats(
+    name="Yainer Diaz",
+    avg=0.264,
+    obp=0.318,
+    slg=0.448,
+    hr_per_600_pa=18.0,
+    sb_per_season=3.0,
+    doubles_per_600_pa=26.0,
+    games_played=138,
+    power_rating=62.0,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=68.0,
+    runs_per_season=58.0,
+)
+
+#: Christian Walker — 1B, R, hard-hitting first baseman known for plus power
+#: and solid on-base skills; acquired to anchor the Astros lineup.
+_HOU_WALKER = BatterStats(
+    name="Christian Walker",
+    avg=0.258,
+    obp=0.338,
+    slg=0.480,
+    hr_per_600_pa=26.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=28.0,
+    games_played=150,
+    power_rating=76.0,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=88.0,
+    runs_per_season=74.0,
+)
+
+#: Jose Altuve — 2B, R, perennial All-Star; elite contact hitter with above-
+#: average speed and instinctive baserunning for Houston.
+_HOU_ALTUVE = BatterStats(
+    name="Jose Altuve",
+    avg=0.292,
+    obp=0.360,
+    slg=0.476,
+    hr_per_600_pa=20.0,
+    sb_per_season=16.0,
+    doubles_per_600_pa=32.0,
+    games_played=152,
+    power_rating=66.0,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=74.0,
+    runs_per_season=96.0,
+)
+
+#: Carlos Correa — 3B, R, three-time All-Star shifted to third base in 2026;
+#: elite bat-to-ball skills with plus power for the position.
+_HOU_CORREA = BatterStats(
+    name="Carlos Correa",
+    avg=0.270,
+    obp=0.350,
+    slg=0.468,
+    hr_per_600_pa=22.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=30.0,
+    games_played=148,
+    power_rating=72.0,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=82.0,
+    runs_per_season=80.0,
+)
+
+#: Jeremy Pena — SS, R, Gold Glove caliber shortstop who hit a walk-off HR
+#: in the 2022 World Series; developing power threat for Houston.
+_HOU_PENA = BatterStats(
+    name="Jeremy Pena",
+    avg=0.256,
+    obp=0.312,
+    slg=0.440,
+    hr_per_600_pa=18.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=60.0,
+    bats="R",
+    pitches_per_pa=3.74,
+    rbi_per_season=70.0,
+    runs_per_season=72.0,
+)
+
+#: Zach Cole — LF, L, athletic outfielder with solid contact skills and plus
+#: speed; projects as the Astros' everyday left fielder in 2026.
+_HOU_Z_COLE = BatterStats(
+    name="Zach Cole",
+    avg=0.262,
+    obp=0.328,
+    slg=0.420,
+    hr_per_600_pa=12.0,
+    sb_per_season=22.0,
+    doubles_per_600_pa=26.0,
+    games_played=148,
+    power_rating=48.0,
+    bats="L",
+    pitches_per_pa=3.76,
+    rbi_per_season=56.0,
+    runs_per_season=72.0,
+)
+
+#: Jake Meyers — CF, R, glove-first center fielder who provides above-average
+#: range and a reliable bat in the middle of the order.
+_HOU_MEYERS = BatterStats(
+    name="Jake Meyers",
+    avg=0.252,
+    obp=0.318,
+    slg=0.398,
+    hr_per_600_pa=10.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=22.0,
+    games_played=142,
+    power_rating=42.0,
+    bats="R",
+    pitches_per_pa=3.74,
+    rbi_per_season=48.0,
+    runs_per_season=62.0,
+)
+
+#: Cam Smith — RF, R, powerful right-handed bat with developing approach;
+#: premium raw power makes him a high-upside corner outfield option.
+_HOU_C_SMITH = BatterStats(
+    name="Cam Smith",
+    avg=0.254,
+    obp=0.322,
+    slg=0.452,
+    hr_per_600_pa=20.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=68.0,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=72.0,
+    runs_per_season=64.0,
+)
+
+#: Yordan Alvarez — DH, L, one of the most feared hitters in baseball;
+#: elite exit velocity and on-base skills anchor the Astros' offense.
+_HOU_ALVAREZ = BatterStats(
+    name="Yordan Alvarez",
+    avg=0.300,
+    obp=0.400,
+    slg=0.588,
+    hr_per_600_pa=40.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=34.0,
+    games_played=148,
+    power_rating=96.0,
+    bats="L",
+    pitches_per_pa=3.96,
+    rbi_per_season=110.0,
+    runs_per_season=98.0,
+)
+
+#: 2026 Astros projected lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+ASTROS_LINEUP_2026: List[BatterStats] = [
+    _HOU_Y_DIAZ,
+    _HOU_WALKER,
+    _HOU_ALTUVE,
+    _HOU_CORREA,
+    _HOU_PENA,
+    _HOU_Z_COLE,
+    _HOU_MEYERS,
+    _HOU_C_SMITH,
+    _HOU_ALVAREZ,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Hunter Brown — RHP, ace, power arm with elite fastball/slider combination;
+#: leads the Astros' 2026 rotation as their top starter.
+_HOU_H_BROWN = PitcherStats(
+    name="Hunter Brown",
+    era=3.10,
+    k_per_9=10.8,
+    innings_per_start=6.0,
+    whip=1.16,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Tatsuya Imai — RHP, second rotation starter; Japanese import with a
+#: sharp split-finger fastball and excellent command.
+_HOU_IMAI = PitcherStats(
+    name="Tatsuya Imai",
+    era=3.60,
+    k_per_9=9.4,
+    innings_per_start=5.8,
+    whip=1.20,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Cristian Javier — RHP, mid-rotation starter with an elite fastball spin
+#: rate; key member of the Astros' 2022 World Series championship staff.
+_HOU_JAVIER = PitcherStats(
+    name="Cristian Javier",
+    era=3.90,
+    k_per_9=10.2,
+    innings_per_start=5.4,
+    whip=1.22,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: Mike Burrows — RHP, fourth-rotation option with a developing arsenal;
+#: rising prospect who earned a rotation spot with the Astros in 2026.
+_HOU_BURROWS = PitcherStats(
+    name="Mike Burrows",
+    era=4.30,
+    k_per_9=9.0,
+    innings_per_start=5.2,
+    whip=1.28,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Spencer Arrighetti — RHP, back-end starter who showed flashes of
+#: front-line upside; fifth-rotation option for Houston.
+_HOU_ARRIGHETTI = PitcherStats(
+    name="Spencer Arrighetti",
+    era=4.70,
+    k_per_9=9.6,
+    innings_per_start=5.0,
+    whip=1.34,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Astros projected starting rotation (rotation order 1–5).
+ASTROS_ROTATION_2026: List[PitcherStats] = [
+    _HOU_H_BROWN,
+    _HOU_IMAI,
+    _HOU_JAVIER,
+    _HOU_BURROWS,
+    _HOU_ARRIGHETTI,
+]
+
+# -- Bullpen (setup relievers, closer last) -----------------------------------
+
+#: Bennett Sousa — LHP, setup reliever with a deceptive delivery; key
+#: left-handed option in the Astros' late-inning bridge.
+_HOU_SOUSA = PitcherStats(
+    name="Bennett Sousa",
+    era=3.50,
+    k_per_9=10.4,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=56.0,
+    throws="L",
+    pitches_per_pa=3.70,
+)
+
+#: Bryan King — RHP, power reliever with a lively fastball and sharp slider;
+#: high-leverage setup option for Houston.
+_HOU_B_KING = PitcherStats(
+    name="Bryan King",
+    era=3.30,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.14,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: Steven Okert — LHP, specialist reliever who neutralises left-handed
+#: hitters; third setup arm in the Astros' 2026 bullpen.
+_HOU_OKERT = PitcherStats(
+    name="Steven Okert",
+    era=3.60,
+    k_per_9=10.6,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.68,
+)
+
+#: Enyel De Los Santos — RHP, multi-inning reliever with a heavy sinker;
+#: durable bullpen arm who can bridge the gap to the closer.
+_HOU_DE_LOS_SANTOS = PitcherStats(
+    name="Enyel De Los Santos",
+    era=3.80,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.74,
+)
+
+#: Roddery Munoz — RHP, high-strikeout setup man with a plus changeup;
+#: fifth bullpen arm and key bridge to Josh Hader.
+_HOU_MUNOZ = PitcherStats(
+    name="Roddery Munoz",
+    era=3.70,
+    k_per_9=10.8,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.76,
+)
+
+#: Josh Hader — CL, LHP, elite closer with one of the best fastball/slider
+#: combinations in baseball; locks down the ninth for the Astros.
+_HOU_HADER = PitcherStats(
+    name="Josh Hader",
+    era=2.20,
+    k_per_9=14.6,
+    innings_per_start=1.0,
+    whip=0.90,
+    arm_strength=76.0,
+    throws="L",
+    pitches_per_pa=3.60,
+)
+
+#: 2026 Astros projected bullpen — setup arms 0–4, closer at index 5.
+ASTROS_BULLPEN_2026: List[PitcherStats] = [
+    _HOU_SOUSA,
+    _HOU_B_KING,
+    _HOU_OKERT,
+    _HOU_DE_LOS_SANTOS,
+    _HOU_MUNOZ,
+    _HOU_HADER,   # closer
+]
+
+
+@dataclass
+class AstrosRoster:
+    """
+    Bundle of Astros projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Josh Hader).
+
+    Examples
+    --------
+    ::
+
+        roster = AstrosRoster.default()
+        print(roster.rotation[0].name)   # "Hunter Brown"
+        print(roster.lineup[8].name)     # "Yordan Alvarez"
+        print(roster.bullpen[-1].name)   # "Josh Hader"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "AstrosRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(ASTROS_LINEUP_2026),
+            rotation=list(ASTROS_ROTATION_2026),
+            bullpen=list(ASTROS_BULLPEN_2026),
         )
 
 
