@@ -9034,6 +9034,402 @@ class RangersRoster:
         )
 
 
+# ---------------------------------------------------------------------------
+# Chicago Cubs — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Carson Kelly
+#   1B – Michael Busch
+#   2B – Nico Hoerner
+#   3B – Alex Bregman
+#   SS – Dansby Swanson
+#   LF – Ian Happ
+#   CF – Pete Crow-Armstrong
+#   RF – Seiya Suzuki
+#   DH – Moises Ballesteros
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Carson Kelly — C, RHP, solid defensive catcher with moderate power.
+_CHC_KELLY = BatterStats(
+    name="Carson Kelly",
+    avg=0.232,
+    obp=0.318,
+    slg=0.388,
+    hr_per_600_pa=16,
+    sb_per_season=2,
+    doubles_per_600_pa=24,
+    games_played=120,
+    power_rating=52,
+    bats="R",
+    pitches_per_pa=3.92,
+    rbi_per_season=52,
+    runs_per_season=48,
+)
+
+#: Michael Busch — 1B, LHP, emerging power bat with a disciplined approach.
+_CHC_BUSCH = BatterStats(
+    name="Michael Busch",
+    avg=0.258,
+    obp=0.348,
+    slg=0.452,
+    hr_per_600_pa=22,
+    sb_per_season=6,
+    doubles_per_600_pa=30,
+    games_played=148,
+    power_rating=66,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=72,
+    runs_per_season=70,
+)
+
+#: Nico Hoerner — 2B, RHP, elite contact hitter with excellent speed.
+_CHC_HOERNER = BatterStats(
+    name="Nico Hoerner",
+    avg=0.278,
+    obp=0.342,
+    slg=0.388,
+    hr_per_600_pa=8,
+    sb_per_season=24,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=40,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=58,
+    runs_per_season=82,
+)
+
+#: Alex Bregman — 3B, RHP, premium bat with above-average power and excellent
+#: on-base skills; consistent run producer in the middle of the order.
+_CHC_BREGMAN = BatterStats(
+    name="Alex Bregman",
+    avg=0.268,
+    obp=0.358,
+    slg=0.478,
+    hr_per_600_pa=26,
+    sb_per_season=4,
+    doubles_per_600_pa=34,
+    games_played=152,
+    power_rating=74,
+    bats="R",
+    pitches_per_pa=3.96,
+    rbi_per_season=90,
+    runs_per_season=82,
+)
+
+#: Dansby Swanson — SS, switch hitter; steady defender with solid pop and good
+#: speed; veteran presence at shortstop.
+_CHC_SWANSON = BatterStats(
+    name="Dansby Swanson",
+    avg=0.245,
+    obp=0.320,
+    slg=0.420,
+    hr_per_600_pa=18,
+    sb_per_season=12,
+    doubles_per_600_pa=30,
+    games_played=152,
+    power_rating=60,
+    bats="S",
+    pitches_per_pa=3.84,
+    rbi_per_season=68,
+    runs_per_season=72,
+)
+
+#: Ian Happ — LF, switch hitter; consistent power-and-patience bat, one of
+#: the Cubs' most reliable run producers.
+_CHC_HAPP = BatterStats(
+    name="Ian Happ",
+    avg=0.255,
+    obp=0.356,
+    slg=0.452,
+    hr_per_600_pa=22,
+    sb_per_season=8,
+    doubles_per_600_pa=32,
+    games_played=150,
+    power_rating=68,
+    bats="S",
+    pitches_per_pa=3.98,
+    rbi_per_season=74,
+    runs_per_season=76,
+)
+
+#: Pete Crow-Armstrong — CF, LHP, elite defender and plus runner; developing
+#: power stroke with impressive athleticism in center field.
+_CHC_PCA = BatterStats(
+    name="Pete Crow-Armstrong",
+    avg=0.252,
+    obp=0.322,
+    slg=0.422,
+    hr_per_600_pa=16,
+    sb_per_season=30,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=58,
+    bats="L",
+    pitches_per_pa=3.80,
+    rbi_per_season=62,
+    runs_per_season=78,
+)
+
+#: Seiya Suzuki — RF, RHP, premium power-and-average bat with an outstanding
+#: eye; one of Chicago's most dangerous run producers.
+_CHC_SUZUKI = BatterStats(
+    name="Seiya Suzuki",
+    avg=0.268,
+    obp=0.358,
+    slg=0.482,
+    hr_per_600_pa=28,
+    sb_per_season=6,
+    doubles_per_600_pa=30,
+    games_played=148,
+    power_rating=78,
+    bats="R",
+    pitches_per_pa=3.94,
+    rbi_per_season=86,
+    runs_per_season=78,
+)
+
+#: Moises Ballesteros — DH, LHP, young power bat with a patient approach;
+#: projects as a middle-of-the-order run producer.
+_CHC_BALLESTEROS = BatterStats(
+    name="Moises Ballesteros",
+    avg=0.255,
+    obp=0.345,
+    slg=0.462,
+    hr_per_600_pa=26,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=72,
+    bats="L",
+    pitches_per_pa=3.90,
+    rbi_per_season=80,
+    runs_per_season=68,
+)
+
+#: 2026 Cubs projected lineup (depth-chart starters, positional order C→DH).
+CUBS_LINEUP_2026: List[BatterStats] = [
+    _CHC_KELLY,
+    _CHC_BUSCH,
+    _CHC_HOERNER,
+    _CHC_BREGMAN,
+    _CHC_SWANSON,
+    _CHC_HAPP,
+    _CHC_PCA,
+    _CHC_SUZUKI,
+    _CHC_BALLESTEROS,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Matthew Boyd — LHP, opening-day starter; durable southpaw who attacks with
+#: a plus changeup and solid command; leads the rotation in turn order.
+_CHC_BOYD = PitcherStats(
+    name="Matthew Boyd",
+    era=4.20,
+    k_per_9=8.8,
+    innings_per_start=5.6,
+    whip=1.28,
+    arm_strength=56.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Shota Imanaga — LHP, ace-caliber; elite strikeout-to-walk ratio and premium
+#: spin-rate breaking ball make him the best pitcher in the rotation by ERA.
+_CHC_IMANAGA = PitcherStats(
+    name="Shota Imanaga",
+    era=2.88,
+    k_per_9=10.8,
+    innings_per_start=6.2,
+    whip=1.04,
+    arm_strength=74.0,
+    throws="L",
+    pitches_per_pa=3.94,
+)
+
+#: Cade Horton — RHP, top prospect; power fastball and sharp slider project
+#: him as a mid-rotation stalwart with high upside.
+_CHC_HORTON = PitcherStats(
+    name="Cade Horton",
+    era=3.80,
+    k_per_9=9.8,
+    innings_per_start=5.6,
+    whip=1.20,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Jameson Taillon — RHP, veteran innings-eater; reliable command and solid
+#: four-pitch mix make him a dependable back-of-rotation option.
+_CHC_TAILLON = PitcherStats(
+    name="Jameson Taillon",
+    era=4.10,
+    k_per_9=8.4,
+    innings_per_start=5.8,
+    whip=1.24,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Edward Cabrera — RHP, power arm; elite stuff with a triple-digit fastball
+#: and wipeout slider; developing command limits his depth in the rotation.
+_CHC_ECABRERA = PitcherStats(
+    name="Edward Cabrera",
+    era=4.40,
+    k_per_9=9.6,
+    innings_per_start=5.2,
+    whip=1.36,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: 2026 Cubs projected starting rotation (rotation-turn order 1–5).
+CUBS_ROTATION_2026: List[PitcherStats] = [
+    _CHC_BOYD,
+    _CHC_IMANAGA,
+    _CHC_HORTON,
+    _CHC_TAILLON,
+    _CHC_ECABRERA,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Phil Maton — RHP setup arm; high-spin fastball specialist who misses bats
+#: and limits hard contact in the seventh and eighth innings.
+_CHC_MATON = PitcherStats(
+    name="Phil Maton",
+    era=3.50,
+    k_per_9=9.4,
+    innings_per_start=1.0,
+    whip=1.16,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Hunter Harvey — RHP power reliever; premium velocity with late-breaking
+#: stuff; one of the Cubs' most reliable high-leverage options.
+_CHC_HARVEY = PitcherStats(
+    name="Hunter Harvey",
+    era=3.20,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.12,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Caleb Thielbar — LHP situational specialist; veteran southpaw with reliable
+#: command and a strong slider effective against left-handed hitters.
+_CHC_THIELBAR = PitcherStats(
+    name="Caleb Thielbar",
+    era=3.70,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Hoby Milner — LHP middle reliever; deceptive delivery with solid secondary
+#: offerings; used as a left-on-left specialist and multi-out bridge.
+_CHC_MILNER = PitcherStats(
+    name="Hoby Milner",
+    era=3.90,
+    k_per_9=8.6,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=48.0,
+    throws="L",
+    pitches_per_pa=3.76,
+)
+
+#: Jacob Webb — RHP high-leverage reliever; lively fastball/slider combination
+#: generates weak contact and swings and misses late in games.
+_CHC_WEBB = PitcherStats(
+    name="Jacob Webb",
+    era=3.40,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Daniel Palencia — RHP closer; elite velocity and wipeout breaking ball make
+#: him Chicago's primary ninth-inning option; best ERA in the bullpen.
+_CHC_PALENCIA = PitcherStats(
+    name="Daniel Palencia",
+    era=2.70,
+    k_per_9=11.8,
+    innings_per_start=1.0,
+    whip=1.06,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.94,
+)
+
+#: 2026 Cubs bullpen (setup arms + closer; closer is last entry, index 5 = Palencia).
+CUBS_BULLPEN_2026: List[PitcherStats] = [
+    _CHC_MATON,
+    _CHC_HARVEY,
+    _CHC_THIELBAR,
+    _CHC_MILNER,
+    _CHC_WEBB,
+    _CHC_PALENCIA,
+]
+
+
+@dataclass
+class CubsRoster:
+    """
+    Bundle of Chicago Cubs projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Daniel Palencia).
+
+    Examples
+    --------
+    ::
+
+        roster = CubsRoster.default()
+        print(roster.rotation[0].name)   # "Matthew Boyd"
+        print(roster.lineup[3].name)     # "Alex Bregman"
+        print(roster.bullpen[-1].name)   # "Daniel Palencia"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "CubsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(CUBS_LINEUP_2026),
+            rotation=list(CUBS_ROTATION_2026),
+            bullpen=list(CUBS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
