@@ -373,6 +373,32 @@ and bullpen are available via the :class:`YankeesRoster` helper:
     # Screen the closer (David Bednar)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Tampa Bay Rays 2026 Depth Chart
+-----------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Tampa Bay Rays depth-chart starters, starting rotation,
+and bullpen are available via the :class:`RaysRoster` helper:
+
+* ``RAYS_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``RAYS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``RAYS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import RaysRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = RaysRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Drew Rasmussen) for strikeout props
+    for edge in screener.screen_pitcher(roster.rotation[0]):
+        print(edge)
+
+    # Screen the closer (Griffin Jax)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -6422,6 +6448,416 @@ class YankeesRoster:
             lineup=list(YANKEES_LINEUP_2026),
             rotation=list(YANKEES_ROTATION_2026),
             bullpen=list(YANKEES_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Tampa Bay Rays — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Tampa Bay Rays starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Nick Fortes          1B – Jonathan Aranda       2B – Gavin Lux
+#   3B – Junior Caminero      SS – Carson Williams        LF – Chandler Simpson
+#   CF – Cedric Mullins        RF – Jake Fraley            DH – Yandy Diaz
+#
+# Usage:
+#
+#   from mlb_player_props import RaysRoster, UnabatedEdgeScreener
+#   roster   = RaysRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Drew Rasmussen)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen the closer (Griffin Jax)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Nick Fortes — C, bats right, solid defensive catcher with improving
+#: offensive production; a reliable option behind the plate.
+_TB_FORTES = BatterStats(
+    name="Nick Fortes",
+    avg=0.240,
+    obp=0.305,
+    slg=0.375,
+    hr_per_600_pa=12.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=20.0,
+    games_played=100,
+    power_rating=36.0,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=38.0,
+    runs_per_season=40.0,
+)
+
+#: Jonathan Aranda — 1B, bats left, patient hitter with above-average
+#: on-base skills and improving power; versatile infielder.
+_TB_ARANDA = BatterStats(
+    name="Jonathan Aranda",
+    avg=0.260,
+    obp=0.340,
+    slg=0.420,
+    hr_per_600_pa=14.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=26.0,
+    games_played=130,
+    power_rating=44.0,
+    bats="L",
+    pitches_per_pa=3.95,
+    rbi_per_season=52.0,
+    runs_per_season=56.0,
+)
+
+#: Gavin Lux — 2B, bats left, skilled contact hitter with improving power;
+#: excellent defensive second baseman with plus athleticism.
+_TB_LUX = BatterStats(
+    name="Gavin Lux",
+    avg=0.265,
+    obp=0.338,
+    slg=0.410,
+    hr_per_600_pa=10.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=140,
+    power_rating=38.0,
+    bats="L",
+    pitches_per_pa=3.85,
+    rbi_per_season=48.0,
+    runs_per_season=62.0,
+)
+
+#: Junior Caminero — 3B, bats right, elite hitting prospect with massive
+#: raw power and plus bat speed; one of the most exciting young hitters.
+_TB_CAMINERO = BatterStats(
+    name="Junior Caminero",
+    avg=0.270,
+    obp=0.325,
+    slg=0.490,
+    hr_per_600_pa=28.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=30.0,
+    games_played=145,
+    power_rating=78.0,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=76.0,
+    runs_per_season=68.0,
+)
+
+#: Carson Williams — SS, bats right, toolsy young shortstop with elite
+#: defence and developing offensive profile; high-ceiling prospect.
+_TB_C_WILLIAMS = BatterStats(
+    name="Carson Williams",
+    avg=0.245,
+    obp=0.315,
+    slg=0.400,
+    hr_per_600_pa=14.0,
+    sb_per_season=16.0,
+    doubles_per_600_pa=24.0,
+    games_played=140,
+    power_rating=46.0,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=50.0,
+    runs_per_season=64.0,
+)
+
+#: Chandler Simpson — LF, switch hitter, blazing speed on the basepaths;
+#: elite stolen-base threat who creates havoc at the top of the lineup.
+_TB_SIMPSON = BatterStats(
+    name="Chandler Simpson",
+    avg=0.265,
+    obp=0.320,
+    slg=0.350,
+    hr_per_600_pa=2.0,
+    sb_per_season=48.0,
+    doubles_per_600_pa=18.0,
+    games_played=135,
+    power_rating=18.0,
+    bats="S",
+    pitches_per_pa=3.68,
+    rbi_per_season=30.0,
+    runs_per_season=78.0,
+)
+
+#: Cedric Mullins — CF, bats left, two-way standout with solid contact
+#: skills, plus speed, and above-average outfield defence.
+_TB_MULLINS = BatterStats(
+    name="Cedric Mullins",
+    avg=0.255,
+    obp=0.322,
+    slg=0.400,
+    hr_per_600_pa=12.0,
+    sb_per_season=22.0,
+    doubles_per_600_pa=22.0,
+    games_played=145,
+    power_rating=40.0,
+    bats="L",
+    pitches_per_pa=3.80,
+    rbi_per_season=44.0,
+    runs_per_season=70.0,
+)
+
+#: Jake Fraley — RF, bats left, left-handed masher with a discerning eye
+#: at the plate; elevated walk rate and solid gap power.
+_TB_FRALEY = BatterStats(
+    name="Jake Fraley",
+    avg=0.238,
+    obp=0.345,
+    slg=0.415,
+    hr_per_600_pa=16.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=22.0,
+    games_played=130,
+    power_rating=48.0,
+    bats="L",
+    pitches_per_pa=4.02,
+    rbi_per_season=48.0,
+    runs_per_season=58.0,
+)
+
+#: Yandy Diaz — DH, bats right, elite contact hitter with outstanding
+#: plate discipline; consistently posts one of the best K% in the AL.
+_TB_Y_DIAZ = BatterStats(
+    name="Yandy Diaz",
+    avg=0.278,
+    obp=0.368,
+    slg=0.428,
+    hr_per_600_pa=14.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=30.0,
+    games_played=140,
+    power_rating=50.0,
+    bats="R",
+    pitches_per_pa=4.05,
+    rbi_per_season=56.0,
+    runs_per_season=64.0,
+)
+
+#: 2026 Rays projected starting lineup (depth-chart position-1 starters).
+RAYS_LINEUP_2026: List[BatterStats] = [
+    _TB_FORTES,
+    _TB_ARANDA,
+    _TB_LUX,
+    _TB_CAMINERO,
+    _TB_C_WILLIAMS,
+    _TB_SIMPSON,
+    _TB_MULLINS,
+    _TB_FRALEY,
+    _TB_Y_DIAZ,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Drew Rasmussen — RHP, ace of the Rays rotation; elite ground-ball
+#: pitcher with exceptional command and plus cutter/sinker combination.
+_TB_RASMUSSEN = PitcherStats(
+    name="Drew Rasmussen",
+    era=3.05,
+    k_per_9=9.2,
+    innings_per_start=6.0,
+    whip=1.12,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Ryan Pepiot — RHP, developing starter with a sharp breaking ball and
+#: improving fastball command; solid mid-rotation option.
+_TB_PEPIOT = PitcherStats(
+    name="Ryan Pepiot",
+    era=3.55,
+    k_per_9=9.8,
+    innings_per_start=5.2,
+    whip=1.18,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Shane McClanahan — LHP, former Cy Young-calibre starter returning from
+#: injury; elite strikeout pitcher with a devastating slider.
+_TB_MCCLANAHAN = PitcherStats(
+    name="Shane McClanahan",
+    era=3.20,
+    k_per_9=11.4,
+    innings_per_start=5.2,
+    whip=1.10,
+    arm_strength=64.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Steven Matz — LHP, veteran left-hander with solid command of four
+#: pitches; reliable innings-eater who limits the big inning.
+_TB_MATZ = PitcherStats(
+    name="Steven Matz",
+    era=4.05,
+    k_per_9=8.2,
+    innings_per_start=5.0,
+    whip=1.28,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Nick Martinez — RHP, durable back-end starter with multi-pitch mix;
+#: keeps his team in games and provides quality at-bats.
+_TB_MARTINEZ = PitcherStats(
+    name="Nick Martinez",
+    era=4.20,
+    k_per_9=7.8,
+    innings_per_start=5.0,
+    whip=1.30,
+    arm_strength=54.0,
+    throws="R",
+    pitches_per_pa=3.75,
+)
+
+#: 2026 Rays projected starting rotation (rotation-turn order 1–5).
+RAYS_ROTATION_2026: List[PitcherStats] = [
+    _TB_RASMUSSEN,
+    _TB_PEPIOT,
+    _TB_MCCLANAHAN,
+    _TB_MATZ,
+    _TB_MARTINEZ,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Bryan Baker — RHP, hard-throwing setup man with a wipeout slider;
+#: a key bridge arm leading into the late innings.
+_TB_BAKER = PitcherStats(
+    name="Bryan Baker",
+    era=3.40,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Hunter Bigge — RHP, power reliever with triple-digit velocity and a
+#: filthy slider; used in high-leverage situations.
+_TB_BIGGE = PitcherStats(
+    name="Hunter Bigge",
+    era=3.55,
+    k_per_9=11.8,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Cole Sulser — RHP, veteran middle-relief arm with solid command of
+#: multiple pitches; provides length and reliability in the bullpen.
+_TB_SULSER = PitcherStats(
+    name="Cole Sulser",
+    era=3.75,
+    k_per_9=9.4,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Steven Wilson — RHP, developing reliever with swing-and-miss stuff;
+#: adds strikeout potential in middle-relief.
+_TB_S_WILSON = PitcherStats(
+    name="Steven Wilson",
+    era=3.90,
+    k_per_9=10.8,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Mason Englert — RHP, tall right-hander with a deceptive delivery and
+#: solid fastball-curveball combination; long-relief and setup option.
+_TB_ENGLERT = PitcherStats(
+    name="Mason Englert",
+    era=4.00,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Griffin Jax — CL, RHP, elite closer with a high-spin four-seam and
+#: devastating splitter; handles the ninth inning for the Rays.
+_TB_JAX = PitcherStats(
+    name="Griffin Jax",
+    era=2.70,
+    k_per_9=12.4,
+    innings_per_start=1.0,
+    whip=1.02,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: 2026 Rays bullpen (setup + closer; closer is last entry).
+RAYS_BULLPEN_2026: List[PitcherStats] = [
+    _TB_BAKER,
+    _TB_BIGGE,
+    _TB_SULSER,
+    _TB_S_WILSON,
+    _TB_ENGLERT,
+    _TB_JAX,
+]
+
+
+@dataclass
+class RaysRoster:
+    """
+    Bundle of Tampa Bay Rays projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Griffin Jax).
+
+    Examples
+    --------
+    ::
+
+        roster = RaysRoster.default()
+        print(roster.rotation[0].name)   # "Drew Rasmussen"
+        print(roster.lineup[3].name)     # "Junior Caminero"
+        print(roster.bullpen[-1].name)   # "Griffin Jax"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "RaysRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(RAYS_LINEUP_2026),
+            rotation=list(RAYS_ROTATION_2026),
+            bullpen=list(RAYS_BULLPEN_2026),
         )
 
 
