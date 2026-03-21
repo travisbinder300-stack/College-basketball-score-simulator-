@@ -30,6 +30,7 @@ Test classes are organised by the component they exercise:
   Tigers 2026 roster     – TestTigersRoster
   Royals 2026 roster     – TestRoyalsRoster
   Twins 2026 roster      – TestTwinsRoster
+  Orioles 2026 roster    – TestOriolesRoster
 """
 
 import json
@@ -5505,6 +5506,378 @@ class TestTwinsRoster(unittest.TestCase):
         edges = screener.screen_pitcher(TWINS_BULLPEN_2026[-1], market_lines=lines)
         self.assertTrue(edges)
         self.assertEqual(edges[0].player_name, "Taylor Rogers")
+
+
+# ---------------------------------------------------------------------------
+# Baltimore Orioles 2026 Depth Chart tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    OriolesRoster,
+    ORIOLES_LINEUP_2026,
+    ORIOLES_ROTATION_2026,
+    ORIOLES_BULLPEN_2026,
+)
+
+_ORI_LINEUP_NAMES = [
+    "Adley Rutschman",
+    "Pete Alonso",
+    "Jackson Holliday",
+    "Jordan Westburg",
+    "Gunnar Henderson",
+    "Taylor Ward",
+    "Colton Cowser",
+    "Dylan Beavers",
+    "Samuel Basallo",
+]
+
+_ORI_ROTATION_NAMES = [
+    "Trevor Rogers",
+    "Kyle Bradish",
+    "Chris Bassitt",
+    "Shane Baz",
+    "Zach Eflin",
+]
+
+_ORI_BULLPEN_NAMES = [
+    "Andrew Kittredge",
+    "Keegan Akin",
+    "Yennier Cano",
+    "Tyler Wells",
+    "Rico Garcia",
+    "Ryan Helsley",
+]
+
+
+class TestOriolesRoster(unittest.TestCase):
+    """Tests for ORIOLES_LINEUP_2026, ORIOLES_ROTATION_2026,
+    ORIOLES_BULLPEN_2026, and OriolesRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(ORIOLES_LINEUP_2026), 9)
+
+    def test_rotation_has_five_starters(self):
+        self.assertEqual(len(ORIOLES_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(ORIOLES_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in ORIOLES_LINEUP_2026], _ORI_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in ORIOLES_ROTATION_2026], _ORI_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in ORIOLES_BULLPEN_2026], _ORI_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in ORIOLES_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()
+
+    def test_batter_avg_in_range(self):
+        for b in ORIOLES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in ORIOLES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in ORIOLES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_nonnegative(self):
+        for b in ORIOLES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in ORIOLES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in ORIOLES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in ORIOLES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — lineup
+    # ------------------------------------------------------------------
+
+    def test_rutschman_switch_hitter(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[0].bats, "S")
+
+    def test_alonso_bats_right(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[1].bats, "R")
+
+    def test_holliday_bats_left(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[2].bats, "L")
+
+    def test_westburg_bats_right(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[3].bats, "R")
+
+    def test_henderson_bats_left(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[4].bats, "L")
+
+    def test_ward_bats_right(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[5].bats, "R")
+
+    def test_cowser_bats_left(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[6].bats, "L")
+
+    def test_beavers_bats_left(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[7].bats, "L")
+
+    def test_basallo_bats_left(self):
+        self.assertEqual(ORIOLES_LINEUP_2026[8].bats, "L")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_pass_validation(self):
+        for p in ORIOLES_ROTATION_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_all_bullpen_pass_validation(self):
+        for p in ORIOLES_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_rotation_era_positive(self):
+        for p in ORIOLES_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_bullpen_era_positive(self):
+        for p in ORIOLES_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_rotation_k_per_9_in_range(self):
+        for p in ORIOLES_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_bullpen_k_per_9_in_range(self):
+        for p in ORIOLES_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_t_rogers_throws_left(self):
+        self.assertEqual(ORIOLES_ROTATION_2026[0].throws, "L")
+
+    def test_bradish_throws_right(self):
+        self.assertEqual(ORIOLES_ROTATION_2026[1].throws, "R")
+
+    def test_bassitt_throws_right(self):
+        self.assertEqual(ORIOLES_ROTATION_2026[2].throws, "R")
+
+    def test_baz_throws_right(self):
+        self.assertEqual(ORIOLES_ROTATION_2026[3].throws, "R")
+
+    def test_eflin_throws_right(self):
+        self.assertEqual(ORIOLES_ROTATION_2026[4].throws, "R")
+
+    def test_akin_throws_left(self):
+        akin = next(p for p in ORIOLES_BULLPEN_2026 if p.name == "Keegan Akin")
+        self.assertEqual(akin.throws, "L")
+
+    def test_helsley_throws_right(self):
+        self.assertEqual(ORIOLES_BULLPEN_2026[-1].throws, "R")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_t_rogers_has_best_rotation_era(self):
+        """Trevor Rogers is modelled as the ace (best ERA in the rotation)."""
+        min_era = min(p.era for p in ORIOLES_ROTATION_2026)
+        self.assertAlmostEqual(ORIOLES_ROTATION_2026[0].era, min_era)
+
+    def test_helsley_has_best_bullpen_era(self):
+        min_era = min(p.era for p in ORIOLES_BULLPEN_2026)
+        self.assertAlmostEqual(ORIOLES_BULLPEN_2026[-1].era, min_era)
+
+    def test_closer_has_lower_era_than_ace(self):
+        self.assertLess(ORIOLES_BULLPEN_2026[-1].era, ORIOLES_ROTATION_2026[0].era)
+
+    def test_alonso_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in ORIOLES_LINEUP_2026)
+        self.assertAlmostEqual(ORIOLES_LINEUP_2026[1].hr_per_600_pa, max_hr)
+
+    def test_henderson_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in ORIOLES_LINEUP_2026)
+        self.assertAlmostEqual(ORIOLES_LINEUP_2026[4].power_rating, max_power)
+
+    def test_helsley_has_best_k_per_9_in_bullpen(self):
+        max_k = max(p.k_per_9 for p in ORIOLES_BULLPEN_2026)
+        self.assertAlmostEqual(ORIOLES_BULLPEN_2026[-1].k_per_9, max_k)
+
+    def test_helsley_has_best_whip_in_bullpen(self):
+        min_whip = min(p.whip for p in ORIOLES_BULLPEN_2026)
+        self.assertAlmostEqual(ORIOLES_BULLPEN_2026[-1].whip, min_whip)
+
+    def test_t_rogers_has_best_k_per_9_in_rotation(self):
+        max_k = max(p.k_per_9 for p in ORIOLES_ROTATION_2026)
+        self.assertAlmostEqual(ORIOLES_ROTATION_2026[0].k_per_9, max_k)
+
+    def test_alonso_has_most_rbi(self):
+        max_rbi = max(b.rbi_per_season for b in ORIOLES_LINEUP_2026)
+        self.assertAlmostEqual(ORIOLES_LINEUP_2026[1].rbi_per_season, max_rbi)
+
+    def test_henderson_leads_team_in_runs(self):
+        max_runs = max(b.runs_per_season for b in ORIOLES_LINEUP_2026)
+        self.assertAlmostEqual(ORIOLES_LINEUP_2026[4].runs_per_season, max_runs)
+
+    # ------------------------------------------------------------------
+    # OriolesRoster factory
+    # ------------------------------------------------------------------
+
+    def test_default_returns_orioles_roster_instance(self):
+        self.assertIsInstance(OriolesRoster.default(), OriolesRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(OriolesRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(OriolesRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(OriolesRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = OriolesRoster.default()
+        r2 = OriolesRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = OriolesRoster.default()
+        r2 = OriolesRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = OriolesRoster.default()
+        r2 = OriolesRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+    def test_default_lineup_names_match_constants(self):
+        roster = OriolesRoster.default()
+        self.assertEqual(
+            [b.name for b in roster.lineup],
+            [b.name for b in ORIOLES_LINEUP_2026],
+        )
+
+    def test_default_rotation_names_match_constants(self):
+        roster = OriolesRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.rotation],
+            [p.name for p in ORIOLES_ROTATION_2026],
+        )
+
+    def test_default_bullpen_names_match_constants(self):
+        roster = OriolesRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.bullpen],
+            [p.name for p in ORIOLES_BULLPEN_2026],
+        )
+
+    # ------------------------------------------------------------------
+    # Simulator integration
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_t_rogers_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(ORIOLES_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Strikeouts", prop_names)
+
+    def test_simulate_pitcher_helsley_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(ORIOLES_BULLPEN_2026[-1])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_batter_henderson_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(ORIOLES_LINEUP_2026[4])
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_t_rogers_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Trevor Rogers", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(ORIOLES_ROTATION_2026[0], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Trevor Rogers")
+
+    def test_screen_batter_henderson_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Gunnar Henderson", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(ORIOLES_LINEUP_2026[4], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_matchup_orioles_roster(self):
+        """screen_matchup with the Orioles lineup against their ace."""
+        sim = _make_screener_sim(seed=88)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = OriolesRoster.default()
+        lines = (
+            _make_market_lines("Trevor Rogers", "strikeouts", 3.5, +350, -600)
+            + _make_market_lines("Gunnar Henderson", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Trevor Rogers", player_names)
+        self.assertIn("Gunnar Henderson", player_names)
+
+    def test_screen_closer_helsley(self):
+        """Edge screener works for Ryan Helsley (RHP closer)."""
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Ryan Helsley", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(ORIOLES_BULLPEN_2026[-1], market_lines=lines)
+        self.assertTrue(edges)
+        self.assertEqual(edges[0].player_name, "Ryan Helsley")
 
 
 if __name__ == "__main__":

@@ -295,6 +295,32 @@ and bullpen are available via the :class:`TwinsRoster` helper:
     # Screen the closer (Taylor Rogers)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Baltimore Orioles 2026 Depth Chart
+-------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Baltimore Orioles depth-chart starters, starting rotation,
+and bullpen are available via the :class:`OriolesRoster` helper:
+
+* ``ORIOLES_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``ORIOLES_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``ORIOLES_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import OriolesRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = OriolesRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Trevor Rogers) for strikeout props
+    for edge in screener.screen_pitcher(roster.rotation[0]):
+        print(edge)
+
+    # Screen the closer (Ryan Helsley)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -5102,6 +5128,420 @@ class TwinsRoster:
             lineup=list(TWINS_LINEUP_2026),
             rotation=list(TWINS_ROTATION_2026),
             bullpen=list(TWINS_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Baltimore Orioles — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Baltimore Orioles starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Adley Rutschman    1B – Pete Alonso         2B – Jackson Holliday
+#   3B – Jordan Westburg     SS – Gunnar Henderson    LF – Taylor Ward
+#   CF – Colton Cowser       RF – Dylan Beavers       DH – Samuel Basallo
+#
+# Usage:
+#
+#   from mlb_player_props import OriolesRoster, UnabatedEdgeScreener
+#   roster   = OriolesRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Trevor Rogers)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen Gunnar Henderson for batter props
+#   for edge in screener.screen_batter(roster.lineup[4]):
+#       print(edge)
+#
+#   # Screen the closer (Ryan Helsley)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Adley Rutschman — C, switch hitter, the best two-way catcher in baseball;
+#: elite on-base skills and durable behind the dish.
+_ORI_RUTSCHMAN = BatterStats(
+    name="Adley Rutschman",
+    avg=0.268,
+    obp=0.372,
+    slg=0.442,
+    hr_per_600_pa=18.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=30.0,
+    games_played=148,
+    power_rating=56.0,
+    bats="S",
+    pitches_per_pa=4.10,
+    rbi_per_season=64.0,
+    runs_per_season=72.0,
+)
+
+#: Pete Alonso — 1B, bats right, prodigious power bat nicknamed "The Polar
+#: Bear"; one of the premier home-run hitters in the American League.
+_ORI_ALONSO = BatterStats(
+    name="Pete Alonso",
+    avg=0.250,
+    obp=0.338,
+    slg=0.510,
+    hr_per_600_pa=38.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=26.0,
+    games_played=155,
+    power_rating=92.0,
+    bats="R",
+    pitches_per_pa=3.92,
+    rbi_per_season=96.0,
+    runs_per_season=78.0,
+)
+
+#: Jackson Holliday — 2B, bats left, highly-touted former #1 overall pick with
+#: elite bat speed and improving approach.
+_ORI_HOLLIDAY = BatterStats(
+    name="Jackson Holliday",
+    avg=0.262,
+    obp=0.350,
+    slg=0.420,
+    hr_per_600_pa=14.0,
+    sb_per_season=18.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=50.0,
+    bats="L",
+    pitches_per_pa=4.00,
+    rbi_per_season=52.0,
+    runs_per_season=78.0,
+)
+
+#: Jordan Westburg — 3B, bats right, versatile offensive threat with solid
+#: all-around game including gap power and good contact skills.
+_ORI_WESTBURG = BatterStats(
+    name="Jordan Westburg",
+    avg=0.255,
+    obp=0.325,
+    slg=0.430,
+    hr_per_600_pa=16.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=52.0,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=58.0,
+    runs_per_season=64.0,
+)
+
+#: Gunnar Henderson — SS, bats left, potential MVP-calibre shortstop with
+#: elite power-speed combination; the cornerstone of the Orioles' offense.
+_ORI_HENDERSON = BatterStats(
+    name="Gunnar Henderson",
+    avg=0.278,
+    obp=0.352,
+    slg=0.520,
+    hr_per_600_pa=34.0,
+    sb_per_season=16.0,
+    doubles_per_600_pa=32.0,
+    games_played=155,
+    power_rating=94.0,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=88.0,
+    runs_per_season=96.0,
+)
+
+#: Taylor Ward — LF, bats right, disciplined left fielder with above-average
+#: on-base skills and solid power.
+_ORI_WARD = BatterStats(
+    name="Taylor Ward",
+    avg=0.248,
+    obp=0.340,
+    slg=0.435,
+    hr_per_600_pa=18.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=26.0,
+    games_played=138,
+    power_rating=54.0,
+    bats="R",
+    pitches_per_pa=3.95,
+    rbi_per_season=56.0,
+    runs_per_season=60.0,
+)
+
+#: Colton Cowser — CF, bats left, plus defensive centre fielder with emerging
+#: offensive profile; solid contact and developing power.
+_ORI_COWSER = BatterStats(
+    name="Colton Cowser",
+    avg=0.255,
+    obp=0.338,
+    slg=0.420,
+    hr_per_600_pa=14.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=26.0,
+    games_played=148,
+    power_rating=44.0,
+    bats="L",
+    pitches_per_pa=3.90,
+    rbi_per_season=50.0,
+    runs_per_season=66.0,
+)
+
+#: Dylan Beavers — RF, bats left, athletic corner outfielder with impressive
+#: tools and growing power-speed combination.
+_ORI_BEAVERS = BatterStats(
+    name="Dylan Beavers",
+    avg=0.248,
+    obp=0.322,
+    slg=0.412,
+    hr_per_600_pa=12.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=24.0,
+    games_played=138,
+    power_rating=40.0,
+    bats="L",
+    pitches_per_pa=3.85,
+    rbi_per_season=44.0,
+    runs_per_season=58.0,
+)
+
+#: Samuel Basallo — DH, bats left, highly-regarded prospect with electric raw
+#: power and a mature approach for his age.
+_ORI_BASALLO = BatterStats(
+    name="Samuel Basallo",
+    avg=0.258,
+    obp=0.330,
+    slg=0.460,
+    hr_per_600_pa=22.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=28.0,
+    games_played=140,
+    power_rating=68.0,
+    bats="L",
+    pitches_per_pa=3.85,
+    rbi_per_season=68.0,
+    runs_per_season=58.0,
+)
+
+#: 2026 Orioles projected starting lineup (depth-chart position-1 starters).
+ORIOLES_LINEUP_2026: List[BatterStats] = [
+    _ORI_RUTSCHMAN,
+    _ORI_ALONSO,
+    _ORI_HOLLIDAY,
+    _ORI_WESTBURG,
+    _ORI_HENDERSON,
+    _ORI_WARD,
+    _ORI_COWSER,
+    _ORI_BEAVERS,
+    _ORI_BASALLO,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Trevor Rogers — LHP, crafty left-hander with elite command and deceptive
+#: three-pitch mix; leads one of baseball's most well-rounded rotations.
+_ORI_T_ROGERS = PitcherStats(
+    name="Trevor Rogers",
+    era=3.15,
+    k_per_9=10.2,
+    innings_per_start=6.0,
+    whip=1.12,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.90,
+)
+
+#: Kyle Bradish — RHP, mid-rotation power arm returning from injury; plus
+#: arsenal when healthy.
+_ORI_BRADISH = PitcherStats(
+    name="Kyle Bradish",
+    era=3.60,
+    k_per_9=10.0,
+    innings_per_start=5.2,
+    whip=1.18,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Chris Bassitt — RHP, durable veteran innings-eater with outstanding
+#: command and mound presence.
+_ORI_BASSITT = PitcherStats(
+    name="Chris Bassitt",
+    era=3.90,
+    k_per_9=8.8,
+    innings_per_start=6.0,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Shane Baz — RHP, electric stuff with high-ceiling potential; working to
+#: stay healthy and anchor the back of the rotation.
+_ORI_BAZ = PitcherStats(
+    name="Shane Baz",
+    era=4.10,
+    k_per_9=9.8,
+    innings_per_start=5.2,
+    whip=1.26,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: Zach Eflin — RHP, sinker-heavy fifth starter who generates ground balls
+#: and limits walks; reliable back-end option.
+_ORI_EFLIN = PitcherStats(
+    name="Zach Eflin",
+    era=4.25,
+    k_per_9=7.8,
+    innings_per_start=5.1,
+    whip=1.28,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.75,
+)
+
+#: 2026 Orioles projected starting rotation (rotation-turn order 1–5).
+ORIOLES_ROTATION_2026: List[PitcherStats] = [
+    _ORI_T_ROGERS,
+    _ORI_BRADISH,
+    _ORI_BASSITT,
+    _ORI_BAZ,
+    _ORI_EFLIN,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Andrew Kittredge — RHP, high-leverage setup arm with elite splitter; worm-
+#: killing ground-ball specialist.
+_ORI_KITTREDGE = PitcherStats(
+    name="Andrew Kittredge",
+    era=3.50,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.14,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Keegan Akin — LHP, left-handed specialist and multiple-inning reliever
+#: with sharp breaking ball.
+_ORI_AKIN = PitcherStats(
+    name="Keegan Akin",
+    era=3.80,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.88,
+)
+
+#: Yennier Cano — RHP, dynamic power arm with a devastating sinker-splitter
+#: combination; one of the most valuable setup men in the AL.
+_ORI_CANO = PitcherStats(
+    name="Yennier Cano",
+    era=3.20,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Tyler Wells — RHP, multi-inning reliever option with solid mid-rotation
+#: arsenal.
+_ORI_WELLS = PitcherStats(
+    name="Tyler Wells",
+    era=4.00,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Rico Garcia — RHP, long-relief depth option with ability to eat innings
+#: when starters exit early.
+_ORI_R_GARCIA = PitcherStats(
+    name="Rico Garcia",
+    era=4.20,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Ryan Helsley — CL, RHP, one of the hardest throwers in baseball; elite
+#: closer with triple-digit heat and an outstanding slider.
+_ORI_HELSLEY = PitcherStats(
+    name="Ryan Helsley",
+    era=2.40,
+    k_per_9=13.2,
+    innings_per_start=1.0,
+    whip=0.98,
+    arm_strength=74.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: 2026 Orioles bullpen (setup + closer; closer is last entry).
+ORIOLES_BULLPEN_2026: List[PitcherStats] = [
+    _ORI_KITTREDGE,
+    _ORI_AKIN,
+    _ORI_CANO,
+    _ORI_WELLS,
+    _ORI_R_GARCIA,
+    _ORI_HELSLEY,
+]
+
+
+@dataclass
+class OriolesRoster:
+    """
+    Bundle of Baltimore Orioles projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Ryan Helsley).
+
+    Examples
+    --------
+    ::
+
+        roster = OriolesRoster.default()
+        print(roster.rotation[0].name)   # "Trevor Rogers"
+        print(roster.lineup[4].name)     # "Gunnar Henderson"
+        print(roster.bullpen[-1].name)   # "Ryan Helsley"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "OriolesRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(ORIOLES_LINEUP_2026),
+            rotation=list(ORIOLES_ROTATION_2026),
+            bullpen=list(ORIOLES_BULLPEN_2026),
         )
 
 
