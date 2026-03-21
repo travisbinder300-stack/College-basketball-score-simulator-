@@ -32,6 +32,7 @@ Test classes are organised by the component they exercise:
   Twins 2026 roster      – TestTwinsRoster
   Orioles 2026 roster    – TestOriolesRoster
   Red Sox 2026 roster    – TestRedSoxRoster
+  Yankees 2026 roster    – TestYankeesRoster
 """
 
 import json
@@ -6251,6 +6252,391 @@ class TestRedSoxRoster(unittest.TestCase):
         edges = screener.screen_pitcher(RED_SOX_BULLPEN_2026[-1], market_lines=lines)
         self.assertTrue(edges)
         self.assertEqual(edges[0].player_name, "Aroldis Chapman")
+
+
+# ---------------------------------------------------------------------------
+# New York Yankees 2026 Depth Chart tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    YankeesRoster,
+    YANKEES_LINEUP_2026,
+    YANKEES_ROTATION_2026,
+    YANKEES_BULLPEN_2026,
+)
+
+_NYY_LINEUP_NAMES = [
+    "Austin Wells",
+    "Ben Rice",
+    "Jazz Chisholm Jr.",
+    "Ryan McMahon",
+    "Anthony Volpe",
+    "Cody Bellinger",
+    "Trent Grisham",
+    "Aaron Judge",
+    "Giancarlo Stanton",
+]
+
+_NYY_ROTATION_NAMES = [
+    "Max Fried",
+    "Gerrit Cole",
+    "Carlos Rodon",
+    "Cam Schlittler",
+    "Will Warren",
+]
+
+_NYY_BULLPEN_NAMES = [
+    "Camilo Doval",
+    "Fernando Cruz",
+    "Tim Hill",
+    "Brent Headrick",
+    "Jake Bird",
+    "David Bednar",
+]
+
+
+class TestYankeesRoster(unittest.TestCase):
+    """Tests for YANKEES_LINEUP_2026, YANKEES_ROTATION_2026,
+    YANKEES_BULLPEN_2026, and YankeesRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(YANKEES_LINEUP_2026), 9)
+
+    def test_rotation_has_five_starters(self):
+        self.assertEqual(len(YANKEES_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(YANKEES_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in YANKEES_LINEUP_2026], _NYY_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in YANKEES_ROTATION_2026], _NYY_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in YANKEES_BULLPEN_2026], _NYY_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in YANKEES_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()
+
+    def test_batter_avg_in_range(self):
+        for b in YANKEES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in YANKEES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in YANKEES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_nonnegative(self):
+        for b in YANKEES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in YANKEES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in YANKEES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in YANKEES_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — lineup
+    # ------------------------------------------------------------------
+
+    def test_wells_bats_left(self):
+        self.assertEqual(YANKEES_LINEUP_2026[0].bats, "L")
+
+    def test_rice_bats_left(self):
+        self.assertEqual(YANKEES_LINEUP_2026[1].bats, "L")
+
+    def test_chisholm_switch_hitter(self):
+        self.assertEqual(YANKEES_LINEUP_2026[2].bats, "S")
+
+    def test_mcmahon_bats_left(self):
+        self.assertEqual(YANKEES_LINEUP_2026[3].bats, "L")
+
+    def test_volpe_bats_right(self):
+        self.assertEqual(YANKEES_LINEUP_2026[4].bats, "R")
+
+    def test_bellinger_bats_left(self):
+        self.assertEqual(YANKEES_LINEUP_2026[5].bats, "L")
+
+    def test_grisham_bats_left(self):
+        self.assertEqual(YANKEES_LINEUP_2026[6].bats, "L")
+
+    def test_judge_bats_right(self):
+        self.assertEqual(YANKEES_LINEUP_2026[7].bats, "R")
+
+    def test_stanton_bats_right(self):
+        self.assertEqual(YANKEES_LINEUP_2026[8].bats, "R")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_pass_validation(self):
+        for p in YANKEES_ROTATION_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_all_bullpen_pass_validation(self):
+        for p in YANKEES_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_rotation_era_positive(self):
+        for p in YANKEES_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_bullpen_era_positive(self):
+        for p in YANKEES_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_rotation_k_per_9_in_range(self):
+        for p in YANKEES_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_bullpen_k_per_9_in_range(self):
+        for p in YANKEES_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_fried_throws_left(self):
+        self.assertEqual(YANKEES_ROTATION_2026[0].throws, "L")
+
+    def test_cole_throws_right(self):
+        self.assertEqual(YANKEES_ROTATION_2026[1].throws, "R")
+
+    def test_rodon_throws_left(self):
+        self.assertEqual(YANKEES_ROTATION_2026[2].throws, "L")
+
+    def test_schlittler_throws_right(self):
+        self.assertEqual(YANKEES_ROTATION_2026[3].throws, "R")
+
+    def test_warren_throws_right(self):
+        self.assertEqual(YANKEES_ROTATION_2026[4].throws, "R")
+
+    def test_hill_throws_left(self):
+        hill = next(p for p in YANKEES_BULLPEN_2026 if p.name == "Tim Hill")
+        self.assertEqual(hill.throws, "L")
+
+    def test_headrick_throws_left(self):
+        headrick = next(p for p in YANKEES_BULLPEN_2026 if p.name == "Brent Headrick")
+        self.assertEqual(headrick.throws, "L")
+
+    def test_bednar_throws_right(self):
+        self.assertEqual(YANKEES_BULLPEN_2026[-1].throws, "R")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_fried_has_best_rotation_era(self):
+        """Max Fried is modelled as the ace (best ERA in the rotation)."""
+        min_era = min(p.era for p in YANKEES_ROTATION_2026)
+        self.assertAlmostEqual(YANKEES_ROTATION_2026[0].era, min_era)
+
+    def test_bednar_has_best_bullpen_era(self):
+        min_era = min(p.era for p in YANKEES_BULLPEN_2026)
+        self.assertAlmostEqual(YANKEES_BULLPEN_2026[-1].era, min_era)
+
+    def test_closer_has_lower_era_than_ace(self):
+        self.assertLess(YANKEES_BULLPEN_2026[-1].era, YANKEES_ROTATION_2026[0].era)
+
+    def test_bednar_has_best_k_per_9_in_bullpen(self):
+        max_k = max(p.k_per_9 for p in YANKEES_BULLPEN_2026)
+        self.assertAlmostEqual(YANKEES_BULLPEN_2026[-1].k_per_9, max_k)
+
+    def test_bednar_has_best_whip_in_bullpen(self):
+        min_whip = min(p.whip for p in YANKEES_BULLPEN_2026)
+        self.assertAlmostEqual(YANKEES_BULLPEN_2026[-1].whip, min_whip)
+
+    def test_judge_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in YANKEES_LINEUP_2026)
+        self.assertAlmostEqual(YANKEES_LINEUP_2026[7].power_rating, max_power)
+
+    def test_judge_leads_team_in_avg(self):
+        max_avg = max(b.avg for b in YANKEES_LINEUP_2026)
+        self.assertAlmostEqual(YANKEES_LINEUP_2026[7].avg, max_avg)
+
+    def test_judge_leads_team_in_rbi(self):
+        max_rbi = max(b.rbi_per_season for b in YANKEES_LINEUP_2026)
+        self.assertAlmostEqual(YANKEES_LINEUP_2026[7].rbi_per_season, max_rbi)
+
+    def test_judge_leads_team_in_runs(self):
+        max_runs = max(b.runs_per_season for b in YANKEES_LINEUP_2026)
+        self.assertAlmostEqual(YANKEES_LINEUP_2026[7].runs_per_season, max_runs)
+
+    def test_judge_has_highest_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in YANKEES_LINEUP_2026)
+        self.assertAlmostEqual(YANKEES_LINEUP_2026[7].hr_per_600_pa, max_hr)
+
+    def test_cole_has_best_k_per_9_in_rotation(self):
+        """Gerrit Cole leads the rotation in K/9."""
+        max_k = max(p.k_per_9 for p in YANKEES_ROTATION_2026)
+        self.assertAlmostEqual(YANKEES_ROTATION_2026[1].k_per_9, max_k)
+
+    def test_chisholm_leads_team_in_sb(self):
+        max_sb = max(b.sb_per_season for b in YANKEES_LINEUP_2026)
+        self.assertAlmostEqual(YANKEES_LINEUP_2026[2].sb_per_season, max_sb)
+
+    # ------------------------------------------------------------------
+    # YankeesRoster factory
+    # ------------------------------------------------------------------
+
+    def test_default_returns_yankees_roster_instance(self):
+        self.assertIsInstance(YankeesRoster.default(), YankeesRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(YankeesRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(YankeesRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(YankeesRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = YankeesRoster.default()
+        r2 = YankeesRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = YankeesRoster.default()
+        r2 = YankeesRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = YankeesRoster.default()
+        r2 = YankeesRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+    def test_default_lineup_names_match_constants(self):
+        roster = YankeesRoster.default()
+        self.assertEqual(
+            [b.name for b in roster.lineup],
+            [b.name for b in YANKEES_LINEUP_2026],
+        )
+
+    def test_default_rotation_names_match_constants(self):
+        roster = YankeesRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.rotation],
+            [p.name for p in YANKEES_ROTATION_2026],
+        )
+
+    def test_default_bullpen_names_match_constants(self):
+        roster = YankeesRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.bullpen],
+            [p.name for p in YANKEES_BULLPEN_2026],
+        )
+
+    # ------------------------------------------------------------------
+    # Simulator integration
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_fried_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(YANKEES_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Strikeouts", prop_names)
+
+    def test_simulate_pitcher_bednar_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(YANKEES_BULLPEN_2026[-1])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_batter_judge_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(YANKEES_LINEUP_2026[7])
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_fried_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Max Fried", "strikeouts", 4.5, +300, -500)
+        edges = screener.screen_pitcher(YANKEES_ROTATION_2026[0], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Max Fried")
+
+    def test_screen_batter_judge_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Aaron Judge", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(YANKEES_LINEUP_2026[7], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_matchup_yankees_roster(self):
+        """screen_matchup with the Yankees lineup against Max Fried."""
+        sim = _make_screener_sim(seed=99)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = YankeesRoster.default()
+        lines = (
+            _make_market_lines("Max Fried", "strikeouts", 4.5, +350, -600)
+            + _make_market_lines("Aaron Judge", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Max Fried", player_names)
+        self.assertIn("Aaron Judge", player_names)
+
+    def test_screen_closer_bednar(self):
+        """Edge screener works for David Bednar (RHP closer)."""
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("David Bednar", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(YANKEES_BULLPEN_2026[-1], market_lines=lines)
+        self.assertTrue(edges)
+        self.assertEqual(edges[0].player_name, "David Bednar")
 
 
 if __name__ == "__main__":

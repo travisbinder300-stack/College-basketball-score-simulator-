@@ -347,6 +347,32 @@ and bullpen are available via the :class:`RedSoxRoster` helper:
     # Screen the closer (Aroldis Chapman)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+New York Yankees 2026 Depth Chart
+------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 New York Yankees depth-chart starters, starting rotation,
+and bullpen are available via the :class:`YankeesRoster` helper:
+
+* ``YANKEES_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``YANKEES_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``YANKEES_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import YankeesRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = YankeesRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Max Fried) for strikeout props
+    for edge in screener.screen_pitcher(roster.rotation[0]):
+        print(edge)
+
+    # Screen the closer (David Bednar)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -5982,6 +6008,420 @@ class RedSoxRoster:
             lineup=list(RED_SOX_LINEUP_2026),
             rotation=list(RED_SOX_ROTATION_2026),
             bullpen=list(RED_SOX_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# New York Yankees — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# New York Yankees starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Austin Wells        1B – Ben Rice            2B – Jazz Chisholm Jr.
+#   3B – Ryan McMahon        SS – Anthony Volpe        LF – Cody Bellinger
+#   CF – Trent Grisham       RF – Aaron Judge          DH – Giancarlo Stanton
+#
+# Usage:
+#
+#   from mlb_player_props import YankeesRoster, UnabatedEdgeScreener
+#   roster   = YankeesRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Max Fried)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen Aaron Judge for batter props
+#   for edge in screener.screen_batter(roster.lineup[7]):
+#       print(edge)
+#
+#   # Screen the closer (David Bednar)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Austin Wells — C, bats left, highly touted young catcher with plus raw
+#: power and improving plate discipline; key piece of the Yankees rebuild.
+_NYY_WELLS = BatterStats(
+    name="Austin Wells",
+    avg=0.248,
+    obp=0.318,
+    slg=0.430,
+    hr_per_600_pa=18.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=24.0,
+    games_played=130,
+    power_rating=56.0,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=58.0,
+    runs_per_season=56.0,
+)
+
+#: Ben Rice — 1B, bats left, athletic first-base option with above-average
+#: raw power; versatile defender who made his MLB debut in 2024.
+_NYY_RICE = BatterStats(
+    name="Ben Rice",
+    avg=0.245,
+    obp=0.322,
+    slg=0.430,
+    hr_per_600_pa=20.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=22.0,
+    games_played=130,
+    power_rating=54.0,
+    bats="L",
+    pitches_per_pa=3.92,
+    rbi_per_season=56.0,
+    runs_per_season=60.0,
+)
+
+#: Jazz Chisholm Jr. — 2B, switch hitter, explosive leadoff bat with elite
+#: speed and plus power for the position; one of the game's most dynamic players.
+_NYY_CHISHOLM = BatterStats(
+    name="Jazz Chisholm Jr.",
+    avg=0.258,
+    obp=0.330,
+    slg=0.455,
+    hr_per_600_pa=22.0,
+    sb_per_season=26.0,
+    doubles_per_600_pa=28.0,
+    games_played=138,
+    power_rating=64.0,
+    bats="S",
+    pitches_per_pa=3.82,
+    rbi_per_season=64.0,
+    runs_per_season=86.0,
+)
+
+#: Ryan McMahon — 3B, bats left, veteran third baseman with solid glove and
+#: reliable power output; strong defender who limits strikeouts.
+_NYY_MCMAHON = BatterStats(
+    name="Ryan McMahon",
+    avg=0.248,
+    obp=0.325,
+    slg=0.415,
+    hr_per_600_pa=16.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=50.0,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=56.0,
+    runs_per_season=62.0,
+)
+
+#: Anthony Volpe — SS, bats right, talented young shortstop with elite
+#: athleticism, plus defence, and developing offensive game.
+_NYY_VOLPE = BatterStats(
+    name="Anthony Volpe",
+    avg=0.252,
+    obp=0.320,
+    slg=0.405,
+    hr_per_600_pa=14.0,
+    sb_per_season=22.0,
+    doubles_per_600_pa=24.0,
+    games_played=155,
+    power_rating=46.0,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=52.0,
+    runs_per_season=78.0,
+)
+
+#: Cody Bellinger — LF, bats left, powerful former MVP with plus speed and
+#: above-average defence; bounced back to elite production in 2023.
+_NYY_BELLINGER = BatterStats(
+    name="Cody Bellinger",
+    avg=0.262,
+    obp=0.332,
+    slg=0.450,
+    hr_per_600_pa=20.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=62.0,
+    bats="L",
+    pitches_per_pa=3.85,
+    rbi_per_season=66.0,
+    runs_per_season=74.0,
+)
+
+#: Trent Grisham — CF, bats left, solid defensive centre fielder with a
+#: patient approach; provides quality at-bats and gap power.
+_NYY_GRISHAM = BatterStats(
+    name="Trent Grisham",
+    avg=0.228,
+    obp=0.330,
+    slg=0.370,
+    hr_per_600_pa=10.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=22.0,
+    games_played=135,
+    power_rating=36.0,
+    bats="L",
+    pitches_per_pa=4.05,
+    rbi_per_season=38.0,
+    runs_per_season=58.0,
+)
+
+#: Aaron Judge — RF, bats right, reigning AL MVP and arguably the best
+#: hitter in baseball; elite power, plate discipline, and arm strength.
+_NYY_JUDGE = BatterStats(
+    name="Aaron Judge",
+    avg=0.288,
+    obp=0.405,
+    slg=0.600,
+    hr_per_600_pa=56.0,
+    sb_per_season=10.0,
+    doubles_per_600_pa=30.0,
+    games_played=155,
+    power_rating=100.0,
+    bats="R",
+    pitches_per_pa=4.10,
+    rbi_per_season=112.0,
+    runs_per_season=106.0,
+)
+
+#: Giancarlo Stanton — DH, bats right, one of baseball's most feared power
+#: hitters when healthy; legendary raw power and elite production vs LHP.
+_NYY_STANTON = BatterStats(
+    name="Giancarlo Stanton",
+    avg=0.238,
+    obp=0.310,
+    slg=0.510,
+    hr_per_600_pa=38.0,
+    sb_per_season=0.0,
+    doubles_per_600_pa=22.0,
+    games_played=120,
+    power_rating=94.0,
+    bats="R",
+    pitches_per_pa=3.92,
+    rbi_per_season=80.0,
+    runs_per_season=62.0,
+)
+
+#: 2026 Yankees projected starting lineup (depth-chart position-1 starters).
+YANKEES_LINEUP_2026: List[BatterStats] = [
+    _NYY_WELLS,
+    _NYY_RICE,
+    _NYY_CHISHOLM,
+    _NYY_MCMAHON,
+    _NYY_VOLPE,
+    _NYY_BELLINGER,
+    _NYY_GRISHAM,
+    _NYY_JUDGE,
+    _NYY_STANTON,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Max Fried — LHP, elite ace with advanced command, plus curveball,
+#: and exceptional ground-ball rate; Cy Young-calibre starter.
+_NYY_FRIED = PitcherStats(
+    name="Max Fried",
+    era=2.80,
+    k_per_9=9.6,
+    innings_per_start=6.2,
+    whip=1.08,
+    arm_strength=62.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Gerrit Cole — RHP, elite power pitcher with elite spin rate and four-seam
+#: fastball; multiple Cy Young Award votes and premier strikeout arm.
+_NYY_COLE = PitcherStats(
+    name="Gerrit Cole",
+    era=3.10,
+    k_per_9=12.2,
+    innings_per_start=6.1,
+    whip=1.10,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Carlos Rodon — LHP, high-strikeout lefty with a devastating slider;
+#: can be dominant when healthy and on top of his game.
+_NYY_RODON = PitcherStats(
+    name="Carlos Rodon",
+    era=3.55,
+    k_per_9=11.0,
+    innings_per_start=5.2,
+    whip=1.18,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.85,
+)
+
+#: Cam Schlittler — RHP, young power pitcher developing into the fourth-
+#: rotation slot; live fastball and improving secondary offerings.
+_NYY_SCHLITTLER = PitcherStats(
+    name="Cam Schlittler",
+    era=4.10,
+    k_per_9=9.2,
+    innings_per_start=5.0,
+    whip=1.28,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Will Warren — RHP, durable back-end starter with solid command of four
+#: pitches; reliable innings-eater who limits the big inning.
+_NYY_WARREN = PitcherStats(
+    name="Will Warren",
+    era=4.35,
+    k_per_9=8.6,
+    innings_per_start=5.0,
+    whip=1.30,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: 2026 Yankees projected starting rotation (rotation-turn order 1–5).
+YANKEES_ROTATION_2026: List[PitcherStats] = [
+    _NYY_FRIED,
+    _NYY_COLE,
+    _NYY_RODON,
+    _NYY_SCHLITTLER,
+    _NYY_WARREN,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Camilo Doval — RHP, elite high-leverage setup arm with a wipeout slider
+#: and triple-digit velocity; former Giants closer.
+_NYY_DOVAL = PitcherStats(
+    name="Camilo Doval",
+    era=3.20,
+    k_per_9=12.0,
+    innings_per_start=1.0,
+    whip=1.12,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Fernando Cruz — RHP, hard-throwing reliever with swing-and-miss stuff;
+#: a key cog in the late-innings bridge to the closer.
+_NYY_F_CRUZ = PitcherStats(
+    name="Fernando Cruz",
+    era=3.40,
+    k_per_9=11.2,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Tim Hill — LHP, veteran left-handed specialist with an extreme side-arm
+#: delivery that generates elite ground-ball rate and tough LHB angle.
+_NYY_HILL = PitcherStats(
+    name="Tim Hill",
+    era=3.55,
+    k_per_9=7.8,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=50.0,
+    throws="L",
+    pitches_per_pa=3.75,
+)
+
+#: Brent Headrick — LHP, tall left-hander with a deceptive delivery and
+#: plus fastball; emerging as a reliable multi-inning option.
+_NYY_HEADRICK = PitcherStats(
+    name="Brent Headrick",
+    era=3.65,
+    k_per_9=9.4,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Jake Bird — RHP, durable multi-inning reliever with a heavy sinker that
+#: generates ground balls; solid middle-relief bridge option.
+_NYY_BIRD = PitcherStats(
+    name="Jake Bird",
+    era=3.75,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: David Bednar — CL, RHP, elite closer with a power fastball-slider combo;
+#: former Pirates All-Star closer commanding the ninth inning.
+_NYY_BEDNAR = PitcherStats(
+    name="David Bednar",
+    era=2.55,
+    k_per_9=12.8,
+    innings_per_start=1.0,
+    whip=1.00,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: 2026 Yankees bullpen (setup + closer; closer is last entry).
+YANKEES_BULLPEN_2026: List[PitcherStats] = [
+    _NYY_DOVAL,
+    _NYY_F_CRUZ,
+    _NYY_HILL,
+    _NYY_HEADRICK,
+    _NYY_BIRD,
+    _NYY_BEDNAR,
+]
+
+
+@dataclass
+class YankeesRoster:
+    """
+    Bundle of New York Yankees projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = David Bednar).
+
+    Examples
+    --------
+    ::
+
+        roster = YankeesRoster.default()
+        print(roster.rotation[0].name)   # "Max Fried"
+        print(roster.lineup[7].name)     # "Aaron Judge"
+        print(roster.bullpen[-1].name)   # "David Bednar"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "YankeesRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(YANKEES_LINEUP_2026),
+            rotation=list(YANKEES_ROTATION_2026),
+            bullpen=list(YANKEES_BULLPEN_2026),
         )
 
 
