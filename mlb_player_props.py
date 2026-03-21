@@ -269,6 +269,32 @@ and bullpen are available via the :class:`RoyalsRoster` helper:
     # Screen the closer (Carlos Estevez)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Minnesota Twins 2026 Depth Chart
+-----------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Minnesota Twins depth-chart starters, starting rotation,
+and bullpen are available via the :class:`TwinsRoster` helper:
+
+* ``TWINS_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``TWINS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``TWINS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import TwinsRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = TwinsRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Joe Ryan) for strikeout props
+    for edge in screener.screen_pitcher(roster.rotation[0]):
+        print(edge)
+
+    # Screen the closer (Taylor Rogers)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -4668,6 +4694,414 @@ class RoyalsRoster:
             lineup=list(ROYALS_LINEUP_2026),
             rotation=list(ROYALS_ROTATION_2026),
             bullpen=list(ROYALS_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Minnesota Twins — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Minnesota Twins starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Ryan Jeffers        1B – Josh Bell          2B – Luke Keaschall
+#   3B – Royce Lewis          SS – Brooks Lee          LF – Alan Roden
+#   CF – Byron Buxton         RF – Matt Wallner        DH – Trevor Larnach
+#
+# Usage:
+#
+#   from mlb_player_props import TwinsRoster, UnabatedEdgeScreener
+#   roster   = TwinsRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Joe Ryan)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen Byron Buxton for batter props
+#   for edge in screener.screen_batter(roster.lineup[6]):
+#       print(edge)
+#
+#   # Screen the closer (Taylor Rogers)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Ryan Jeffers — C, bats right, above-average power for a catcher with solid
+#: receiving skills.
+_MIN_JEFFERS = BatterStats(
+    name="Ryan Jeffers",
+    avg=0.245,
+    obp=0.315,
+    slg=0.450,
+    hr_per_600_pa=24.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=22.0,
+    games_played=120,
+    power_rating=68.0,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=62.0,
+    runs_per_season=46.0,
+)
+
+#: Josh Bell — 1B, switch hitter, line-drive power bat with disciplined plate
+#: approach.
+_MIN_BELL = BatterStats(
+    name="Josh Bell",
+    avg=0.252,
+    obp=0.338,
+    slg=0.430,
+    hr_per_600_pa=20.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=28.0,
+    games_played=140,
+    power_rating=58.0,
+    bats="S",
+    pitches_per_pa=3.95,
+    rbi_per_season=66.0,
+    runs_per_season=58.0,
+)
+
+#: Luke Keaschall — 2B, bats right, developing prospect with contact-first
+#: approach and gap power.
+_MIN_KEASCHALL = BatterStats(
+    name="Luke Keaschall",
+    avg=0.258,
+    obp=0.325,
+    slg=0.390,
+    hr_per_600_pa=10.0,
+    sb_per_season=16.0,
+    doubles_per_600_pa=26.0,
+    games_played=138,
+    power_rating=38.0,
+    bats="R",
+    pitches_per_pa=3.68,
+    rbi_per_season=46.0,
+    runs_per_season=62.0,
+)
+
+#: Royce Lewis — 3B, bats right, electrifying talent with plus power and speed
+#: when healthy.
+_MIN_LEWIS = BatterStats(
+    name="Royce Lewis",
+    avg=0.278,
+    obp=0.338,
+    slg=0.498,
+    hr_per_600_pa=28.0,
+    sb_per_season=18.0,
+    doubles_per_600_pa=30.0,
+    games_played=130,
+    power_rating=80.0,
+    bats="R",
+    pitches_per_pa=3.75,
+    rbi_per_season=78.0,
+    runs_per_season=76.0,
+)
+
+#: Brooks Lee — SS, bats right (switch), advanced bat with solid all-around
+#: skills at the plate and solid glove.
+_MIN_LEE = BatterStats(
+    name="Brooks Lee",
+    avg=0.262,
+    obp=0.328,
+    slg=0.415,
+    hr_per_600_pa=14.0,
+    sb_per_season=10.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=48.0,
+    bats="S",
+    pitches_per_pa=3.80,
+    rbi_per_season=52.0,
+    runs_per_season=64.0,
+)
+
+#: Alan Roden — LF, bats right, patient hitter with above-average on-base
+#: skills and developing power.
+_MIN_RODEN = BatterStats(
+    name="Alan Roden",
+    avg=0.255,
+    obp=0.338,
+    slg=0.390,
+    hr_per_600_pa=10.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=24.0,
+    games_played=132,
+    power_rating=36.0,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=40.0,
+    runs_per_season=52.0,
+)
+
+#: Byron Buxton — CF, bats right, elite centre-fielder with superstar power and
+#: speed when healthy; among the most dangerous leadoff options in baseball.
+_MIN_BUXTON = BatterStats(
+    name="Byron Buxton",
+    avg=0.258,
+    obp=0.318,
+    slg=0.505,
+    hr_per_600_pa=34.0,
+    sb_per_season=18.0,
+    doubles_per_600_pa=26.0,
+    games_played=125,
+    power_rating=90.0,
+    bats="R",
+    pitches_per_pa=3.68,
+    rbi_per_season=72.0,
+    runs_per_season=74.0,
+)
+
+#: Matt Wallner — RF, bats left, powerful corner outfielder with big raw power
+#: and improving contact.
+_MIN_WALLNER = BatterStats(
+    name="Matt Wallner",
+    avg=0.248,
+    obp=0.332,
+    slg=0.480,
+    hr_per_600_pa=28.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=24.0,
+    games_played=138,
+    power_rating=76.0,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=68.0,
+    runs_per_season=54.0,
+)
+
+#: Trevor Larnach — DH, bats left, left-handed masher with solid power and
+#: good plate coverage.
+_MIN_LARNACH = BatterStats(
+    name="Trevor Larnach",
+    avg=0.245,
+    obp=0.322,
+    slg=0.450,
+    hr_per_600_pa=22.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=26.0,
+    games_played=135,
+    power_rating=64.0,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=60.0,
+    runs_per_season=52.0,
+)
+
+#: 2026 Twins projected starting lineup (depth-chart position-1 starters).
+TWINS_LINEUP_2026: List[BatterStats] = [
+    _MIN_JEFFERS,
+    _MIN_BELL,
+    _MIN_KEASCHALL,
+    _MIN_LEWIS,
+    _MIN_LEE,
+    _MIN_RODEN,
+    _MIN_BUXTON,
+    _MIN_WALLNER,
+    _MIN_LARNACH,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Joe Ryan — RHP, deceptive ace with elite spin rates and exceptional
+#: command; the clear-cut rotation leader for Minnesota.
+_MIN_RYAN = PitcherStats(
+    name="Joe Ryan",
+    era=3.10,
+    k_per_9=11.2,
+    innings_per_start=6.1,
+    whip=1.10,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Bailey Ober — RHP, tall righty with outstanding extension and deceptive
+#: mechanics; generates weak contact.
+_MIN_OBER = PitcherStats(
+    name="Bailey Ober",
+    era=3.60,
+    k_per_9=9.5,
+    innings_per_start=6.0,
+    whip=1.18,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Simeon Woods Richardson — RHP, young power arm with frontline ceiling;
+#: developing command.
+_MIN_SWR = PitcherStats(
+    name="Simeon Woods Richardson",
+    era=4.00,
+    k_per_9=9.8,
+    innings_per_start=5.5,
+    whip=1.26,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Taj Bradley — RHP, mid-rotation arm with solid stuff and improving polish.
+_MIN_BRADLEY = PitcherStats(
+    name="Taj Bradley",
+    era=4.20,
+    k_per_9=9.2,
+    innings_per_start=5.2,
+    whip=1.28,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: Mick Abel — RHP, high-upside fifth starter with electric repertoire;
+#: still maturing at the big-league level.
+_MIN_ABEL = PitcherStats(
+    name="Mick Abel",
+    era=4.60,
+    k_per_9=9.5,
+    innings_per_start=5.0,
+    whip=1.35,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: 2026 Twins projected starting rotation (rotation-turn order 1–5).
+TWINS_ROTATION_2026: List[PitcherStats] = [
+    _MIN_RYAN,
+    _MIN_OBER,
+    _MIN_SWR,
+    _MIN_BRADLEY,
+    _MIN_ABEL,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Anthony Banda — LHP, lefty specialist and multi-inning arm.
+_MIN_BANDA = PitcherStats(
+    name="Anthony Banda",
+    era=3.80,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.85,
+)
+
+#: Kody Funderburk — RHP, power arm with sharp breaking ball.
+_MIN_FUNDERBURK = PitcherStats(
+    name="Kody Funderburk",
+    era=3.70,
+    k_per_9=10.8,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Eric Orze — RHP, late-inning setup man with deceptive delivery.
+_MIN_ORZE = PitcherStats(
+    name="Eric Orze",
+    era=3.90,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Travis Adams — RHP, high-leverage reliever with improving velocity.
+_MIN_ADAMS = PitcherStats(
+    name="Travis Adams",
+    era=4.10,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Zak Kent — RHP, middle-relief option with solid groundball tendencies.
+_MIN_KENT = PitcherStats(
+    name="Zak Kent",
+    era=4.20,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.30,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Taylor Rogers — CL, LHP, elite left-handed closer with devastating slider;
+#: one of the best closers in the American League.
+_MIN_ROGERS = PitcherStats(
+    name="Taylor Rogers",
+    era=2.80,
+    k_per_9=11.8,
+    innings_per_start=1.0,
+    whip=1.02,
+    arm_strength=62.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Twins bullpen (setup + closer; closer is last entry).
+TWINS_BULLPEN_2026: List[PitcherStats] = [
+    _MIN_BANDA,
+    _MIN_FUNDERBURK,
+    _MIN_ORZE,
+    _MIN_ADAMS,
+    _MIN_KENT,
+    _MIN_ROGERS,
+]
+
+
+@dataclass
+class TwinsRoster:
+    """
+    Bundle of Minnesota Twins projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Taylor Rogers).
+
+    Examples
+    --------
+    ::
+
+        roster = TwinsRoster.default()
+        print(roster.rotation[0].name)   # "Joe Ryan"
+        print(roster.lineup[6].name)     # "Byron Buxton"
+        print(roster.bullpen[-1].name)   # "Taylor Rogers"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "TwinsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(TWINS_LINEUP_2026),
+            rotation=list(TWINS_ROTATION_2026),
+            bullpen=list(TWINS_BULLPEN_2026),
         )
 
 
