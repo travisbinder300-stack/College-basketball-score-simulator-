@@ -483,6 +483,25 @@ and bullpen are available via the :class:`MarinersRoster` helper:
     print(roster.rotation[0].name)   # "Logan Gilbert"
     print(roster.lineup[6].name)     # "Julio Rodriguez"
     print(roster.bullpen[-1].name)   # "Andres Munoz"
+
+------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Texas Rangers depth-chart starters, starting rotation,
+and bullpen are available via the :class:`RangersRoster` helper:
+
+* ``RANGERS_LINEUP_2026``   – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``RANGERS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``RANGERS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import RangersRoster
+
+    roster = RangersRoster.default()
+    print(roster.rotation[0].name)   # "Jacob deGrom"
+    print(roster.lineup[5].name)     # "Wyatt Langford"
+    print(roster.bullpen[-1].name)   # "Robert Garcia"
 """
 
 from __future__ import annotations
@@ -8621,6 +8640,397 @@ class MarinersRoster:
             lineup=list(MARINERS_LINEUP_2026),
             rotation=list(MARINERS_ROTATION_2026),
             bullpen=list(MARINERS_BULLPEN_2026),
+        )
+
+
+# ===========================================================================
+# Texas Rangers — 2026 projected depth chart
+# ===========================================================================
+
+# -- Lineup: position starters (C→1B→2B→3B→SS→LF→CF→RF→DH) ----------------
+
+#: Danny Jansen — C, R; experienced backstop with solid receiving skills and
+#: above-average power for the position; veteran presence behind the plate.
+_TEX_JANSEN = BatterStats(
+    name="Danny Jansen",
+    avg=0.238,
+    obp=0.320,
+    slg=0.410,
+    hr_per_600_pa=20,
+    sb_per_season=2,
+    doubles_per_600_pa=22,
+    games_played=110,
+    power_rating=56,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=58,
+    runs_per_season=52,
+)
+
+#: Jake Burger — 1B, R; powerful right-handed slugger with plus raw power;
+#: dangerous run-producer who punishes pitches in the zone.
+_TEX_BURGER = BatterStats(
+    name="Jake Burger",
+    avg=0.246,
+    obp=0.308,
+    slg=0.468,
+    hr_per_600_pa=30,
+    sb_per_season=4,
+    doubles_per_600_pa=26,
+    games_played=148,
+    power_rating=76,
+    bats="R",
+    pitches_per_pa=3.68,
+    rbi_per_season=88,
+    runs_per_season=70,
+)
+
+#: Josh Smith — 2B, L; versatile left-handed hitter with solid contact skills
+#: and ability to play multiple infield positions; steady everyday contributor.
+_TEX_JSMITH = BatterStats(
+    name="Josh Smith",
+    avg=0.260,
+    obp=0.340,
+    slg=0.390,
+    hr_per_600_pa=12,
+    sb_per_season=10,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=42,
+    bats="L",
+    pitches_per_pa=3.96,
+    rbi_per_season=58,
+    runs_per_season=70,
+)
+
+#: Josh Jung — 3B, R; power-hitting corner infielder with a smooth right-handed
+#: swing and above-average pop to all fields; emerging middle-of-the-order bat.
+_TEX_JUNG = BatterStats(
+    name="Josh Jung",
+    avg=0.258,
+    obp=0.328,
+    slg=0.456,
+    hr_per_600_pa=26,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=142,
+    power_rating=72,
+    bats="R",
+    pitches_per_pa=3.76,
+    rbi_per_season=80,
+    runs_per_season=72,
+)
+
+#: Corey Seager — SS, L; elite left-handed shortstop with a premium combination
+#: of contact, power, and on-base ability; cornerstone of the Rangers lineup.
+_TEX_SEAGER = BatterStats(
+    name="Corey Seager",
+    avg=0.282,
+    obp=0.362,
+    slg=0.510,
+    hr_per_600_pa=34,
+    sb_per_season=4,
+    doubles_per_600_pa=36,
+    games_played=148,
+    power_rating=88,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=96,
+    runs_per_season=90,
+)
+
+#: Wyatt Langford — LF, R; high-ceiling power/speed outfielder with plus
+#: athleticism and an advanced approach at the plate for his age.
+_TEX_LANGFORD = BatterStats(
+    name="Wyatt Langford",
+    avg=0.268,
+    obp=0.346,
+    slg=0.470,
+    hr_per_600_pa=26,
+    sb_per_season=22,
+    doubles_per_600_pa=30,
+    games_played=148,
+    power_rating=78,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=80,
+    runs_per_season=86,
+)
+
+#: Evan Carter — CF, L; dynamic left-handed center fielder with elite contact
+#: skills, plus speed, and a patient approach; lead-off caliber talent.
+_TEX_CARTER = BatterStats(
+    name="Evan Carter",
+    avg=0.274,
+    obp=0.370,
+    slg=0.428,
+    hr_per_600_pa=16,
+    sb_per_season=24,
+    doubles_per_600_pa=30,
+    games_played=142,
+    power_rating=58,
+    bats="L",
+    pitches_per_pa=4.02,
+    rbi_per_season=66,
+    runs_per_season=90,
+)
+
+#: Brandon Nimmo — RF, L; disciplined left-handed outfielder with one of the
+#: best on-base percentages in the lineup; veteran presence in right field.
+_TEX_NIMMO = BatterStats(
+    name="Brandon Nimmo",
+    avg=0.256,
+    obp=0.360,
+    slg=0.420,
+    hr_per_600_pa=18,
+    sb_per_season=8,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=56,
+    bats="L",
+    pitches_per_pa=4.08,
+    rbi_per_season=68,
+    runs_per_season=78,
+)
+
+#: Joc Pederson — DH, L; powerful left-handed designated hitter with
+#: a pull-heavy approach and excellent production against right-handed pitching.
+_TEX_PEDERSON = BatterStats(
+    name="Joc Pederson",
+    avg=0.240,
+    obp=0.328,
+    slg=0.456,
+    hr_per_600_pa=28,
+    sb_per_season=2,
+    doubles_per_600_pa=24,
+    games_played=132,
+    power_rating=74,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=76,
+    runs_per_season=66,
+)
+
+#: 2026 Rangers projected lineup (depth-chart starters, position order
+#: C→1B→2B→3B→SS→LF→CF→RF→DH).
+RANGERS_LINEUP_2026: List[BatterStats] = [
+    _TEX_JANSEN,
+    _TEX_BURGER,
+    _TEX_JSMITH,
+    _TEX_JUNG,
+    _TEX_SEAGER,
+    _TEX_LANGFORD,
+    _TEX_CARTER,
+    _TEX_NIMMO,
+    _TEX_PEDERSON,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Jacob deGrom — RHP, ace; one of the most dominant starters in baseball when
+#: healthy; elite strikeout rate and pinpoint command make him a front-of-rotation
+#: difference-maker for Texas.
+_TEX_DEGROM = PitcherStats(
+    name="Jacob deGrom",
+    era=2.90,
+    k_per_9=12.4,
+    innings_per_start=6.2,
+    whip=1.00,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Nathan Eovaldi — RHP, second starter; durable power arm with a plus fastball
+#: and cutter combination; reliable veteran presence in the middle of the rotation.
+_TEX_EOVALDI = PitcherStats(
+    name="Nathan Eovaldi",
+    era=3.60,
+    k_per_9=8.8,
+    innings_per_start=6.0,
+    whip=1.18,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.76,
+)
+
+#: MacKenzie Gore — LHP, third starter; lefty with a sharp curveball and
+#: developing changeup; capable of generating swings and misses from both sides.
+_TEX_GORE = PitcherStats(
+    name="MacKenzie Gore",
+    era=3.80,
+    k_per_9=10.0,
+    innings_per_start=5.8,
+    whip=1.20,
+    arm_strength=64.0,
+    throws="L",
+    pitches_per_pa=3.94,
+)
+
+#: Jack Leiter — RHP, fourth starter; premium prospect with electric stuff
+#: including a plus fastball and sharp slider; continues to develop in the
+#: Texas rotation.
+_TEX_LEITER = PitcherStats(
+    name="Jack Leiter",
+    era=4.00,
+    k_per_9=9.6,
+    innings_per_start=5.4,
+    whip=1.26,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.98,
+)
+
+#: Jacob Latz — LHP, fifth starter; crafty southpaw with deceptive delivery
+#: and solid secondary offerings; back-end rotation depth for the Rangers.
+_TEX_LATZ = PitcherStats(
+    name="Jacob Latz",
+    era=4.30,
+    k_per_9=7.8,
+    innings_per_start=5.2,
+    whip=1.32,
+    arm_strength=56.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: 2026 Rangers projected starting rotation (rotation order 1–5).
+RANGERS_ROTATION_2026: List[PitcherStats] = [
+    _TEX_DEGROM,
+    _TEX_EOVALDI,
+    _TEX_GORE,
+    _TEX_LEITER,
+    _TEX_LATZ,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Cole Winn — RHP setup man; promising young arm with a quality fastball/
+#: slider mix; developing into a reliable late-inning option for Texas.
+_TEX_WINN = PitcherStats(
+    name="Cole Winn",
+    era=3.80,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Jalen Beeks — LHP middle reliever; deceptive lefty with a plus changeup
+#: that generates weak contact and whiffs in high-leverage spots.
+_TEX_BEEKS = PitcherStats(
+    name="Jalen Beeks",
+    era=3.60,
+    k_per_9=9.4,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: Tyler Alexander — LHP situational reliever; veteran southpaw specialist
+#: with solid command and a reliable breaking ball against left-handed hitters.
+_TEX_ALEXANDER = PitcherStats(
+    name="Tyler Alexander",
+    era=3.90,
+    k_per_9=7.8,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Jakob Junis — RHP middle reliever; veteran right-hander with solid stuff
+#: and experience in high-leverage situations; durable bullpen presence.
+_TEX_JUNIS = PitcherStats(
+    name="Jakob Junis",
+    era=3.70,
+    k_per_9=8.6,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Chris Martin — RHP setup arm; elite ground-ball pitcher with premium
+#: sinker movement and low walk rates; bridges to the closer effectively.
+_TEX_CMARTIN = PitcherStats(
+    name="Chris Martin",
+    era=3.20,
+    k_per_9=8.0,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: Robert Garcia — RHP closer; dominant finishing arm with plus velocity and
+#: a wipeout breaking ball; Texas's primary ninth-inning option.
+_TEX_RGARCIA = PitcherStats(
+    name="Robert Garcia",
+    era=2.60,
+    k_per_9=11.2,
+    innings_per_start=1.0,
+    whip=1.06,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.94,
+)
+
+#: 2026 Rangers projected bullpen (setup arms + closer last, index 5 = Garcia).
+RANGERS_BULLPEN_2026: List[PitcherStats] = [
+    _TEX_WINN,
+    _TEX_BEEKS,
+    _TEX_ALEXANDER,
+    _TEX_JUNIS,
+    _TEX_CMARTIN,
+    _TEX_RGARCIA,
+]
+
+
+@dataclass
+class RangersRoster:
+    """
+    Bundle of Rangers projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Robert Garcia).
+
+    Examples
+    --------
+    ::
+
+        roster = RangersRoster.default()
+        print(roster.rotation[0].name)   # "Jacob deGrom"
+        print(roster.lineup[4].name)     # "Corey Seager"
+        print(roster.bullpen[-1].name)   # "Robert Garcia"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "RangersRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(RANGERS_LINEUP_2026),
+            rotation=list(RANGERS_ROTATION_2026),
+            bullpen=list(RANGERS_BULLPEN_2026),
         )
 
 

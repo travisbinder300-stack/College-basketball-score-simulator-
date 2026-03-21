@@ -8138,6 +8138,10 @@ from mlb_player_props import (  # noqa: E402
     MARINERS_LINEUP_2026,
     MARINERS_ROTATION_2026,
     MARINERS_BULLPEN_2026,
+    RangersRoster,
+    RANGERS_LINEUP_2026,
+    RANGERS_ROTATION_2026,
+    RANGERS_BULLPEN_2026,
 )
 
 _SEA_LINEUP_NAMES = [
@@ -8410,6 +8414,211 @@ class TestMarinersRoster(unittest.TestCase):
         player_names = {e.player_name for e in edges}
         self.assertIn("Logan Gilbert", player_names)
         self.assertIn("Julio Rodriguez", player_names)
+
+
+# ---------------------------------------------------------------------------
+# Texas Rangers 2026 — fixture name lists
+# ---------------------------------------------------------------------------
+
+_TEX_LINEUP_NAMES = [
+    "Danny Jansen",
+    "Jake Burger",
+    "Josh Smith",
+    "Josh Jung",
+    "Corey Seager",
+    "Wyatt Langford",
+    "Evan Carter",
+    "Brandon Nimmo",
+    "Joc Pederson",
+]
+
+_TEX_ROTATION_NAMES = [
+    "Jacob deGrom",
+    "Nathan Eovaldi",
+    "MacKenzie Gore",
+    "Jack Leiter",
+    "Jacob Latz",
+]
+
+_TEX_BULLPEN_NAMES = [
+    "Cole Winn",
+    "Jalen Beeks",
+    "Tyler Alexander",
+    "Jakob Junis",
+    "Chris Martin",
+    "Robert Garcia",
+]
+
+
+class TestRangersRoster(unittest.TestCase):
+    """Tests for RANGERS_LINEUP_2026, RANGERS_ROTATION_2026,
+    RANGERS_BULLPEN_2026, and RangersRoster."""
+
+    # ------------------------------------------------------------------
+    # Structural / size checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(RANGERS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_pitchers(self):
+        self.assertEqual(len(RANGERS_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(RANGERS_BULLPEN_2026), 6)
+
+    # ------------------------------------------------------------------
+    # Name / identity checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_names_match_depth_chart(self):
+        self.assertEqual(
+            [b.name for b in RANGERS_LINEUP_2026],
+            _TEX_LINEUP_NAMES,
+        )
+
+    def test_rotation_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in RANGERS_ROTATION_2026],
+            _TEX_ROTATION_NAMES,
+        )
+
+    def test_bullpen_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in RANGERS_BULLPEN_2026],
+            _TEX_BULLPEN_NAMES,
+        )
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — lineup
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_in_range(self):
+        for b in RANGERS_LINEUP_2026:
+            self.assertGreater(b.avg, 0.200, msg=b.name)
+            self.assertLess(b.avg, 0.400, msg=b.name)
+
+    def test_all_lineup_obp_gte_avg(self):
+        for b in RANGERS_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg, msg=b.name)
+
+    def test_all_lineup_slg_gte_avg(self):
+        for b in RANGERS_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg, msg=b.name)
+
+    def test_all_lineup_hr_positive(self):
+        for b in RANGERS_LINEUP_2026:
+            self.assertGreater(b.hr_per_600_pa, 0, msg=b.name)
+
+    def test_all_lineup_rbi_positive(self):
+        for b in RANGERS_LINEUP_2026:
+            self.assertGreater(b.rbi_per_season, 0, msg=b.name)
+
+    def test_all_lineup_runs_positive(self):
+        for b in RANGERS_LINEUP_2026:
+            self.assertGreater(b.runs_per_season, 0, msg=b.name)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — rotation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_era_in_range(self):
+        for p in RANGERS_ROTATION_2026:
+            self.assertGreater(p.era, 2.0, msg=p.name)
+            self.assertLess(p.era, 6.0, msg=p.name)
+
+    def test_all_rotation_k_per_9_positive(self):
+        for p in RANGERS_ROTATION_2026:
+            self.assertGreater(p.k_per_9, 0, msg=p.name)
+
+    def test_rotation_throws_values(self):
+        expected_throws = ["R", "R", "L", "R", "L"]
+        actual_throws = [p.throws for p in RANGERS_ROTATION_2026]
+        self.assertEqual(actual_throws, expected_throws)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — bullpen
+    # ------------------------------------------------------------------
+
+    def test_all_bullpen_era_in_range(self):
+        for p in RANGERS_BULLPEN_2026:
+            self.assertGreater(p.era, 1.5, msg=p.name)
+            self.assertLess(p.era, 6.0, msg=p.name)
+
+    def test_closer_garcia_is_last(self):
+        self.assertEqual(RANGERS_BULLPEN_2026[-1].name, "Robert Garcia")
+
+    def test_closer_era_less_than_ace(self):
+        """Garcia (closer) should have a lower ERA than deGrom (ace)."""
+        self.assertLess(
+            RANGERS_BULLPEN_2026[-1].era,
+            RANGERS_ROTATION_2026[0].era,
+        )
+
+    def test_bullpen_throws_values(self):
+        expected_throws = ["R", "L", "L", "R", "R", "R"]
+        actual_throws = [p.throws for p in RANGERS_BULLPEN_2026]
+        self.assertEqual(actual_throws, expected_throws)
+
+    # ------------------------------------------------------------------
+    # Key player checks
+    # ------------------------------------------------------------------
+
+    def test_seager_leads_power_rating(self):
+        """Corey Seager should have the highest power_rating in the lineup."""
+        max_power = max(b.power_rating for b in RANGERS_LINEUP_2026)
+        self.assertEqual(RANGERS_LINEUP_2026[4].power_rating, max_power)
+
+    def test_seager_leads_hr(self):
+        """Corey Seager should lead the lineup in HR/600PA."""
+        max_hr = max(b.hr_per_600_pa for b in RANGERS_LINEUP_2026)
+        self.assertEqual(RANGERS_LINEUP_2026[4].hr_per_600_pa, max_hr)
+
+    def test_carter_leads_obp(self):
+        """Evan Carter should lead the lineup in OBP."""
+        max_obp = max(b.obp for b in RANGERS_LINEUP_2026)
+        self.assertAlmostEqual(RANGERS_LINEUP_2026[6].obp, max_obp)
+
+    def test_degrom_is_ace(self):
+        self.assertEqual(RANGERS_ROTATION_2026[0].name, "Jacob deGrom")
+        self.assertEqual(RANGERS_ROTATION_2026[0].throws, "R")
+
+    def test_catcher_is_jansen(self):
+        self.assertEqual(RANGERS_LINEUP_2026[0].name, "Danny Jansen")
+
+    def test_shortstop_is_seager(self):
+        self.assertEqual(RANGERS_LINEUP_2026[4].name, "Corey Seager")
+
+    # ------------------------------------------------------------------
+    # RangersRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_correct_types(self):
+        roster = RangersRoster.default()
+        self.assertIsInstance(roster, RangersRoster)
+        self.assertIsInstance(roster.lineup, list)
+        self.assertIsInstance(roster.rotation, list)
+        self.assertIsInstance(roster.bullpen, list)
+
+    def test_default_sizes(self):
+        roster = RangersRoster.default()
+        self.assertEqual(len(roster.lineup), 9)
+        self.assertEqual(len(roster.rotation), 5)
+        self.assertEqual(len(roster.bullpen), 6)
+
+    def test_default_is_independent_copy(self):
+        r1 = RangersRoster.default()
+        r2 = RangersRoster.default()
+        r1.lineup.pop()
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_ace(self):
+        roster = RangersRoster.default()
+        self.assertEqual(roster.rotation[0].name, "Jacob deGrom")
+
+    def test_default_closer(self):
+        roster = RangersRoster.default()
+        self.assertEqual(roster.bullpen[-1].name, "Robert Garcia")
 
 
 if __name__ == "__main__":
