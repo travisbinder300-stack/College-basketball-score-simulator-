@@ -445,6 +445,25 @@ and bullpen are available via the :class:`AstrosRoster` helper:
     print(roster.rotation[0].name)   # "Hunter Brown"
     print(roster.lineup[8].name)     # "Yordan Alvarez"
     print(roster.bullpen[-1].name)   # "Josh Hader"
+
+------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Los Angeles Angels depth-chart starters, starting rotation,
+and bullpen are available via the :class:`AngelsRoster` helper:
+
+* ``ANGELS_LINEUP_2026``   – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``ANGELS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``ANGELS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import AngelsRoster
+
+    roster = AngelsRoster.default()
+    print(roster.rotation[0].name)   # "Jose Soriano"
+    print(roster.lineup[6].name)     # "Mike Trout"
+    print(roster.bullpen[-1].name)   # "Kirby Yates"
 """
 
 from __future__ import annotations
@@ -7804,6 +7823,395 @@ class AstrosRoster:
             lineup=list(ASTROS_LINEUP_2026),
             rotation=list(ASTROS_ROTATION_2026),
             bullpen=list(ASTROS_BULLPEN_2026),
+        )
+
+
+# ===========================================================================
+# Los Angeles Angels — 2026 projected depth chart
+# ===========================================================================
+
+# -- Lineup: position starters (C→1B→2B→3B→SS→LF→CF→RF→DH) ----------------
+
+#: Logan O'Hoppe — C, R; above-average framing catcher with solid pop and
+#: improving plate discipline.
+_LAA_OHOPPE = BatterStats(
+    name="Logan O'Hoppe",
+    avg=0.256,
+    obp=0.330,
+    slg=0.460,
+    hr_per_600_pa=24,
+    sb_per_season=8,
+    doubles_per_600_pa=28,
+    games_played=130,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=70,
+    runs_per_season=68,
+)
+
+#: Nolan Schanuel — 1B, L; patient contact hitter with elite OBP skills;
+#: offensive anchor at first for the Angels.
+_LAA_SCHANUEL = BatterStats(
+    name="Nolan Schanuel",
+    avg=0.270,
+    obp=0.370,
+    slg=0.420,
+    hr_per_600_pa=16,
+    sb_per_season=4,
+    doubles_per_600_pa=32,
+    games_played=155,
+    power_rating=50,
+    bats="L",
+    pitches_per_pa=4.10,
+    rbi_per_season=62,
+    runs_per_season=70,
+)
+
+#: Adam Frazier — 2B, L; contact-oriented utility man; steady bat and
+#: above-average on-base ability for the bottom third of the order.
+_LAA_FRAZIER = BatterStats(
+    name="Adam Frazier",
+    avg=0.262,
+    obp=0.328,
+    slg=0.380,
+    hr_per_600_pa=8,
+    sb_per_season=10,
+    doubles_per_600_pa=22,
+    games_played=148,
+    power_rating=38,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=48,
+    runs_per_season=65,
+)
+
+#: Yoan Moncada — 3B, S; switch-hitting third baseman with plus bat speed
+#: and gap-to-gap power when healthy.
+_LAA_MONCADA = BatterStats(
+    name="Yoan Moncada",
+    avg=0.252,
+    obp=0.330,
+    slg=0.400,
+    hr_per_600_pa=14,
+    sb_per_season=8,
+    doubles_per_600_pa=26,
+    games_played=138,
+    power_rating=50,
+    bats="S",
+    pitches_per_pa=3.92,
+    rbi_per_season=56,
+    runs_per_season=60,
+)
+
+#: Zach Neto — SS, L; dynamic shortstop combining solid contact, above-average
+#: power for the position, and above-average baserunning instincts.
+_LAA_NETO = BatterStats(
+    name="Zach Neto",
+    avg=0.260,
+    obp=0.338,
+    slg=0.430,
+    hr_per_600_pa=20,
+    sb_per_season=18,
+    doubles_per_600_pa=30,
+    games_played=150,
+    power_rating=58,
+    bats="L",
+    pitches_per_pa=3.86,
+    rbi_per_season=68,
+    runs_per_season=80,
+)
+
+#: Josh Lowe — LF, L; toolsy outfielder with plus speed; developing power
+#: bat that profiles well in a corner role.
+_LAA_J_LOWE = BatterStats(
+    name="Josh Lowe",
+    avg=0.248,
+    obp=0.320,
+    slg=0.420,
+    hr_per_600_pa=18,
+    sb_per_season=22,
+    doubles_per_600_pa=28,
+    games_played=145,
+    power_rating=56,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=60,
+    runs_per_season=75,
+)
+
+#: Mike Trout — CF, R; all-time great outfielder; when healthy he remains
+#: among the game's most dangerous hitters with elite power and on-base skills.
+_LAA_TROUT = BatterStats(
+    name="Mike Trout",
+    avg=0.270,
+    obp=0.370,
+    slg=0.520,
+    hr_per_600_pa=36,
+    sb_per_season=8,
+    doubles_per_600_pa=30,
+    games_played=120,
+    power_rating=90,
+    bats="R",
+    pitches_per_pa=4.02,
+    rbi_per_season=88,
+    runs_per_season=90,
+)
+
+#: Jo Adell — RF, R; raw power outfielder who has begun to harness his tools;
+#: plus arm and developing pull power to go along with improving plate discipline.
+_LAA_ADELL = BatterStats(
+    name="Jo Adell",
+    avg=0.252,
+    obp=0.318,
+    slg=0.460,
+    hr_per_600_pa=26,
+    sb_per_season=14,
+    doubles_per_600_pa=26,
+    games_played=148,
+    power_rating=66,
+    bats="R",
+    pitches_per_pa=3.74,
+    rbi_per_season=72,
+    runs_per_season=72,
+)
+
+#: Jorge Soler — DH, R; power-hitting designated hitter with prodigious home-run
+#: ability; one of the game's most dangerous pull hitters against LHP.
+_LAA_SOLER = BatterStats(
+    name="Jorge Soler",
+    avg=0.245,
+    obp=0.320,
+    slg=0.480,
+    hr_per_600_pa=30,
+    sb_per_season=4,
+    doubles_per_600_pa=24,
+    games_played=145,
+    power_rating=74,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=84,
+    runs_per_season=65,
+)
+
+#: 2026 Angels projected lineup (depth-chart starters, position order
+#: C→1B→2B→3B→SS→LF→CF→RF→DH).
+ANGELS_LINEUP_2026: List[BatterStats] = [
+    _LAA_OHOPPE,
+    _LAA_SCHANUEL,
+    _LAA_FRAZIER,
+    _LAA_MONCADA,
+    _LAA_NETO,
+    _LAA_J_LOWE,
+    _LAA_TROUT,
+    _LAA_ADELL,
+    _LAA_SOLER,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Jose Soriano — RHP, ace; power arm with a triple-digit fastball and wipeout
+#: slider; leads the Angels' 2026 rotation after emerging as a front-line starter.
+_LAA_SORIANO = PitcherStats(
+    name="Jose Soriano",
+    era=3.15,
+    k_per_9=10.2,
+    innings_per_start=6.0,
+    whip=1.14,
+    arm_strength=75.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Yusei Kikuchi — LHP, second starter; Japanese import with a diverse
+#: arsenal headlined by a sharp sweeper and well-located four-seam fastball.
+_LAA_KIKUCHI = PitcherStats(
+    name="Yusei Kikuchi",
+    era=3.60,
+    k_per_9=10.4,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=66.0,
+    throws="L",
+    pitches_per_pa=3.92,
+)
+
+#: Reid Detmers — LHP, third starter; left-handed finesse pitcher with a
+#: deceptive delivery and solid command across a four-pitch mix.
+_LAA_DETMERS = PitcherStats(
+    name="Reid Detmers",
+    era=4.00,
+    k_per_9=9.8,
+    innings_per_start=5.6,
+    whip=1.26,
+    arm_strength=62.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: Grayson Rodriguez — RHP, fourth starter; high-upside arm with a
+#: power fastball/curveball combination when healthy.
+_LAA_RODRIGUEZ = PitcherStats(
+    name="Grayson Rodriguez",
+    era=3.80,
+    k_per_9=10.6,
+    innings_per_start=5.4,
+    whip=1.20,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.94,
+)
+
+#: Alek Manoah — RHP, back-end starter; former All-Star returner
+#: working to recapture prior form in his first full season with the Angels.
+_LAA_MANOAH = PitcherStats(
+    name="Alek Manoah",
+    era=4.50,
+    k_per_9=8.8,
+    innings_per_start=5.2,
+    whip=1.34,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Angels projected starting rotation (rotation order 1–5).
+ANGELS_ROTATION_2026: List[PitcherStats] = [
+    _LAA_SORIANO,
+    _LAA_KIKUCHI,
+    _LAA_DETMERS,
+    _LAA_RODRIGUEZ,
+    _LAA_MANOAH,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Drew Pomeranz — LHP reliever; veteran left-handed specialist with a
+#: wipeout slider; effective against left-handed bats and in multi-batter stints.
+_LAA_POMERANZ = PitcherStats(
+    name="Drew Pomeranz",
+    era=3.80,
+    k_per_9=8.4,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=56.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Jordan Romano — RHP setup man; premium velocity and swing-and-miss stuff;
+#: serves as the primary bridge arm before the closer.
+_LAA_ROMANO = PitcherStats(
+    name="Jordan Romano",
+    era=3.20,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Ryan Zeferjahn — RHP middle reliever; tall power righty with a heavy
+#: sinker who generates groundballs in high-leverage middle innings.
+_LAA_ZEFERJAHN = PitcherStats(
+    name="Ryan Zeferjahn",
+    era=3.60,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Chase Silseth — RHP middle reliever; starter-turned-reliever with a
+#: lively fastball and an improving breaking ball package.
+_LAA_SILSETH = PitcherStats(
+    name="Chase Silseth",
+    era=3.90,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.76,
+)
+
+#: Brent Suter — LHP multi-inning reliever; crafty southpaw with funky
+#: arm action and above-average command across three pitches.
+_LAA_SUTER = PitcherStats(
+    name="Brent Suter",
+    era=4.10,
+    k_per_9=7.8,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.72,
+)
+
+#: Kirby Yates — RHP closer; elite splitter specialist with plus command
+#: and back-end pedigree; leads the Angels' bullpen as primary closer.
+_LAA_YATES = PitcherStats(
+    name="Kirby Yates",
+    era=2.50,
+    k_per_9=12.4,
+    innings_per_start=1.0,
+    whip=1.06,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.94,
+)
+
+#: 2026 Angels projected bullpen (setup arms + closer last, index 5 = Yates).
+ANGELS_BULLPEN_2026: List[PitcherStats] = [
+    _LAA_POMERANZ,
+    _LAA_ROMANO,
+    _LAA_ZEFERJAHN,
+    _LAA_SILSETH,
+    _LAA_SUTER,
+    _LAA_YATES,
+]
+
+
+@dataclass
+class AngelsRoster:
+    """
+    Bundle of Angels projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Kirby Yates).
+
+    Examples
+    --------
+    ::
+
+        roster = AngelsRoster.default()
+        print(roster.rotation[0].name)   # "Jose Soriano"
+        print(roster.lineup[6].name)     # "Mike Trout"
+        print(roster.bullpen[-1].name)   # "Kirby Yates"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "AngelsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(ANGELS_LINEUP_2026),
+            rotation=list(ANGELS_ROTATION_2026),
+            bullpen=list(ANGELS_BULLPEN_2026),
         )
 
 

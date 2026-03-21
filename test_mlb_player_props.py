@@ -7854,5 +7854,284 @@ class TestAstrosRoster(unittest.TestCase):
         self.assertIn("Yordan Alvarez", player_names)
 
 
+from mlb_player_props import (  # noqa: E402
+    AngelsRoster,
+    ANGELS_LINEUP_2026,
+    ANGELS_ROTATION_2026,
+    ANGELS_BULLPEN_2026,
+)
+
+_LAA_LINEUP_NAMES = [
+    "Logan O'Hoppe",
+    "Nolan Schanuel",
+    "Adam Frazier",
+    "Yoan Moncada",
+    "Zach Neto",
+    "Josh Lowe",
+    "Mike Trout",
+    "Jo Adell",
+    "Jorge Soler",
+]
+
+_LAA_ROTATION_NAMES = [
+    "Jose Soriano",
+    "Yusei Kikuchi",
+    "Reid Detmers",
+    "Grayson Rodriguez",
+    "Alek Manoah",
+]
+
+_LAA_BULLPEN_NAMES = [
+    "Drew Pomeranz",
+    "Jordan Romano",
+    "Ryan Zeferjahn",
+    "Chase Silseth",
+    "Brent Suter",
+    "Kirby Yates",
+]
+
+
+class TestAngelsRoster(unittest.TestCase):
+    """Tests for ANGELS_LINEUP_2026, ANGELS_ROTATION_2026,
+    ANGELS_BULLPEN_2026, and AngelsRoster."""
+
+    # ------------------------------------------------------------------
+    # Structural / size checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(ANGELS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_pitchers(self):
+        self.assertEqual(len(ANGELS_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(ANGELS_BULLPEN_2026), 6)
+
+    # ------------------------------------------------------------------
+    # Name / identity checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_names_match_depth_chart(self):
+        self.assertEqual(
+            [b.name for b in ANGELS_LINEUP_2026],
+            _LAA_LINEUP_NAMES,
+        )
+
+    def test_rotation_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in ANGELS_ROTATION_2026],
+            _LAA_ROTATION_NAMES,
+        )
+
+    def test_bullpen_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in ANGELS_BULLPEN_2026],
+            _LAA_BULLPEN_NAMES,
+        )
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — lineup
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_in_range(self):
+        for b in ANGELS_LINEUP_2026:
+            self.assertGreater(b.avg, 0.200, msg=b.name)
+            self.assertLess(b.avg, 0.400, msg=b.name)
+
+    def test_all_lineup_obp_gte_avg(self):
+        for b in ANGELS_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg, msg=b.name)
+
+    def test_all_lineup_slg_gte_avg(self):
+        for b in ANGELS_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg, msg=b.name)
+
+    def test_all_lineup_hr_positive(self):
+        for b in ANGELS_LINEUP_2026:
+            self.assertGreater(b.hr_per_600_pa, 0, msg=b.name)
+
+    def test_all_lineup_rbi_positive(self):
+        for b in ANGELS_LINEUP_2026:
+            self.assertGreater(b.rbi_per_season, 0, msg=b.name)
+
+    def test_all_lineup_runs_positive(self):
+        for b in ANGELS_LINEUP_2026:
+            self.assertGreater(b.runs_per_season, 0, msg=b.name)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — rotation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_era_in_range(self):
+        for p in ANGELS_ROTATION_2026:
+            self.assertGreater(p.era, 2.0, msg=p.name)
+            self.assertLess(p.era, 6.0, msg=p.name)
+
+    def test_all_rotation_k_per_9_positive(self):
+        for p in ANGELS_ROTATION_2026:
+            self.assertGreater(p.k_per_9, 0, msg=p.name)
+
+    def test_rotation_throws_values(self):
+        expected_throws = ["R", "L", "L", "R", "R"]
+        actual_throws = [p.throws for p in ANGELS_ROTATION_2026]
+        self.assertEqual(actual_throws, expected_throws)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — bullpen
+    # ------------------------------------------------------------------
+
+    def test_all_bullpen_era_in_range(self):
+        for p in ANGELS_BULLPEN_2026:
+            self.assertGreater(p.era, 1.5, msg=p.name)
+            self.assertLess(p.era, 6.0, msg=p.name)
+
+    def test_closer_yates_is_last(self):
+        self.assertEqual(ANGELS_BULLPEN_2026[-1].name, "Kirby Yates")
+
+    def test_closer_era_less_than_ace(self):
+        """Yates (closer) should have a lower ERA than Soriano (ace)."""
+        self.assertLess(
+            ANGELS_BULLPEN_2026[-1].era,
+            ANGELS_ROTATION_2026[0].era,
+        )
+
+    def test_bullpen_throws_values(self):
+        expected_throws = ["L", "R", "R", "R", "L", "R"]
+        actual_throws = [p.throws for p in ANGELS_BULLPEN_2026]
+        self.assertEqual(actual_throws, expected_throws)
+
+    # ------------------------------------------------------------------
+    # Key player checks
+    # ------------------------------------------------------------------
+
+    def test_trout_leads_power_rating(self):
+        """Mike Trout should have the highest power_rating in the lineup."""
+        max_power = max(b.power_rating for b in ANGELS_LINEUP_2026)
+        self.assertEqual(ANGELS_LINEUP_2026[6].power_rating, max_power)
+
+    def test_trout_leads_hr(self):
+        """Mike Trout should lead the lineup in HR/600PA."""
+        max_hr = max(b.hr_per_600_pa for b in ANGELS_LINEUP_2026)
+        self.assertEqual(ANGELS_LINEUP_2026[6].hr_per_600_pa, max_hr)
+
+    def test_schanuel_leads_obp(self):
+        """Nolan Schanuel should lead the lineup in OBP."""
+        max_obp = max(b.obp for b in ANGELS_LINEUP_2026)
+        self.assertAlmostEqual(ANGELS_LINEUP_2026[1].obp, max_obp)
+
+    def test_lowe_leads_sb(self):
+        """Josh Lowe should lead the lineup in stolen bases."""
+        max_sb = max(b.sb_per_season for b in ANGELS_LINEUP_2026)
+        self.assertEqual(ANGELS_LINEUP_2026[5].sb_per_season, max_sb)
+
+    def test_soriano_is_ace(self):
+        self.assertEqual(ANGELS_ROTATION_2026[0].name, "Jose Soriano")
+        self.assertEqual(ANGELS_ROTATION_2026[0].throws, "R")
+
+    def test_catcher_is_ohoppe(self):
+        self.assertEqual(ANGELS_LINEUP_2026[0].name, "Logan O'Hoppe")
+
+    # ------------------------------------------------------------------
+    # AngelsRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_correct_types(self):
+        roster = AngelsRoster.default()
+        self.assertIsInstance(roster, AngelsRoster)
+        self.assertIsInstance(roster.lineup, list)
+        self.assertIsInstance(roster.rotation, list)
+        self.assertIsInstance(roster.bullpen, list)
+
+    def test_default_sizes(self):
+        roster = AngelsRoster.default()
+        self.assertEqual(len(roster.lineup), 9)
+        self.assertEqual(len(roster.rotation), 5)
+        self.assertEqual(len(roster.bullpen), 6)
+
+    def test_default_is_independent_copy(self):
+        r1 = AngelsRoster.default()
+        r2 = AngelsRoster.default()
+        r1.lineup.pop()
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_ace(self):
+        roster = AngelsRoster.default()
+        self.assertEqual(roster.rotation[0].name, "Jose Soriano")
+
+    def test_default_lineup_cf(self):
+        roster = AngelsRoster.default()
+        self.assertEqual(roster.lineup[6].name, "Mike Trout")
+
+    def test_default_closer(self):
+        roster = AngelsRoster.default()
+        self.assertEqual(roster.bullpen[-1].name, "Kirby Yates")
+
+    # ------------------------------------------------------------------
+    # Simulation smoke tests
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_soriano_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(ANGELS_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_pitcher_yates_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(ANGELS_BULLPEN_2026[-1])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_batter_trout_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(ANGELS_LINEUP_2026[6])
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_soriano_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Jose Soriano", "strikeouts", 5.5, +300, -500)
+        edges = screener.screen_pitcher(ANGELS_ROTATION_2026[0], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Jose Soriano")
+
+    def test_screen_batter_trout_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Mike Trout", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(ANGELS_LINEUP_2026[6], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_closer_yates(self):
+        """Edge screener works for Kirby Yates (RHP closer)."""
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Kirby Yates", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(ANGELS_BULLPEN_2026[-1], market_lines=lines)
+        self.assertTrue(edges)
+        self.assertEqual(edges[0].player_name, "Kirby Yates")
+
+    def test_screen_matchup_angels_roster(self):
+        """screen_matchup with the Angels lineup against Jose Soriano."""
+        sim = _make_screener_sim(seed=99)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = AngelsRoster.default()
+        lines = (
+            _make_market_lines("Jose Soriano", "strikeouts", 5.5, +350, -600)
+            + _make_market_lines("Mike Trout", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Jose Soriano", player_names)
+        self.assertIn("Mike Trout", player_names)
+
+
 if __name__ == "__main__":
     unittest.main()
