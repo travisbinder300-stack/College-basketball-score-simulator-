@@ -401,6 +401,30 @@ and bullpen are available via the :class:`RaysRoster` helper:
     # Screen the closer (Griffin Jax)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Athletics 2026 Depth Chart
+------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Athletics depth-chart starters, starting rotation,
+and bullpen are available via the :class:`AthleticsRoster` helper:
+
+* ``ATHLETICS_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``ATHLETICS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``ATHLETICS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import AthleticsRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = AthleticsRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen the ace (Luis Severino) for strikeout props
+    edges = screener.screen_pitcher(roster.rotation[0])
+
+    # Screen the cleanup hitter (Brent Rooker, DH) for batter props
+    edges += screener.screen_batter(roster.lineup[8])
 """
 
 from __future__ import annotations
@@ -6984,8 +7008,393 @@ class RaysRoster:
 
 
 # ---------------------------------------------------------------------------
-# CLI entry-point (demo)
+# Athletics 2026 Depth Chart
 # ---------------------------------------------------------------------------
+
+# -- Position starters -------------------------------------------------------
+
+#: Shea Langeliers — C, bats right, strong-armed defensive catcher with
+#: improving power production; anchors the A's lineup from behind the plate.
+_OAK_LANGELIERS = BatterStats(
+    name="Shea Langeliers",
+    avg=0.232,
+    obp=0.296,
+    slg=0.430,
+    hr_per_600_pa=24.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=24.0,
+    games_played=130,
+    power_rating=62.0,
+    bats="R",
+    pitches_per_pa=3.68,
+    rbi_per_season=58.0,
+    runs_per_season=52.0,
+)
+
+#: Nick Kurtz — 1B, left-handed hitting first-round prospect with advanced
+#: hit tool and plus raw power; projected as a cornerstone of the Athletics' lineup.
+_OAK_KURTZ = BatterStats(
+    name="Nick Kurtz",
+    avg=0.262,
+    obp=0.342,
+    slg=0.468,
+    hr_per_600_pa=24.0,
+    sb_per_season=5.0,
+    doubles_per_600_pa=32.0,
+    games_played=148,
+    power_rating=66.0,
+    bats="L",
+    pitches_per_pa=3.86,
+    rbi_per_season=70.0,
+    runs_per_season=68.0,
+)
+
+#: Jeff McNeil — 2B, bats left, contact-first veteran with exceptional
+#: bat-to-ball skills and low strikeout rates; versatile lineup piece.
+_OAK_MCNEIL = BatterStats(
+    name="Jeff McNeil",
+    avg=0.272,
+    obp=0.336,
+    slg=0.392,
+    hr_per_600_pa=10.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=30.0,
+    games_played=145,
+    power_rating=38.0,
+    bats="L",
+    pitches_per_pa=3.52,
+    rbi_per_season=52.0,
+    runs_per_season=62.0,
+)
+
+#: Max Muncy — 3B/utility, bats left, selective hitter with elite walk rates
+#: and considerable power; veteran presence in the Athletics' lineup.
+_OAK_MUNCY = BatterStats(
+    name="Max Muncy",
+    avg=0.234,
+    obp=0.360,
+    slg=0.460,
+    hr_per_600_pa=28.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=24.0,
+    games_played=128,
+    power_rating=72.0,
+    bats="L",
+    pitches_per_pa=4.20,
+    rbi_per_season=70.0,
+    runs_per_season=66.0,
+)
+
+#: Jacob Wilson — SS, bats right, athletic young shortstop with excellent
+#: range and developing bat; top prospect contributing at the big-league level.
+_OAK_WILSON = BatterStats(
+    name="Jacob Wilson",
+    avg=0.258,
+    obp=0.318,
+    slg=0.388,
+    hr_per_600_pa=12.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=140,
+    power_rating=46.0,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=50.0,
+    runs_per_season=64.0,
+)
+
+#: Tyler Soderstrom — LF/utility, bats left, top prospect known for plus raw
+#: power and improving approach; versatile lineup option in left field.
+_OAK_SODERSTROM = BatterStats(
+    name="Tyler Soderstrom",
+    avg=0.248,
+    obp=0.315,
+    slg=0.438,
+    hr_per_600_pa=22.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=26.0,
+    games_played=132,
+    power_rating=62.0,
+    bats="L",
+    pitches_per_pa=3.74,
+    rbi_per_season=56.0,
+    runs_per_season=56.0,
+)
+
+#: Denzel Clarke — CF, bats right, plus defensive center fielder with
+#: impressive speed and improving bat; carries lineup value with legs.
+_OAK_CLARKE = BatterStats(
+    name="Denzel Clarke",
+    avg=0.238,
+    obp=0.302,
+    slg=0.388,
+    hr_per_600_pa=14.0,
+    sb_per_season=22.0,
+    doubles_per_600_pa=22.0,
+    games_played=130,
+    power_rating=46.0,
+    bats="R",
+    pitches_per_pa=3.62,
+    rbi_per_season=46.0,
+    runs_per_season=60.0,
+)
+
+#: Lawrence Butler — RF, bats left, intriguing young outfielder with solid
+#: raw power and athleticism; expected to handle right field for the Athletics.
+_OAK_BUTLER = BatterStats(
+    name="Lawrence Butler",
+    avg=0.244,
+    obp=0.308,
+    slg=0.428,
+    hr_per_600_pa=20.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=24.0,
+    games_played=138,
+    power_rating=60.0,
+    bats="L",
+    pitches_per_pa=3.68,
+    rbi_per_season=54.0,
+    runs_per_season=58.0,
+)
+
+#: Brent Rooker — DH, bats right, high-power designated hitter with
+#: exceptional pull-power and notable platoon advantage; the Athletics' run
+#: producer in the cleanup role.
+_OAK_ROOKER = BatterStats(
+    name="Brent Rooker",
+    avg=0.248,
+    obp=0.326,
+    slg=0.506,
+    hr_per_600_pa=34.0,
+    sb_per_season=4.0,
+    doubles_per_600_pa=28.0,
+    games_played=148,
+    power_rating=82.0,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=90.0,
+    runs_per_season=72.0,
+)
+
+#: 2026 Athletics projected lineup (depth-chart position-1 starters).
+#: Positions: C, 1B, 2B, 3B, SS, LF, CF, RF, DH.
+ATHLETICS_LINEUP_2026: List[BatterStats] = [
+    _OAK_LANGELIERS,
+    _OAK_KURTZ,
+    _OAK_MCNEIL,
+    _OAK_MUNCY,
+    _OAK_WILSON,
+    _OAK_SODERSTROM,
+    _OAK_CLARKE,
+    _OAK_BUTLER,
+    _OAK_ROOKER,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Luis Severino — RHP, ace, power fastball/slider combination with
+#: experience in big-game situations; leads the Athletics' 2026 rotation.
+_OAK_SEVERINO = PitcherStats(
+    name="Luis Severino",
+    era=3.40,
+    k_per_9=9.8,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Jeffrey Springs — LHP, crafty left-hander with deceptive delivery and
+#: sharp breaking ball; fills the second rotation slot for the Athletics.
+_OAK_SPRINGS = PitcherStats(
+    name="Jeffrey Springs",
+    era=3.80,
+    k_per_9=9.4,
+    innings_per_start=5.4,
+    whip=1.26,
+    arm_strength=58.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Aaron Civale — RHP, command-oriented mid-rotation starter with
+#: plus sinker/change combination; reliable innings-logger.
+_OAK_CIVALE = PitcherStats(
+    name="Aaron Civale",
+    era=4.10,
+    k_per_9=8.6,
+    innings_per_start=5.4,
+    whip=1.28,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Jacob Lopez — LHP, fourth-rotation option with improving repertoire
+#: and solid ground-ball tendencies.
+_OAK_LOPEZ = PitcherStats(
+    name="Jacob Lopez",
+    era=4.60,
+    k_per_9=8.0,
+    innings_per_start=5.0,
+    whip=1.36,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.76,
+)
+
+#: Luis Morales — RHP, young back-end starter with a developing arsenal;
+#: fifth-rotation option for the Athletics.
+_OAK_MORALES = PitcherStats(
+    name="Luis Morales",
+    era=5.00,
+    k_per_9=8.2,
+    innings_per_start=4.8,
+    whip=1.42,
+    arm_strength=50.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Athletics projected starting rotation (rotation order 1–5).
+ATHLETICS_ROTATION_2026: List[PitcherStats] = [
+    _OAK_SEVERINO,
+    _OAK_SPRINGS,
+    _OAK_CIVALE,
+    _OAK_LOPEZ,
+    _OAK_MORALES,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Justin Sterner — LHP, hard-throwing reliever with plus strikeout rates;
+#: setup role for the Athletics bullpen.
+_OAK_STERNER = PitcherStats(
+    name="Justin Sterner",
+    era=3.80,
+    k_per_9=11.2,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=64.0,
+    throws="L",
+    pitches_per_pa=3.74,
+)
+
+#: Elvis Alvarado — RHP, power reliever with a blazing fastball and
+#: high-leverage capability; mid-relief role in the Athletics' pen.
+_OAK_ALVARADO = PitcherStats(
+    name="Elvis Alvarado",
+    era=3.60,
+    k_per_9=10.8,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.68,
+)
+
+#: Jeff Ridgway — LHP, specialist left-hander with deceptive arm angle;
+#: key matchup option out of the A's bullpen.
+_OAK_RIDGWAY = PitcherStats(
+    name="Jeff Ridgway",
+    era=3.90,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.72,
+)
+
+#: Luis Medina — RHP, high-velocity arm with triple-digit heat and
+#: developing secondary pitches; high-leverage setup option.
+_OAK_MEDINA = PitcherStats(
+    name="Luis Medina",
+    era=3.80,
+    k_per_9=11.4,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.70,
+)
+
+#: Nick Anderson — RHP, veteran reliever with sharp slider and good
+#: command; experienced bridge arm to the closer.
+_OAK_ANDERSON = PitcherStats(
+    name="Nick Anderson",
+    era=3.70,
+    k_per_9=10.6,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.76,
+)
+
+#: Hogan Harris — CL, LHP, electric closer with high-spin fastball and
+#: devastating slider; locks down the ninth for the Athletics with top-tier stuff.
+_OAK_HARRIS = PitcherStats(
+    name="Hogan Harris",
+    era=2.75,
+    k_per_9=12.4,
+    innings_per_start=1.0,
+    whip=1.06,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.70,
+)
+
+#: 2026 Athletics bullpen (setup + closer; closer is last entry).
+ATHLETICS_BULLPEN_2026: List[PitcherStats] = [
+    _OAK_STERNER,
+    _OAK_ALVARADO,
+    _OAK_RIDGWAY,
+    _OAK_MEDINA,
+    _OAK_ANDERSON,
+    _OAK_HARRIS,
+]
+
+
+@dataclass
+class AthleticsRoster:
+    """
+    Bundle of Athletics projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Hogan Harris).
+
+    Examples
+    --------
+    ::
+
+        roster = AthleticsRoster.default()
+        print(roster.rotation[0].name)   # "Luis Severino"
+        print(roster.lineup[8].name)     # "Brent Rooker"
+        print(roster.bullpen[-1].name)   # "Hogan Harris"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "AthleticsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(ATHLETICS_LINEUP_2026),
+            rotation=list(ATHLETICS_ROTATION_2026),
+            bullpen=list(ATHLETICS_BULLPEN_2026),
+        )
 
 
 def _demo() -> None:  # pragma: no cover
