@@ -9430,6 +9430,412 @@ class CubsRoster:
         )
 
 
+# ---------------------------------------------------------------------------
+# Cincinnati Reds — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Tyler Stephenson
+#   1B – Sal Stewart
+#   2B – Matt McLain
+#   3B – Ke'Bryan Hayes
+#   SS – Elly De La Cruz
+#   LF – Spencer Steer
+#   CF – TJ Friedl
+#   RF – Noelvi Marte
+#   DH – Eugenio Suarez
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Tyler Stephenson — C, RHP, solid contact catcher with moderate power;
+#: dependable presence behind the plate with improving offensive production.
+_CIN_STEPHENSON = BatterStats(
+    name="Tyler Stephenson",
+    avg=0.250,
+    obp=0.330,
+    slg=0.420,
+    hr_per_600_pa=18,
+    sb_per_season=2,
+    doubles_per_600_pa=28,
+    games_played=120,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.88,
+    rbi_per_season=60,
+    runs_per_season=52,
+)
+
+#: Sal Stewart — 1B, RHP, top prospect; patient approach with emerging power
+#: and solid contact; projects as a middle-of-the-order run producer.
+_CIN_STEWART = BatterStats(
+    name="Sal Stewart",
+    avg=0.260,
+    obp=0.345,
+    slg=0.455,
+    hr_per_600_pa=20,
+    sb_per_season=4,
+    doubles_per_600_pa=30,
+    games_played=140,
+    power_rating=66,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=70,
+    runs_per_season=68,
+)
+
+#: Matt McLain — 2B, RHP, athletic contact hitter with gap power and
+#: impressive plate discipline; developing into a quality offensive second
+#: baseman.
+_CIN_MCLAIN = BatterStats(
+    name="Matt McLain",
+    avg=0.265,
+    obp=0.340,
+    slg=0.445,
+    hr_per_600_pa=18,
+    sb_per_season=14,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=60,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=65,
+    runs_per_season=72,
+)
+
+#: Ke'Bryan Hayes — 3B, RHP, plus defender with solid gap-to-gap power and
+#: a disciplined approach; dependable run producer in the middle of the order.
+_CIN_HAYES = BatterStats(
+    name="Ke'Bryan Hayes",
+    avg=0.268,
+    obp=0.352,
+    slg=0.440,
+    hr_per_600_pa=18,
+    sb_per_season=10,
+    doubles_per_600_pa=32,
+    games_played=150,
+    power_rating=64,
+    bats="R",
+    pitches_per_pa=3.88,
+    rbi_per_season=72,
+    runs_per_season=74,
+)
+
+#: Elly De La Cruz — SS, switch hitter; elite speed and raw power make him
+#: one of the most electrifying players in the game; team leader in stolen
+#: bases.
+_CIN_DELACRUZ = BatterStats(
+    name="Elly De La Cruz",
+    avg=0.252,
+    obp=0.320,
+    slg=0.448,
+    hr_per_600_pa=22,
+    sb_per_season=40,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=68,
+    bats="S",
+    pitches_per_pa=3.80,
+    rbi_per_season=70,
+    runs_per_season=82,
+)
+
+#: Spencer Steer — LF, RHP, versatile bat with solid power and an aggressive
+#: approach; consistent run producer who handles both corners of the plate.
+_CIN_STEER = BatterStats(
+    name="Spencer Steer",
+    avg=0.258,
+    obp=0.338,
+    slg=0.452,
+    hr_per_600_pa=22,
+    sb_per_season=8,
+    doubles_per_600_pa=30,
+    games_played=148,
+    power_rating=68,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=74,
+    runs_per_season=70,
+)
+
+#: TJ Friedl — CF, LHP, speedy center fielder with a compact swing; plus
+#: defender who adds value with his legs and above-average contact skills.
+_CIN_FRIEDL = BatterStats(
+    name="TJ Friedl",
+    avg=0.262,
+    obp=0.332,
+    slg=0.432,
+    hr_per_600_pa=16,
+    sb_per_season=20,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=56,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=60,
+    runs_per_season=76,
+)
+
+#: Noelvi Marte — RF, RHP, powerful bat with impressive raw tools; developing
+#: hitter with rising power numbers and a growing offensive profile.
+_CIN_MARTE = BatterStats(
+    name="Noelvi Marte",
+    avg=0.265,
+    obp=0.338,
+    slg=0.462,
+    hr_per_600_pa=24,
+    sb_per_season=10,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=72,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=76,
+    runs_per_season=70,
+)
+
+#: Eugenio Suarez — DH, RHP, veteran power bat; one of the most prolific
+#: home-run hitters in the lineup with a feared pull-side stroke; leads the
+#: Reds in power rating and home runs per plate appearance.
+_CIN_SUAREZ = BatterStats(
+    name="Eugenio Suarez",
+    avg=0.238,
+    obp=0.322,
+    slg=0.488,
+    hr_per_600_pa=32,
+    sb_per_season=2,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=82,
+    bats="R",
+    pitches_per_pa=3.92,
+    rbi_per_season=88,
+    runs_per_season=68,
+)
+
+#: 2026 Reds projected lineup (depth-chart starters, positional order C→DH).
+REDS_LINEUP_2026: List[BatterStats] = [
+    _CIN_STEPHENSON,
+    _CIN_STEWART,
+    _CIN_MCLAIN,
+    _CIN_HAYES,
+    _CIN_DELACRUZ,
+    _CIN_STEER,
+    _CIN_FRIEDL,
+    _CIN_MARTE,
+    _CIN_SUAREZ,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Andrew Abbott — LHP, opening-day starter and ace; elite left-handed
+#: repertoire with a plus changeup and above-average command; leads the
+#: rotation with the best ERA.
+_CIN_ABBOTT = PitcherStats(
+    name="Andrew Abbott",
+    era=3.40,
+    k_per_9=10.6,
+    innings_per_start=6.0,
+    whip=1.14,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.90,
+)
+
+#: Nick Lodolo — LHP, second starter; tall southpaw with an effective
+#: curveball and solid command; dependable mid-rotation option.
+_CIN_LODOLO = PitcherStats(
+    name="Nick Lodolo",
+    era=3.70,
+    k_per_9=10.2,
+    innings_per_start=5.8,
+    whip=1.18,
+    arm_strength=62.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: Brady Singer — RHP, veteran innings-eater; reliable strike-thrower with
+#: a plus splitter; solid middle-rotation starter who limits walks.
+_CIN_SINGER = PitcherStats(
+    name="Brady Singer",
+    era=4.00,
+    k_per_9=9.0,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Chase Burns — RHP, high-upside arm; power fastball and sharp slider
+#: generate elite strikeout numbers; developing command is the key to
+#: unlocking his full potential.
+_CIN_BURNS = PitcherStats(
+    name="Chase Burns",
+    era=3.80,
+    k_per_9=10.4,
+    innings_per_start=5.6,
+    whip=1.20,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Rhett Lowder — RHP, top pitching prospect; advanced feel for pitching
+#: with a diverse three-pitch mix; fifth-starter depth with upside for more.
+_CIN_LOWDER = PitcherStats(
+    name="Rhett Lowder",
+    era=4.20,
+    k_per_9=9.0,
+    innings_per_start=5.4,
+    whip=1.26,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Reds projected starting rotation (rotation-turn order 1–5).
+REDS_ROTATION_2026: List[PitcherStats] = [
+    _CIN_ABBOTT,
+    _CIN_LODOLO,
+    _CIN_SINGER,
+    _CIN_BURNS,
+    _CIN_LOWDER,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Tony Santillan — RHP setup arm; power sinker-slider combo generates
+#: ground balls and swings and misses in the middle innings.
+_CIN_SANTILLAN = PitcherStats(
+    name="Tony Santillan",
+    era=3.60,
+    k_per_9=9.4,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Graham Ashcraft — RHP multi-inning reliever; heavy sinker keeps the ball
+#: on the ground; valuable bridge option from the fifth inning onward.
+_CIN_ASHCRAFT = PitcherStats(
+    name="Graham Ashcraft",
+    era=3.80,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Pierce Johnson — RHP high-leverage reliever; plus slider and high-spin
+#: fastball generate elite strikeout rates in the seventh and eighth innings.
+_CIN_PJOHNSON = PitcherStats(
+    name="Pierce Johnson",
+    era=3.50,
+    k_per_9=10.8,
+    innings_per_start=1.0,
+    whip=1.16,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Brock Burke — LHP situational specialist; deceptive delivery with a
+#: sharp slider; effective against left-handed hitters and as a multi-out
+#: bridge arm.
+_CIN_BURKE = PitcherStats(
+    name="Brock Burke",
+    era=3.70,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Caleb Ferguson — LHP late-inning reliever; electric fastball with solid
+#: secondary stuff; used in high-leverage spots against both sides of the
+#: plate.
+_CIN_FERGUSON = PitcherStats(
+    name="Caleb Ferguson",
+    era=3.55,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Emilio Pagan — RHP closer; elite velocity and wipeout slider; Cincinnati's
+#: primary ninth-inning option with the best ERA in the bullpen.
+_CIN_PAGAN = PitcherStats(
+    name="Emilio Pagan",
+    era=2.80,
+    k_per_9=11.4,
+    innings_per_start=1.0,
+    whip=1.08,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: 2026 Reds bullpen (setup arms + closer; closer is last entry, index 5 = Pagan).
+REDS_BULLPEN_2026: List[PitcherStats] = [
+    _CIN_SANTILLAN,
+    _CIN_ASHCRAFT,
+    _CIN_PJOHNSON,
+    _CIN_BURKE,
+    _CIN_FERGUSON,
+    _CIN_PAGAN,
+]
+
+
+@dataclass
+class RedsRoster:
+    """
+    Bundle of Cincinnati Reds projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Emilio Pagan).
+
+    Examples
+    --------
+    ::
+
+        roster = RedsRoster.default()
+        print(roster.rotation[0].name)   # "Andrew Abbott"
+        print(roster.lineup[4].name)     # "Elly De La Cruz"
+        print(roster.bullpen[-1].name)   # "Emilio Pagan"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "RedsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(REDS_LINEUP_2026),
+            rotation=list(REDS_ROTATION_2026),
+            bullpen=list(REDS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
