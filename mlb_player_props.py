@@ -149,8 +149,10 @@ Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
 projected 2026 Toronto Blue Jays lineup and starting rotation are available
 as module-level constants and via the :class:`BlueJaysRoster` helper:
 
-* ``BLUE_JAYS_LINEUP_2026``   – ``List[BatterStats]``, batting order 1–9
+* ``BLUE_JAYS_LINEUP_2026``   – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
 * ``BLUE_JAYS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``BLUE_JAYS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
 
 ::
 
@@ -159,11 +161,11 @@ as module-level constants and via the :class:`BlueJaysRoster` helper:
     roster   = BlueJaysRoster.default()
     screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
 
-    # Screen the ace (Dylan Cease) against Unabated's live lines
+    # Screen the ace (Kevin Gausman) against Unabated's live lines
     edges = screener.screen_pitcher(roster.rotation[0])
 
-    # Screen Vladdy Guerrero for batter props
-    edges += screener.screen_batter(roster.lineup[2])
+    # Screen Vladimir Guerrero Jr. (lineup[1], 1B) for batter props
+    edges += screener.screen_batter(roster.lineup[1])
 
 Chicago White Sox 2026 Depth Chart
 ------------------------------------
@@ -2920,10 +2922,10 @@ class UnabatedEdgeScreener:
 #   client  = UnabatedClient(api_key="YOUR_KEY")
 #   screener = UnabatedEdgeScreener(sim, client, min_edge=0.05)
 #
-#   # Screen the ace starter
+#   # Screen the ace starter (Kevin Gausman, rotation[0])
 #   edges = screener.screen_pitcher(roster.rotation[0])
 #
-#   # Screen every batter in the lineup against the opener
+#   # Screen every position starter against the opener
 #   for batter in roster.lineup:
 #       for edge in screener.screen_batter(batter, opponent_throws="R"):
 #           print(edge)
@@ -3095,22 +3097,55 @@ _BJ_GIMENEZ = BatterStats(
     runs_per_season=62.0,
 )
 
-#: 2026 Blue Jays projected lineup (batting order 1–9).
+#: Jesús Sánchez — LF, bats right, powerful left fielder with impressive
+#: raw power and improving plate discipline; solid run producer.
+_BJ_SANCHEZ = BatterStats(
+    name="Jesús Sánchez",
+    avg=0.248,
+    obp=0.320,
+    slg=0.448,
+    hr_per_600_pa=22.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=26.0,
+    games_played=140,
+    power_rating=66.0,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=62.0,
+    runs_per_season=58.0,
+)
+
+#: 2026 Blue Jays projected lineup (depth-chart position-1 starters).
+#: Positions: C, 1B, 2B, 3B, SS, LF, CF, RF, DH.
 BLUE_JAYS_LINEUP_2026: List[BatterStats] = [
-    _BJ_SPRINGER,
-    _BJ_BARGER,
-    _BJ_GUERRERO,
     _BJ_KIRK,
-    _BJ_VARSHO,
-    _BJ_LUKES,
-    _BJ_OKAMOTO,
+    _BJ_GUERRERO,
     _BJ_CLEMENT,
+    _BJ_OKAMOTO,
     _BJ_GIMENEZ,
+    _BJ_SANCHEZ,
+    _BJ_VARSHO,
+    _BJ_BARGER,
+    _BJ_SPRINGER,
 ]
 
 # -- Starting rotation -------------------------------------------------------
 
-#: Dylan Cease — RHP, ace, high-K sinker/slider arsenal.
+#: Kevin Gausman — RHP, ace, forkball specialist with elite swing-and-miss
+#: ability; leads Toronto's rotation with top-end command.
+_BJ_GAUSMAN = PitcherStats(
+    name="Kevin Gausman",
+    era=3.05,
+    k_per_9=11.2,
+    innings_per_start=6.0,
+    whip=1.08,
+    arm_strength=74.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Dylan Cease — RHP, high-K sinker/slider arsenal; excellent strikeout
+#: pitcher in the second slot of the rotation.
 _BJ_CEASE = PitcherStats(
     name="Dylan Cease",
     era=3.50,
@@ -3122,28 +3157,30 @@ _BJ_CEASE = PitcherStats(
     pitches_per_pa=4.08,
 )
 
-#: Kevin Gausman — RHP, forkball specialist, plus swing-and-miss.
-_BJ_GAUSMAN = PitcherStats(
-    name="Kevin Gausman",
-    era=3.30,
-    k_per_9=10.8,
-    innings_per_start=6.0,
-    whip=1.10,
-    arm_strength=72.0,
-    throws="R",
-    pitches_per_pa=3.92,
-)
-
-#: Max Scherzer — RHP, veteran presence, durability questions at age 41.
-_BJ_SCHERZER = PitcherStats(
-    name="Max Scherzer",
-    era=4.00,
-    k_per_9=9.5,
+#: Shane Bieber — RHP, elite command and plus changeup; returning from
+#: injury and expected to contribute as a mid-rotation starter.
+_BJ_BIEBER = PitcherStats(
+    name="Shane Bieber",
+    era=3.40,
+    k_per_9=9.8,
     innings_per_start=5.5,
-    whip=1.25,
+    whip=1.14,
     arm_strength=66.0,
     throws="R",
-    pitches_per_pa=4.00,
+    pitches_per_pa=3.82,
+)
+
+#: Trey Yesavage — RHP, promising young arm with a developing repertoire;
+#: fourth-starter option with swing-and-miss potential.
+_BJ_YESAVAGE = PitcherStats(
+    name="Trey Yesavage",
+    era=4.20,
+    k_per_9=9.2,
+    innings_per_start=5.0,
+    whip=1.28,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.86,
 )
 
 #: Cody Ponce — RHP, back-of-rotation innings-eater.
@@ -3158,58 +3195,143 @@ _BJ_PONCE = PitcherStats(
     pitches_per_pa=3.72,
 )
 
-#: Eric Lauer — LHP, fifth starter, average stuff but experienced.
-_BJ_LAUER = PitcherStats(
-    name="Eric Lauer",
-    era=4.50,
-    k_per_9=8.2,
-    innings_per_start=5.2,
-    whip=1.35,
+#: 2026 Blue Jays projected starting rotation (rotation order 1–5).
+BLUE_JAYS_ROTATION_2026: List[PitcherStats] = [
+    _BJ_GAUSMAN,
+    _BJ_CEASE,
+    _BJ_BIEBER,
+    _BJ_YESAVAGE,
+    _BJ_PONCE,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Tyler Rogers — RHP, submarine delivery specialist; high ground-ball rate
+#: and reliable middle-relief arm for the Blue Jays.
+_BJ_T_ROGERS = PitcherStats(
+    name="Tyler Rogers",
+    era=3.60,
+    k_per_9=7.8,
+    innings_per_start=1.0,
+    whip=1.22,
     arm_strength=52.0,
+    throws="R",
+    pitches_per_pa=3.68,
+)
+
+#: Yimi García — RHP, power arm with improving command; mid-leverage
+#: setup option in the Blue Jays bullpen.
+_BJ_GARCIA = PitcherStats(
+    name="Yimi García",
+    era=3.80,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.75,
+)
+
+#: Louis Varland — RHP, developing reliever with late-life fastball;
+#: used in middle relief and long-relief situations.
+_BJ_VARLAND = PitcherStats(
+    name="Louis Varland",
+    era=4.00,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Brendon Little — LHP, crafty left-hander with deceptive delivery;
+#: specialist and left-handed setup option out of the bullpen.
+_BJ_LITTLE = PitcherStats(
+    name="Brendon Little",
+    era=3.90,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=58.0,
     throws="L",
     pitches_per_pa=3.80,
 )
 
-#: 2026 Blue Jays projected starting rotation (rotation order 1–5).
-BLUE_JAYS_ROTATION_2026: List[PitcherStats] = [
-    _BJ_CEASE,
-    _BJ_GAUSMAN,
-    _BJ_SCHERZER,
-    _BJ_PONCE,
-    _BJ_LAUER,
+#: Braydon Fisher — RHP, hard-throwing setup man with triple-digit
+#: velocity; high-strikeout arm used in high-leverage situations.
+_BJ_FISHER = PitcherStats(
+    name="Braydon Fisher",
+    era=3.70,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.76,
+)
+
+#: Jeff Hoffman — CL, RHP, elite closer with plus stuff and exceptional
+#: command in the ninth; shutdown arm for the Blue Jays.
+_BJ_HOFFMAN = PitcherStats(
+    name="Jeff Hoffman",
+    era=2.65,
+    k_per_9=12.8,
+    innings_per_start=1.0,
+    whip=1.00,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: 2026 Blue Jays bullpen (setup + closer; closer is last entry).
+BLUE_JAYS_BULLPEN_2026: List[PitcherStats] = [
+    _BJ_T_ROGERS,
+    _BJ_GARCIA,
+    _BJ_VARLAND,
+    _BJ_LITTLE,
+    _BJ_FISHER,
+    _BJ_HOFFMAN,
 ]
 
 
 @dataclass
 class BlueJaysRoster:
     """
-    Bundle of Toronto Blue Jays projected 2026 lineup and starting rotation.
+    Bundle of Toronto Blue Jays projected 2026 depth-chart starters, rotation,
+    and bullpen.
 
     Attributes
     ----------
     lineup : list of BatterStats
-        Nine-man batting order (positions 1–9 as listed in the 2026 depth chart).
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
     rotation : list of PitcherStats
         Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Jeff Hoffman).
 
     Examples
     --------
     ::
 
         roster = BlueJaysRoster.default()
-        print(roster.rotation[0].name)  # "Dylan Cease"
-        print(roster.lineup[2].name)    # "Vladimir Guerrero Jr."
+        print(roster.rotation[0].name)   # "Kevin Gausman"
+        print(roster.lineup[1].name)     # "Vladimir Guerrero Jr."
+        print(roster.bullpen[-1].name)   # "Jeff Hoffman"
     """
 
     lineup: List[BatterStats] = field(default_factory=list)
     rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
 
     @classmethod
     def default(cls) -> "BlueJaysRoster":
-        """Return the projected 2026 roster (deep-copies the module-level lists)."""
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
         return cls(
             lineup=list(BLUE_JAYS_LINEUP_2026),
             rotation=list(BLUE_JAYS_ROTATION_2026),
+            bullpen=list(BLUE_JAYS_BULLPEN_2026),
         )
 
 
