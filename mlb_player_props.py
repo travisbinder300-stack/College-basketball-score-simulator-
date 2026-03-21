@@ -191,6 +191,32 @@ and bullpen are available via the :class:`WhiteSoxRoster` helper:
     # Screen the closer (Seranthony Dominguez)
     for edge in screener.screen_pitcher(roster.bullpen[-1]):
         print(edge)
+
+Cleveland Guardians 2026 Depth Chart
+--------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Cleveland Guardians depth-chart starters, starting rotation,
+and bullpen are available via the :class:`GuardiansRoster` helper:
+
+* ``GUARDIANS_LINEUP_2026``  – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``GUARDIANS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``GUARDIANS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import GuardiansRoster, UnabatedEdgeScreener, UnabatedClient
+
+    roster   = GuardiansRoster.default()
+    screener = UnabatedEdgeScreener(sim, UnabatedClient("YOUR_KEY"))
+
+    # Screen Jose Ramirez for batter props
+    for edge in screener.screen_batter(roster.lineup[3]):
+        print(edge)
+
+    # Screen the closer (Cade Smith)
+    for edge in screener.screen_pitcher(roster.bullpen[-1]):
+        print(edge)
 """
 
 from __future__ import annotations
@@ -3402,6 +3428,403 @@ class WhiteSoxRoster:
             lineup=list(WHITE_SOX_LINEUP_2026),
             rotation=list(WHITE_SOX_ROTATION_2026),
             bullpen=list(WHITE_SOX_BULLPEN_2026),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Cleveland Guardians — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Pre-built BatterStats and PitcherStats objects for the projected 2026
+# Cleveland Guardians starting lineup, starting rotation, and bullpen.
+# Statistics are modelled on each player's recent MLB performance.
+#
+# Lineup reflects the #1-depth-slot starter at each position:
+#   C  – Bo Naylor          1B – Kyle Manzardo      2B – Brayan Rocchio
+#   3B – Jose Ramirez        SS – Gabriel Arias       LF – Steven Kwan
+#   CF – Chase DeLauter     RF – CJ Kayfus            DH – Rhys Hoskins
+#
+# Note: Hunter Gaddis is listed as "O" (Out) on the official depth chart.
+# His stats represent projected output when healthy.
+#
+# Usage:
+#
+#   from mlb_player_props import GuardiansRoster, UnabatedEdgeScreener
+#   roster   = GuardiansRoster.default()
+#   screener = UnabatedEdgeScreener(sim, client)
+#
+#   # Screen the ace (Tanner Bibee)
+#   edges = screener.screen_pitcher(roster.rotation[0])
+#
+#   # Screen Jose Ramirez for batter props
+#   for edge in screener.screen_batter(roster.lineup[3]):
+#       print(edge)
+#
+#   # Screen the closer (Cade Smith)
+#   edges += screener.screen_pitcher(roster.bullpen[-1])
+# ---------------------------------------------------------------------------
+
+
+# -- Starting lineup (depth-chart position-1 slots) -------------------------
+
+#: Bo Naylor — C, switch hitter, improving power and patience.
+_CG_NAYLOR = BatterStats(
+    name="Bo Naylor",
+    avg=0.238,
+    obp=0.322,
+    slg=0.418,
+    hr_per_600_pa=20.0,
+    sb_per_season=8.0,
+    doubles_per_600_pa=24.0,
+    games_played=138,
+    power_rating=62.0,
+    bats="S",
+    pitches_per_pa=3.95,
+    rbi_per_season=55.0,
+    runs_per_season=50.0,
+)
+
+#: Kyle Manzardo — 1B, bats left, developing power prospect.
+_CG_MANZARDO = BatterStats(
+    name="Kyle Manzardo",
+    avg=0.235,
+    obp=0.318,
+    slg=0.430,
+    hr_per_600_pa=22.0,
+    sb_per_season=3.0,
+    doubles_per_600_pa=26.0,
+    games_played=148,
+    power_rating=68.0,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=60.0,
+    runs_per_season=52.0,
+)
+
+#: Brayan Rocchio — 2B, switch hitter, speed and contact approach.
+_CG_ROCCHIO = BatterStats(
+    name="Brayan Rocchio",
+    avg=0.262,
+    obp=0.308,
+    slg=0.385,
+    hr_per_600_pa=9.0,
+    sb_per_season=18.0,
+    doubles_per_600_pa=28.0,
+    games_played=150,
+    power_rating=30.0,
+    bats="S",
+    pitches_per_pa=3.65,
+    rbi_per_season=42.0,
+    runs_per_season=62.0,
+)
+
+#: Jose Ramirez — 3B, switch hitter, perennial All-Star, elite power/speed.
+_CG_RAMIREZ = BatterStats(
+    name="Jose Ramirez",
+    avg=0.278,
+    obp=0.352,
+    slg=0.505,
+    hr_per_600_pa=30.0,
+    sb_per_season=24.0,
+    doubles_per_600_pa=36.0,
+    games_played=155,
+    power_rating=88.0,
+    bats="S",
+    pitches_per_pa=3.78,
+    rbi_per_season=100.0,
+    runs_per_season=90.0,
+)
+
+#: Gabriel Arias — SS, bats right, defensive first with developing bat.
+_CG_ARIAS = BatterStats(
+    name="Gabriel Arias",
+    avg=0.235,
+    obp=0.290,
+    slg=0.370,
+    hr_per_600_pa=12.0,
+    sb_per_season=6.0,
+    doubles_per_600_pa=24.0,
+    games_played=140,
+    power_rating=40.0,
+    bats="R",
+    pitches_per_pa=3.55,
+    rbi_per_season=40.0,
+    runs_per_season=42.0,
+)
+
+#: Steven Kwan — LF, bats left, elite contact and on-base skills.
+_CG_KWAN = BatterStats(
+    name="Steven Kwan",
+    avg=0.282,
+    obp=0.365,
+    slg=0.415,
+    hr_per_600_pa=8.0,
+    sb_per_season=15.0,
+    doubles_per_600_pa=30.0,
+    games_played=152,
+    power_rating=38.0,
+    bats="L",
+    pitches_per_pa=4.05,
+    rbi_per_season=55.0,
+    runs_per_season=72.0,
+)
+
+#: Chase DeLauter — CF, bats left, top prospect with speed and developing power.
+_CG_DELAUTER = BatterStats(
+    name="Chase DeLauter",
+    avg=0.248,
+    obp=0.325,
+    slg=0.415,
+    hr_per_600_pa=15.0,
+    sb_per_season=12.0,
+    doubles_per_600_pa=28.0,
+    games_played=142,
+    power_rating=50.0,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=48.0,
+    runs_per_season=58.0,
+)
+
+#: CJ Kayfus — RF, bats left, contact-first approach with gap power.
+_CG_KAYFUS = BatterStats(
+    name="CJ Kayfus",
+    avg=0.262,
+    obp=0.330,
+    slg=0.390,
+    hr_per_600_pa=9.0,
+    sb_per_season=14.0,
+    doubles_per_600_pa=26.0,
+    games_played=148,
+    power_rating=35.0,
+    bats="L",
+    pitches_per_pa=3.72,
+    rbi_per_season=44.0,
+    runs_per_season=56.0,
+)
+
+#: Rhys Hoskins — DH, bats right, veteran power bat.
+_CG_HOSKINS = BatterStats(
+    name="Rhys Hoskins",
+    avg=0.238,
+    obp=0.332,
+    slg=0.455,
+    hr_per_600_pa=28.0,
+    sb_per_season=2.0,
+    doubles_per_600_pa=28.0,
+    games_played=145,
+    power_rating=78.0,
+    bats="R",
+    pitches_per_pa=3.98,
+    rbi_per_season=82.0,
+    runs_per_season=62.0,
+)
+
+#: 2026 Guardians projected starting lineup (depth-chart position-1 starters).
+GUARDIANS_LINEUP_2026: List[BatterStats] = [
+    _CG_NAYLOR,
+    _CG_MANZARDO,
+    _CG_ROCCHIO,
+    _CG_RAMIREZ,
+    _CG_ARIAS,
+    _CG_KWAN,
+    _CG_DELAUTER,
+    _CG_KAYFUS,
+    _CG_HOSKINS,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Tanner Bibee — RHP, ace, high-K sinker/slider arsenal.
+_CG_BIBEE = PitcherStats(
+    name="Tanner Bibee",
+    era=3.50,
+    k_per_9=10.2,
+    innings_per_start=6.0,
+    whip=1.15,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.98,
+)
+
+#: Gavin Williams — RHP, power arm, high strikeout potential.
+_CG_WILLIAMS = PitcherStats(
+    name="Gavin Williams",
+    era=4.10,
+    k_per_9=10.5,
+    innings_per_start=5.5,
+    whip=1.25,
+    arm_strength=74.0,
+    throws="R",
+    pitches_per_pa=4.05,
+)
+
+#: Logan Allen — LHP, solid mid-rotation option with plus swing-and-miss.
+_CG_ALLEN = PitcherStats(
+    name="Logan Allen",
+    era=3.85,
+    k_per_9=9.2,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.90,
+)
+
+#: Slade Cecconi — RHP, developing arm, improving command.
+_CG_CECCONI = PitcherStats(
+    name="Slade Cecconi",
+    era=4.60,
+    k_per_9=8.5,
+    innings_per_start=5.0,
+    whip=1.38,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Joey Cantillo — LHP, back-of-rotation innings-eater.
+_CG_CANTILLO = PitcherStats(
+    name="Joey Cantillo",
+    era=4.80,
+    k_per_9=8.0,
+    innings_per_start=4.8,
+    whip=1.40,
+    arm_strength=48.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: 2026 Guardians projected starting rotation (rotation-turn order 1–5).
+GUARDIANS_ROTATION_2026: List[PitcherStats] = [
+    _CG_BIBEE,
+    _CG_WILLIAMS,
+    _CG_ALLEN,
+    _CG_CECCONI,
+    _CG_CANTILLO,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Hunter Gaddis — RHP reliever, high-K setup arm (listed "Out").
+_CG_GADDIS = PitcherStats(
+    name="Hunter Gaddis",
+    era=4.00,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.25,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: Shawn Armstrong — RHP, veteran middle reliever.
+_CG_ARMSTRONG = PitcherStats(
+    name="Shawn Armstrong",
+    era=4.20,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=52.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Erik Sabrowski — RHP, high-K setup arm.
+_CG_SABROWSKI = PitcherStats(
+    name="Erik Sabrowski",
+    era=4.00,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Matt Festa — RHP, dependable middle relief.
+_CG_FESTA = PitcherStats(
+    name="Matt Festa",
+    era=3.80,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Tim Herrin — LHP, left-on-left specialist.
+_CG_HERRIN = PitcherStats(
+    name="Tim Herrin",
+    era=3.60,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.15,
+    arm_strength=50.0,
+    throws="L",
+    pitches_per_pa=3.88,
+)
+
+#: Cade Smith — CL, RHP, top-tier closer with elite strikeout rate.
+_CG_C_SMITH = PitcherStats(
+    name="Cade Smith",
+    era=3.20,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.05,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: 2026 Guardians bullpen (setup + closer; closer is last entry).
+GUARDIANS_BULLPEN_2026: List[PitcherStats] = [
+    _CG_GADDIS,
+    _CG_ARMSTRONG,
+    _CG_SABROWSKI,
+    _CG_FESTA,
+    _CG_HERRIN,
+    _CG_C_SMITH,
+]
+
+
+@dataclass
+class GuardiansRoster:
+    """
+    Bundle of Cleveland Guardians projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Cade Smith).
+
+    Examples
+    --------
+    ::
+
+        roster = GuardiansRoster.default()
+        print(roster.rotation[0].name)   # "Tanner Bibee"
+        print(roster.lineup[3].name)     # "Jose Ramirez"
+        print(roster.bullpen[-1].name)   # "Cade Smith"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "GuardiansRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(GUARDIANS_LINEUP_2026),
+            rotation=list(GUARDIANS_ROTATION_2026),
+            bullpen=list(GUARDIANS_BULLPEN_2026),
         )
 
 

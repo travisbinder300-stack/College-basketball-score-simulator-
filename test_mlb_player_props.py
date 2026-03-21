@@ -26,6 +26,7 @@ Test classes are organised by the component they exercise:
   Unabated edge screener – TestUnabatedEdgeScreener
   Blue Jays 2026 roster  – TestBlueJaysRoster
   White Sox 2026 roster  – TestWhiteSoxRoster
+  Guardians 2026 roster  – TestGuardiansRoster
 """
 
 import json
@@ -4055,6 +4056,362 @@ class TestWhiteSoxRoster(unittest.TestCase):
         edges = screener.screen_pitcher(WHITE_SOX_BULLPEN_2026[-1], market_lines=lines)
         self.assertTrue(edges)
         self.assertEqual(edges[0].player_name, "Seranthony Dominguez")
+
+
+# ---------------------------------------------------------------------------
+# Cleveland Guardians 2026 Depth Chart tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    GuardiansRoster,
+    GUARDIANS_LINEUP_2026,
+    GUARDIANS_ROTATION_2026,
+    GUARDIANS_BULLPEN_2026,
+)
+
+_CG_LINEUP_NAMES = [
+    "Bo Naylor",
+    "Kyle Manzardo",
+    "Brayan Rocchio",
+    "Jose Ramirez",
+    "Gabriel Arias",
+    "Steven Kwan",
+    "Chase DeLauter",
+    "CJ Kayfus",
+    "Rhys Hoskins",
+]
+
+_CG_ROTATION_NAMES = [
+    "Tanner Bibee",
+    "Gavin Williams",
+    "Logan Allen",
+    "Slade Cecconi",
+    "Joey Cantillo",
+]
+
+_CG_BULLPEN_NAMES = [
+    "Hunter Gaddis",
+    "Shawn Armstrong",
+    "Erik Sabrowski",
+    "Matt Festa",
+    "Tim Herrin",
+    "Cade Smith",
+]
+
+
+class TestGuardiansRoster(unittest.TestCase):
+    """Tests for GUARDIANS_LINEUP_2026, GUARDIANS_ROTATION_2026,
+    GUARDIANS_BULLPEN_2026, and GuardiansRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(GUARDIANS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_starters(self):
+        self.assertEqual(len(GUARDIANS_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(GUARDIANS_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in GUARDIANS_LINEUP_2026], _CG_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in GUARDIANS_ROTATION_2026], _CG_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in GUARDIANS_BULLPEN_2026], _CG_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()
+
+    def test_batter_avg_in_range(self):
+        for b in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_nonnegative(self):
+        for b in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in GUARDIANS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — key batters
+    # ------------------------------------------------------------------
+
+    def test_naylor_switch_hitter(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[0].bats, "S")
+
+    def test_manzardo_bats_left(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[1].bats, "L")
+
+    def test_rocchio_switch_hitter(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[2].bats, "S")
+
+    def test_ramirez_switch_hitter(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[3].bats, "S")
+
+    def test_arias_bats_right(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[4].bats, "R")
+
+    def test_kwan_bats_left(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[5].bats, "L")
+
+    def test_delauter_bats_left(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[6].bats, "L")
+
+    def test_kayfus_bats_left(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[7].bats, "L")
+
+    def test_hoskins_bats_right(self):
+        self.assertEqual(GUARDIANS_LINEUP_2026[8].bats, "R")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_pass_validation(self):
+        for p in GUARDIANS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_all_bullpen_pass_validation(self):
+        for p in GUARDIANS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_rotation_era_positive(self):
+        for p in GUARDIANS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_bullpen_era_positive(self):
+        for p in GUARDIANS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_rotation_k_per_9_in_range(self):
+        for p in GUARDIANS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_bullpen_k_per_9_in_range(self):
+        for p in GUARDIANS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_bibee_throws_right(self):
+        self.assertEqual(GUARDIANS_ROTATION_2026[0].throws, "R")
+
+    def test_williams_throws_right(self):
+        self.assertEqual(GUARDIANS_ROTATION_2026[1].throws, "R")
+
+    def test_allen_throws_left(self):
+        self.assertEqual(GUARDIANS_ROTATION_2026[2].throws, "L")
+
+    def test_cecconi_throws_right(self):
+        self.assertEqual(GUARDIANS_ROTATION_2026[3].throws, "R")
+
+    def test_cantillo_throws_left(self):
+        self.assertEqual(GUARDIANS_ROTATION_2026[4].throws, "L")
+
+    def test_herrin_throws_left(self):
+        herrin = next(p for p in GUARDIANS_BULLPEN_2026 if p.name == "Tim Herrin")
+        self.assertEqual(herrin.throws, "L")
+
+    def test_cade_smith_throws_right(self):
+        self.assertEqual(GUARDIANS_BULLPEN_2026[-1].throws, "R")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_bibee_has_best_rotation_era(self):
+        """Tanner Bibee is modelled as the ace (best ERA in the rotation)."""
+        min_era = min(p.era for p in GUARDIANS_ROTATION_2026)
+        self.assertAlmostEqual(GUARDIANS_ROTATION_2026[0].era, min_era)
+
+    def test_cade_smith_has_best_bullpen_era(self):
+        min_era = min(p.era for p in GUARDIANS_BULLPEN_2026)
+        self.assertAlmostEqual(GUARDIANS_BULLPEN_2026[-1].era, min_era)
+
+    def test_ramirez_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in GUARDIANS_LINEUP_2026)
+        self.assertAlmostEqual(GUARDIANS_LINEUP_2026[3].hr_per_600_pa, max_hr)
+
+    def test_ramirez_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in GUARDIANS_LINEUP_2026)
+        self.assertAlmostEqual(GUARDIANS_LINEUP_2026[3].power_rating, max_power)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(GUARDIANS_BULLPEN_2026[-1].era, GUARDIANS_ROTATION_2026[0].era)
+
+    def test_ramirez_has_most_sb(self):
+        max_sb = max(b.sb_per_season for b in GUARDIANS_LINEUP_2026)
+        self.assertAlmostEqual(GUARDIANS_LINEUP_2026[3].sb_per_season, max_sb)
+
+    # ------------------------------------------------------------------
+    # GuardiansRoster factory
+    # ------------------------------------------------------------------
+
+    def test_default_returns_guardians_roster_instance(self):
+        self.assertIsInstance(GuardiansRoster.default(), GuardiansRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(GuardiansRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(GuardiansRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(GuardiansRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = GuardiansRoster.default()
+        r2 = GuardiansRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = GuardiansRoster.default()
+        r2 = GuardiansRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = GuardiansRoster.default()
+        r2 = GuardiansRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+    def test_default_lineup_names_match_constants(self):
+        roster = GuardiansRoster.default()
+        self.assertEqual(
+            [b.name for b in roster.lineup],
+            [b.name for b in GUARDIANS_LINEUP_2026],
+        )
+
+    def test_default_rotation_names_match_constants(self):
+        roster = GuardiansRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.rotation],
+            [p.name for p in GUARDIANS_ROTATION_2026],
+        )
+
+    def test_default_bullpen_names_match_constants(self):
+        roster = GuardiansRoster.default()
+        self.assertEqual(
+            [p.name for p in roster.bullpen],
+            [p.name for p in GUARDIANS_BULLPEN_2026],
+        )
+
+    # ------------------------------------------------------------------
+    # Simulator integration
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_bibee_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(GUARDIANS_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Strikeouts", prop_names)
+
+    def test_simulate_pitcher_cade_smith_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(GUARDIANS_BULLPEN_2026[-1])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_batter_ramirez_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(GUARDIANS_LINEUP_2026[3])
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_bibee_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Tanner Bibee", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(GUARDIANS_ROTATION_2026[0], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Tanner Bibee")
+
+    def test_screen_batter_ramirez_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Jose Ramirez", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(GUARDIANS_LINEUP_2026[3], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_matchup_guardians_roster(self):
+        """screen_matchup with the Guardians lineup against their ace."""
+        sim = _make_screener_sim(seed=77)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = GuardiansRoster.default()
+        lines = (
+            _make_market_lines("Tanner Bibee", "strikeouts", 3.5, +350, -600)
+            + _make_market_lines("Jose Ramirez", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Tanner Bibee", player_names)
+        self.assertIn("Jose Ramirez", player_names)
+
+    def test_screen_closer_cade_smith(self):
+        """Edge screener works for closer appearances (1-inning starts)."""
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Cade Smith", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(GUARDIANS_BULLPEN_2026[-1], market_lines=lines)
+        self.assertTrue(edges)
+        self.assertEqual(edges[0].player_name, "Cade Smith")
 
 
 if __name__ == "__main__":
