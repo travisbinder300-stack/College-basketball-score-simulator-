@@ -8133,5 +8133,284 @@ class TestAngelsRoster(unittest.TestCase):
         self.assertIn("Mike Trout", player_names)
 
 
+from mlb_player_props import (  # noqa: E402
+    MarinersRoster,
+    MARINERS_LINEUP_2026,
+    MARINERS_ROTATION_2026,
+    MARINERS_BULLPEN_2026,
+)
+
+_SEA_LINEUP_NAMES = [
+    "Cal Raleigh",
+    "Josh Naylor",
+    "Cole Young",
+    "Brendan Donovan",
+    "J.P. Crawford",
+    "Randy Arozarena",
+    "Julio Rodriguez",
+    "Luke Raley",
+    "Dominic Canzone",
+]
+
+_SEA_ROTATION_NAMES = [
+    "Logan Gilbert",
+    "Luis Castillo",
+    "George Kirby",
+    "Bryan Woo",
+    "Bryce Miller",
+]
+
+_SEA_BULLPEN_NAMES = [
+    "Matt Brash",
+    "Gabe Speier",
+    "Jose Ferrer",
+    "Carlos Vargas",
+    "Eduard Bazardo",
+    "Andres Munoz",
+]
+
+
+class TestMarinersRoster(unittest.TestCase):
+    """Tests for MARINERS_LINEUP_2026, MARINERS_ROTATION_2026,
+    MARINERS_BULLPEN_2026, and MarinersRoster."""
+
+    # ------------------------------------------------------------------
+    # Structural / size checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(MARINERS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_pitchers(self):
+        self.assertEqual(len(MARINERS_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(MARINERS_BULLPEN_2026), 6)
+
+    # ------------------------------------------------------------------
+    # Name / identity checks
+    # ------------------------------------------------------------------
+
+    def test_lineup_names_match_depth_chart(self):
+        self.assertEqual(
+            [b.name for b in MARINERS_LINEUP_2026],
+            _SEA_LINEUP_NAMES,
+        )
+
+    def test_rotation_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in MARINERS_ROTATION_2026],
+            _SEA_ROTATION_NAMES,
+        )
+
+    def test_bullpen_names_match_depth_chart(self):
+        self.assertEqual(
+            [p.name for p in MARINERS_BULLPEN_2026],
+            _SEA_BULLPEN_NAMES,
+        )
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — lineup
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_in_range(self):
+        for b in MARINERS_LINEUP_2026:
+            self.assertGreater(b.avg, 0.200, msg=b.name)
+            self.assertLess(b.avg, 0.400, msg=b.name)
+
+    def test_all_lineup_obp_gte_avg(self):
+        for b in MARINERS_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg, msg=b.name)
+
+    def test_all_lineup_slg_gte_avg(self):
+        for b in MARINERS_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg, msg=b.name)
+
+    def test_all_lineup_hr_positive(self):
+        for b in MARINERS_LINEUP_2026:
+            self.assertGreater(b.hr_per_600_pa, 0, msg=b.name)
+
+    def test_all_lineup_rbi_positive(self):
+        for b in MARINERS_LINEUP_2026:
+            self.assertGreater(b.rbi_per_season, 0, msg=b.name)
+
+    def test_all_lineup_runs_positive(self):
+        for b in MARINERS_LINEUP_2026:
+            self.assertGreater(b.runs_per_season, 0, msg=b.name)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — rotation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_era_in_range(self):
+        for p in MARINERS_ROTATION_2026:
+            self.assertGreater(p.era, 2.0, msg=p.name)
+            self.assertLess(p.era, 6.0, msg=p.name)
+
+    def test_all_rotation_k_per_9_positive(self):
+        for p in MARINERS_ROTATION_2026:
+            self.assertGreater(p.k_per_9, 0, msg=p.name)
+
+    def test_rotation_throws_values(self):
+        expected_throws = ["R", "R", "R", "R", "R"]
+        actual_throws = [p.throws for p in MARINERS_ROTATION_2026]
+        self.assertEqual(actual_throws, expected_throws)
+
+    # ------------------------------------------------------------------
+    # Stat sanity checks — bullpen
+    # ------------------------------------------------------------------
+
+    def test_all_bullpen_era_in_range(self):
+        for p in MARINERS_BULLPEN_2026:
+            self.assertGreater(p.era, 1.5, msg=p.name)
+            self.assertLess(p.era, 6.0, msg=p.name)
+
+    def test_closer_munoz_is_last(self):
+        self.assertEqual(MARINERS_BULLPEN_2026[-1].name, "Andres Munoz")
+
+    def test_closer_era_less_than_ace(self):
+        """Munoz (closer) should have a lower ERA than Gilbert (ace)."""
+        self.assertLess(
+            MARINERS_BULLPEN_2026[-1].era,
+            MARINERS_ROTATION_2026[0].era,
+        )
+
+    def test_bullpen_throws_values(self):
+        expected_throws = ["R", "L", "L", "R", "R", "R"]
+        actual_throws = [p.throws for p in MARINERS_BULLPEN_2026]
+        self.assertEqual(actual_throws, expected_throws)
+
+    # ------------------------------------------------------------------
+    # Key player checks
+    # ------------------------------------------------------------------
+
+    def test_jrod_leads_power_rating(self):
+        """Julio Rodriguez should have the highest power_rating in the lineup."""
+        max_power = max(b.power_rating for b in MARINERS_LINEUP_2026)
+        self.assertEqual(MARINERS_LINEUP_2026[6].power_rating, max_power)
+
+    def test_raleigh_leads_hr(self):
+        """Cal Raleigh should lead the lineup in HR/600PA."""
+        max_hr = max(b.hr_per_600_pa for b in MARINERS_LINEUP_2026)
+        self.assertEqual(MARINERS_LINEUP_2026[0].hr_per_600_pa, max_hr)
+
+    def test_donovan_leads_obp(self):
+        """Brendan Donovan should lead the lineup in OBP."""
+        max_obp = max(b.obp for b in MARINERS_LINEUP_2026)
+        self.assertAlmostEqual(MARINERS_LINEUP_2026[3].obp, max_obp)
+
+    def test_jrod_leads_sb(self):
+        """Julio Rodriguez should lead the lineup in stolen bases."""
+        max_sb = max(b.sb_per_season for b in MARINERS_LINEUP_2026)
+        self.assertEqual(MARINERS_LINEUP_2026[6].sb_per_season, max_sb)
+
+    def test_gilbert_is_ace(self):
+        self.assertEqual(MARINERS_ROTATION_2026[0].name, "Logan Gilbert")
+        self.assertEqual(MARINERS_ROTATION_2026[0].throws, "R")
+
+    def test_catcher_is_raleigh(self):
+        self.assertEqual(MARINERS_LINEUP_2026[0].name, "Cal Raleigh")
+
+    # ------------------------------------------------------------------
+    # MarinersRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_correct_types(self):
+        roster = MarinersRoster.default()
+        self.assertIsInstance(roster, MarinersRoster)
+        self.assertIsInstance(roster.lineup, list)
+        self.assertIsInstance(roster.rotation, list)
+        self.assertIsInstance(roster.bullpen, list)
+
+    def test_default_sizes(self):
+        roster = MarinersRoster.default()
+        self.assertEqual(len(roster.lineup), 9)
+        self.assertEqual(len(roster.rotation), 5)
+        self.assertEqual(len(roster.bullpen), 6)
+
+    def test_default_is_independent_copy(self):
+        r1 = MarinersRoster.default()
+        r2 = MarinersRoster.default()
+        r1.lineup.pop()
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_ace(self):
+        roster = MarinersRoster.default()
+        self.assertEqual(roster.rotation[0].name, "Logan Gilbert")
+
+    def test_default_lineup_cf(self):
+        roster = MarinersRoster.default()
+        self.assertEqual(roster.lineup[6].name, "Julio Rodriguez")
+
+    def test_default_closer(self):
+        roster = MarinersRoster.default()
+        self.assertEqual(roster.bullpen[-1].name, "Andres Munoz")
+
+    # ------------------------------------------------------------------
+    # Simulation smoke tests
+    # ------------------------------------------------------------------
+
+    def test_simulate_pitcher_gilbert_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(MARINERS_ROTATION_2026[0])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_pitcher_munoz_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(MARINERS_BULLPEN_2026[-1])
+        self.assertIsNotNone(report)
+        self.assertTrue(report.props)
+
+    def test_simulate_batter_jrod_runs(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_batter(MARINERS_LINEUP_2026[6])
+        prop_names = [pr.prop_name for pr in report.props]
+        self.assertIn("Hits", prop_names)
+        self.assertIn("Home Runs", prop_names)
+
+    def test_screen_pitcher_gilbert_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Logan Gilbert", "strikeouts", 5.5, +300, -500)
+        edges = screener.screen_pitcher(MARINERS_ROTATION_2026[0], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        self.assertEqual(over_edges[0].player_name, "Logan Gilbert")
+
+    def test_screen_batter_jrod_with_fake_market(self):
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Julio Rodriguez", "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(MARINERS_LINEUP_2026[6], market_lines=lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_closer_munoz(self):
+        """Edge screener works for Andres Munoz (RHP closer)."""
+        sim = _make_screener_sim()
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        lines = _make_market_lines("Andres Munoz", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(MARINERS_BULLPEN_2026[-1], market_lines=lines)
+        self.assertTrue(edges)
+        self.assertEqual(edges[0].player_name, "Andres Munoz")
+
+    def test_screen_matchup_mariners_roster(self):
+        """screen_matchup with the Mariners lineup against Logan Gilbert."""
+        sim = _make_screener_sim(seed=99)
+        screener = UnabatedEdgeScreener(sim, UnabatedClient("key"), min_edge=0.0)
+        roster = MarinersRoster.default()
+        lines = (
+            _make_market_lines("Logan Gilbert", "strikeouts", 5.5, +350, -600)
+            + _make_market_lines("Julio Rodriguez", "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(
+            roster.rotation[0], roster.lineup, market_lines=lines
+        )
+        player_names = {e.player_name for e in edges}
+        self.assertIn("Logan Gilbert", player_names)
+        self.assertIn("Julio Rodriguez", player_names)
+
+
 if __name__ == "__main__":
     unittest.main()

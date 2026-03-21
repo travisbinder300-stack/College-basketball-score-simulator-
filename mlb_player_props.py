@@ -464,6 +464,25 @@ and bullpen are available via the :class:`AngelsRoster` helper:
     print(roster.rotation[0].name)   # "Jose Soriano"
     print(roster.lineup[6].name)     # "Mike Trout"
     print(roster.bullpen[-1].name)   # "Kirby Yates"
+
+------------------------------------
+Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
+projected 2026 Seattle Mariners depth-chart starters, starting rotation,
+and bullpen are available via the :class:`MarinersRoster` helper:
+
+* ``MARINERS_LINEUP_2026``   – ``List[BatterStats]``, position starters
+  (C → 1B → 2B → 3B → SS → LF → CF → RF → DH)
+* ``MARINERS_ROTATION_2026`` – ``List[PitcherStats]``, rotation order 1–5
+* ``MARINERS_BULLPEN_2026``  – ``List[PitcherStats]``, setup + closer (index 5)
+
+::
+
+    from mlb_player_props import MarinersRoster
+
+    roster = MarinersRoster.default()
+    print(roster.rotation[0].name)   # "Logan Gilbert"
+    print(roster.lineup[6].name)     # "Julio Rodriguez"
+    print(roster.bullpen[-1].name)   # "Andres Munoz"
 """
 
 from __future__ import annotations
@@ -8212,6 +8231,396 @@ class AngelsRoster:
             lineup=list(ANGELS_LINEUP_2026),
             rotation=list(ANGELS_ROTATION_2026),
             bullpen=list(ANGELS_BULLPEN_2026),
+        )
+
+
+# Seattle Mariners — 2026 projected depth chart
+# ===========================================================================
+
+# -- Lineup: position starters (C→1B→2B→3B→SS→LF→CF→RF→DH) ----------------
+
+#: Cal Raleigh — C, R; premier power-hitting catcher; one of the game's most
+#: dangerous backstops with elite HR production and improving plate discipline.
+_SEA_RALEIGH = BatterStats(
+    name="Cal Raleigh",
+    avg=0.228,
+    obp=0.318,
+    slg=0.500,
+    hr_per_600_pa=38,
+    sb_per_season=4,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=78,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=92,
+    runs_per_season=76,
+)
+
+#: Josh Naylor — 1B, L; left-handed power bat with a physical approach and
+#: plus RBI production from the middle of the order.
+_SEA_NAYLOR = BatterStats(
+    name="Josh Naylor",
+    avg=0.264,
+    obp=0.330,
+    slg=0.448,
+    hr_per_600_pa=22,
+    sb_per_season=4,
+    doubles_per_600_pa=30,
+    games_played=148,
+    power_rating=62,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=80,
+    runs_per_season=70,
+)
+
+#: Cole Young — 2B, L; highly-touted prospect with advanced contact skills
+#: and above-average on-base abilities for a young middle infielder.
+_SEA_YOUNG = BatterStats(
+    name="Cole Young",
+    avg=0.258,
+    obp=0.338,
+    slg=0.378,
+    hr_per_600_pa=8,
+    sb_per_season=12,
+    doubles_per_600_pa=24,
+    games_played=138,
+    power_rating=40,
+    bats="L",
+    pitches_per_pa=3.92,
+    rbi_per_season=54,
+    runs_per_season=70,
+)
+
+#: Brendan Donovan — 3B, S; switch-hitting utility man with elite OBP skills;
+#: patient approach and consistent contact profile from both sides of the plate.
+_SEA_DONOVAN = BatterStats(
+    name="Brendan Donovan",
+    avg=0.272,
+    obp=0.368,
+    slg=0.402,
+    hr_per_600_pa=12,
+    sb_per_season=10,
+    doubles_per_600_pa=28,
+    games_played=145,
+    power_rating=44,
+    bats="S",
+    pitches_per_pa=4.06,
+    rbi_per_season=58,
+    runs_per_season=72,
+)
+
+#: J.P. Crawford — SS, L; steady left-handed shortstop with solid on-base
+#: skills and dependable defense at the 6-hole.
+_SEA_CRAWFORD = BatterStats(
+    name="J.P. Crawford",
+    avg=0.254,
+    obp=0.342,
+    slg=0.368,
+    hr_per_600_pa=8,
+    sb_per_season=8,
+    doubles_per_600_pa=26,
+    games_played=136,
+    power_rating=36,
+    bats="L",
+    pitches_per_pa=4.00,
+    rbi_per_season=52,
+    runs_per_season=68,
+)
+
+#: Randy Arozarena — LF, R; dynamic outfielder with a premium combination of
+#: speed, pop, and clutch production; elite stolen-base threat.
+_SEA_AROZARENA = BatterStats(
+    name="Randy Arozarena",
+    avg=0.256,
+    obp=0.336,
+    slg=0.442,
+    hr_per_600_pa=22,
+    sb_per_season=28,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=72,
+    runs_per_season=88,
+)
+
+#: Julio Rodriguez — CF, R; franchise cornerstone with a rare combination of
+#: elite power, plus speed, and developing plate discipline; leads the Mariners
+#: in virtually every offensive category.
+_SEA_JROD = BatterStats(
+    name="Julio Rodriguez",
+    avg=0.274,
+    obp=0.348,
+    slg=0.490,
+    hr_per_600_pa=28,
+    sb_per_season=30,
+    doubles_per_600_pa=32,
+    games_played=152,
+    power_rating=82,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=88,
+    runs_per_season=96,
+)
+
+#: Luke Raley — RF, L; left-handed corner outfielder with solid power;
+#: versatile bat who can play multiple outfield spots and contributes on the bases.
+_SEA_RALEY = BatterStats(
+    name="Luke Raley",
+    avg=0.250,
+    obp=0.322,
+    slg=0.432,
+    hr_per_600_pa=20,
+    sb_per_season=14,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=60,
+    bats="L",
+    pitches_per_pa=3.76,
+    rbi_per_season=68,
+    runs_per_season=66,
+)
+
+#: Dominic Canzone — DH, L; contact-oriented left-handed hitter with gap power;
+#: steady presence in the lineup with a disciplined approach.
+_SEA_CANZONE = BatterStats(
+    name="Dominic Canzone",
+    avg=0.258,
+    obp=0.326,
+    slg=0.420,
+    hr_per_600_pa=16,
+    sb_per_season=6,
+    doubles_per_600_pa=26,
+    games_played=138,
+    power_rating=50,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=64,
+    runs_per_season=64,
+)
+
+#: 2026 Mariners projected lineup (depth-chart starters, position order
+#: C→1B→2B→3B→SS→LF→CF→RF→DH).
+MARINERS_LINEUP_2026: List[BatterStats] = [
+    _SEA_RALEIGH,
+    _SEA_NAYLOR,
+    _SEA_YOUNG,
+    _SEA_DONOVAN,
+    _SEA_CRAWFORD,
+    _SEA_AROZARENA,
+    _SEA_JROD,
+    _SEA_RALEY,
+    _SEA_CANZONE,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Logan Gilbert — RHP, ace; front-line starter with a plus fastball and
+#: sharp slider; leads Seattle's 2026 rotation after establishing himself as
+#: one of the AL's best starters.
+_SEA_GILBERT = PitcherStats(
+    name="Logan Gilbert",
+    era=3.20,
+    k_per_9=9.8,
+    innings_per_start=6.2,
+    whip=1.12,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Luis Castillo — RHP, second starter; veteran power arm with a devastating
+#: changeup and above-average fastball; consistent front-rotation presence.
+_SEA_CASTILLO = PitcherStats(
+    name="Luis Castillo",
+    era=3.40,
+    k_per_9=10.2,
+    innings_per_start=6.0,
+    whip=1.18,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: George Kirby — RHP, third starter; elite command artist with one of the
+#: lowest walk rates in the majors; efficient and durable innings-eater.
+_SEA_KIRBY = PitcherStats(
+    name="George Kirby",
+    era=3.60,
+    k_per_9=8.6,
+    innings_per_start=5.8,
+    whip=1.10,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.72,
+)
+
+#: Bryan Woo — RHP, fourth starter; talented young arm with a power fastball
+#: and developing secondary arsenal; high upside in the Mariners rotation.
+_SEA_WOO = PitcherStats(
+    name="Bryan Woo",
+    era=3.80,
+    k_per_9=9.0,
+    innings_per_start=5.6,
+    whip=1.20,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Bryce Miller — RHP, back-end starter; power sinker/slider combination;
+#: returning from injury and working to reclaim his spot in the rotation.
+_SEA_B_MILLER = PitcherStats(
+    name="Bryce Miller",
+    era=4.10,
+    k_per_9=8.4,
+    innings_per_start=5.2,
+    whip=1.26,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: 2026 Mariners projected starting rotation (rotation order 1–5).
+MARINERS_ROTATION_2026: List[PitcherStats] = [
+    _SEA_GILBERT,
+    _SEA_CASTILLO,
+    _SEA_KIRBY,
+    _SEA_WOO,
+    _SEA_B_MILLER,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Matt Brash — RHP setup man; electric velocity with a power slider;
+#: premium swing-and-miss arm in the late innings.
+_SEA_BRASH = PitcherStats(
+    name="Matt Brash",
+    era=3.50,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Gabe Speier — LHP situational reliever; lefty specialist with a sharp
+#: breaking ball effective against left-handed hitters.
+_SEA_SPEIER = PitcherStats(
+    name="Gabe Speier",
+    era=3.80,
+    k_per_9=8.6,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=58.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Jose Ferrer — LHP middle reliever; crafty southpaw with deceptive
+#: arm action and solid strikeout rates in medium-leverage situations.
+_SEA_FERRER = PitcherStats(
+    name="Jose Ferrer",
+    era=4.00,
+    k_per_9=8.0,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.74,
+)
+
+#: Carlos Vargas — RHP middle reliever; hard-throwing right-hander with
+#: a lively fastball and developing slider package.
+_SEA_VARGAS = PitcherStats(
+    name="Carlos Vargas",
+    era=3.70,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Eduard Bazardo — RHP setup arm; big-league experience with solid velocity
+#: and above-average secondary pitches in late-inning roles.
+_SEA_BAZARDO = PitcherStats(
+    name="Eduard Bazardo",
+    era=3.60,
+    k_per_9=9.4,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Andres Munoz — RHP closer; elite elite triple-digit heater and wipeout
+#: slider; one of the most dominant closers in the American League.
+_SEA_MUNOZ = PitcherStats(
+    name="Andres Munoz",
+    era=2.40,
+    k_per_9=12.8,
+    innings_per_start=1.0,
+    whip=1.04,
+    arm_strength=78.0,
+    throws="R",
+    pitches_per_pa=3.96,
+)
+
+#: 2026 Mariners projected bullpen (setup arms + closer last, index 5 = Munoz).
+MARINERS_BULLPEN_2026: List[PitcherStats] = [
+    _SEA_BRASH,
+    _SEA_SPEIER,
+    _SEA_FERRER,
+    _SEA_VARGAS,
+    _SEA_BAZARDO,
+    _SEA_MUNOZ,
+]
+
+
+@dataclass
+class MarinersRoster:
+    """
+    Bundle of Mariners projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Andres Munoz).
+
+    Examples
+    --------
+    ::
+
+        roster = MarinersRoster.default()
+        print(roster.rotation[0].name)   # "Logan Gilbert"
+        print(roster.lineup[6].name)     # "Julio Rodriguez"
+        print(roster.bullpen[-1].name)   # "Andres Munoz"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "MarinersRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(MARINERS_LINEUP_2026),
+            rotation=list(MARINERS_ROTATION_2026),
+            bullpen=list(MARINERS_BULLPEN_2026),
         )
 
 
