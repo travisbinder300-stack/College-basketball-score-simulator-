@@ -9836,6 +9836,419 @@ class RedsRoster:
         )
 
 
+# ---------------------------------------------------------------------------
+# Milwaukee Brewers — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – William Contreras
+#   1B – Andrew Vaughn
+#   2B – Brice Turang
+#   3B – Luis Rengifo
+#   SS – Joey Ortiz
+#   LF – Jackson Chourio
+#   CF – Garrett Mitchell
+#   RF – Sal Frelick
+#   DH – Christian Yelich
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: William Contreras — C, RHP, offensive catalyst behind the plate; above-
+#: average power and excellent contact skills make him one of the best
+#: hitting catchers in the NL.
+_MIL_CONTRERAS = BatterStats(
+    name="William Contreras",
+    avg=0.275,
+    obp=0.355,
+    slg=0.465,
+    hr_per_600_pa=22,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=145,
+    power_rating=70,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=75,
+    runs_per_season=72,
+)
+
+#: Andrew Vaughn — 1B, RHP, powerful right-handed bat; steady run producer
+#: with solid contact and growing home-run numbers in the middle of the order.
+_MIL_VAUGHN = BatterStats(
+    name="Andrew Vaughn",
+    avg=0.252,
+    obp=0.330,
+    slg=0.450,
+    hr_per_600_pa=22,
+    sb_per_season=2,
+    doubles_per_600_pa=28,
+    games_played=145,
+    power_rating=68,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=72,
+    runs_per_season=65,
+)
+
+#: Brice Turang — 2B, LHP, athletic contact hitter with plus speed; brings
+#: energy and on-base ability at the top of the order along with stolen-base
+#: threat.
+_MIL_TURANG = BatterStats(
+    name="Brice Turang",
+    avg=0.272,
+    obp=0.345,
+    slg=0.408,
+    hr_per_600_pa=10,
+    sb_per_season=20,
+    doubles_per_600_pa=26,
+    games_played=148,
+    power_rating=52,
+    bats="L",
+    pitches_per_pa=3.84,
+    rbi_per_season=55,
+    runs_per_season=78,
+)
+
+#: Luis Rengifo — 3B, switch hitter; versatile infielder with gap power and
+#: solid on-base skills; useful bat in the middle of the lineup.
+_MIL_RENGIFO = BatterStats(
+    name="Luis Rengifo",
+    avg=0.260,
+    obp=0.332,
+    slg=0.415,
+    hr_per_600_pa=14,
+    sb_per_season=12,
+    doubles_per_600_pa=27,
+    games_played=145,
+    power_rating=58,
+    bats="S",
+    pitches_per_pa=3.82,
+    rbi_per_season=58,
+    runs_per_season=68,
+)
+
+#: Joey Ortiz — SS, RHP, emerging offensive talent with solid gap power and
+#: good instincts on the base paths; developing into a reliable everyday
+#: shortstop.
+_MIL_ORTIZ = BatterStats(
+    name="Joey Ortiz",
+    avg=0.262,
+    obp=0.335,
+    slg=0.432,
+    hr_per_600_pa=15,
+    sb_per_season=12,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=60,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=64,
+    runs_per_season=70,
+)
+
+#: Jackson Chourio — LF, RHP, electrifying young outfielder with exceptional
+#: raw tools; leads the Brewers in stolen bases and combines speed with
+#: increasing power; one of the most exciting players in the NL.
+_MIL_CHOURIO = BatterStats(
+    name="Jackson Chourio",
+    avg=0.265,
+    obp=0.330,
+    slg=0.460,
+    hr_per_600_pa=22,
+    sb_per_season=26,
+    doubles_per_600_pa=30,
+    games_played=155,
+    power_rating=70,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=72,
+    runs_per_season=80,
+)
+
+#: Garrett Mitchell — CF, RHP, athletic center fielder with impressive speed
+#: and solid defensive range; capable offensive contributor when healthy.
+_MIL_MITCHELL = BatterStats(
+    name="Garrett Mitchell",
+    avg=0.258,
+    obp=0.332,
+    slg=0.425,
+    hr_per_600_pa=14,
+    sb_per_season=22,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=58,
+    runs_per_season=72,
+)
+
+#: Sal Frelick — RF, LHP, elite contact hitter with a high batting average
+#: and excellent plate discipline; leads the Brewers in batting average with
+#: quick hands and exceptional bat control.
+_MIL_FRELICK = BatterStats(
+    name="Sal Frelick",
+    avg=0.292,
+    obp=0.358,
+    slg=0.412,
+    hr_per_600_pa=8,
+    sb_per_season=18,
+    doubles_per_600_pa=30,
+    games_played=148,
+    power_rating=46,
+    bats="L",
+    pitches_per_pa=3.76,
+    rbi_per_season=50,
+    runs_per_season=74,
+)
+
+#: Christian Yelich — DH, LHP, former MVP and veteran cornerstone; elite
+#: on-base skills and still-dangerous power make him Milwaukee's top run
+#: producer; leads the Brewers in power rating and home runs per plate
+#: appearance.
+_MIL_YELICH = BatterStats(
+    name="Christian Yelich",
+    avg=0.270,
+    obp=0.385,
+    slg=0.498,
+    hr_per_600_pa=24,
+    sb_per_season=6,
+    doubles_per_600_pa=30,
+    games_played=130,
+    power_rating=78,
+    bats="L",
+    pitches_per_pa=3.94,
+    rbi_per_season=78,
+    runs_per_season=82,
+)
+
+#: 2026 Brewers projected lineup (depth-chart starters, positional order C→DH).
+BREWERS_LINEUP_2026: List[BatterStats] = [
+    _MIL_CONTRERAS,
+    _MIL_VAUGHN,
+    _MIL_TURANG,
+    _MIL_RENGIFO,
+    _MIL_ORTIZ,
+    _MIL_CHOURIO,
+    _MIL_MITCHELL,
+    _MIL_FRELICK,
+    _MIL_YELICH,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Brandon Woodruff — RHP, ace when healthy; power arsenal featuring a plus
+#: fastball and elite sweeper; leads the rotation in ERA and strikeout rate
+#: when on the mound.
+_MIL_WOODRUFF = PitcherStats(
+    name="Brandon Woodruff",
+    era=3.45,
+    k_per_9=10.8,
+    innings_per_start=6.0,
+    whip=1.12,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: Quinn Priester — RHP, second starter; developing arm with a heavy sinker
+#: and improving secondary stuff; projects as a reliable mid-rotation
+#: contributor.
+_MIL_PRIESTER = PitcherStats(
+    name="Quinn Priester",
+    era=4.10,
+    k_per_9=9.2,
+    innings_per_start=5.6,
+    whip=1.24,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Jacob Misiorowski — RHP, high-ceiling prospect; electric fastball and
+#: sharp slider; developing command limits current effectiveness but the
+#: upside is significant.
+_MIL_MISIOROWSKI = PitcherStats(
+    name="Jacob Misiorowski",
+    era=4.30,
+    k_per_9=9.0,
+    innings_per_start=5.4,
+    whip=1.28,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Chad Patrick — RHP, contact-management specialist; induces weak contact
+#: with a two-seamer heavy approach; valuable innings-eater in the back of
+#: the rotation.
+_MIL_PATRICK = PitcherStats(
+    name="Chad Patrick",
+    era=4.50,
+    k_per_9=8.6,
+    innings_per_start=5.2,
+    whip=1.30,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Kyle Harrison — LHP, fifth starter with swing-and-miss stuff; plus
+#: changeup creates deception against right-handed hitters; key southpaw
+#: depth for the rotation.
+_MIL_HARRISON = PitcherStats(
+    name="Kyle Harrison",
+    era=4.40,
+    k_per_9=9.4,
+    innings_per_start=5.4,
+    whip=1.26,
+    arm_strength=58.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: 2026 Brewers projected starting rotation (rotation-turn order 1–5).
+BREWERS_ROTATION_2026: List[PitcherStats] = [
+    _MIL_WOODRUFF,
+    _MIL_PRIESTER,
+    _MIL_MISIOROWSKI,
+    _MIL_PATRICK,
+    _MIL_HARRISON,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Jared Koenig — LHP setup reliever; deceptive delivery and solid command
+#: make him an effective left-handed option in the middle innings.
+_MIL_KOENIG = PitcherStats(
+    name="Jared Koenig",
+    era=3.80,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=54.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Aaron Ashby — LHP power reliever; elite velocity and a wipeout slider
+#: generate high strikeout rates in high-leverage situations.
+_MIL_ASHBY = PitcherStats(
+    name="Aaron Ashby",
+    era=3.70,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Angel Zerpa — LHP situational specialist; sharp breaking ball neutralizes
+#: left-handed hitters and provides a quality multi-out option.
+_MIL_ZERPA = PitcherStats(
+    name="Angel Zerpa",
+    era=3.85,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=52.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Grant Anderson — RHP reliable bridge arm; consistent strike-thrower with
+#: an effective mix who bridges the gap from the sixth to the ninth inning.
+_MIL_ANDERSON = PitcherStats(
+    name="Grant Anderson",
+    era=3.90,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=54.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: DL Hall — LHP high-leverage setup arm; explosive fastball and devastating
+#: slider; one of Milwaukee's most trusted options in the seventh and eighth
+#: innings.
+_MIL_DLHALL = PitcherStats(
+    name="DL Hall",
+    era=3.60,
+    k_per_9=10.4,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=62.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Trevor Megill — RHP closer; elite closer with overpowering velocity and
+#: a sharp breaking ball; Milwaukee's primary ninth-inning option with the
+#: best ERA in the bullpen.
+_MIL_MEGILL = PitcherStats(
+    name="Trevor Megill",
+    era=3.00,
+    k_per_9=11.2,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Brewers bullpen (setup arms + closer; closer is last entry, index 5 = Megill).
+BREWERS_BULLPEN_2026: List[PitcherStats] = [
+    _MIL_KOENIG,
+    _MIL_ASHBY,
+    _MIL_ZERPA,
+    _MIL_ANDERSON,
+    _MIL_DLHALL,
+    _MIL_MEGILL,
+]
+
+
+@dataclass
+class BrewersRoster:
+    """
+    Bundle of Milwaukee Brewers projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Trevor Megill).
+
+    Examples
+    --------
+    ::
+
+        roster = BrewersRoster.default()
+        print(roster.rotation[0].name)   # "Brandon Woodruff"
+        print(roster.lineup[8].name)     # "Christian Yelich"
+        print(roster.bullpen[-1].name)   # "Trevor Megill"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "BrewersRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(BREWERS_LINEUP_2026),
+            rotation=list(BREWERS_ROTATION_2026),
+            bullpen=list(BREWERS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
