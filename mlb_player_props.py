@@ -12330,6 +12330,435 @@ class MetsRoster:
         )
 
 
+# Philadelphia Phillies — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – J.T. Realmuto
+#   1B – Bryce Harper
+#   2B – Bryson Stott
+#   3B – Alec Bohm
+#   SS – Trea Turner
+#   LF – Brandon Marsh
+#   CF – Justin Crawford
+#   RF – Adolis Garcia
+#   DH – Kyle Schwarber
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: J.T. Realmuto — C, RHP, the best all-around catcher in baseball; elite
+#: framing, plus arm, and reliable offensive production make him the anchor
+#: behind the plate and a consistent RBI contributor in the heart of the
+#: Phillies lineup.
+_PHI_REALMUTO = BatterStats(
+    name="J.T. Realmuto",
+    avg=0.266,
+    obp=0.338,
+    slg=0.460,
+    hr_per_600_pa=22,
+    sb_per_season=12,
+    doubles_per_600_pa=26,
+    games_played=130,
+    power_rating=72,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=68,
+    runs_per_season=70,
+)
+
+#: Bryce Harper — 1B, LHP, generational talent and the heart of the Phillies
+#: lineup; elite plate discipline combined with plus raw power and outstanding
+#: contact skills make him one of the most feared hitters in baseball and the
+#: undisputed offensive leader for Philadelphia.
+_PHI_HARPER = BatterStats(
+    name="Bryce Harper",
+    avg=0.290,
+    obp=0.395,
+    slg=0.560,
+    hr_per_600_pa=36,
+    sb_per_season=4,
+    doubles_per_600_pa=34,
+    games_played=145,
+    power_rating=94,
+    bats="L",
+    pitches_per_pa=4.10,
+    rbi_per_season=104,
+    runs_per_season=96,
+)
+
+#: Bryson Stott — 2B, LHP, developing second baseman with solid contact and
+#: improving gap power; reliable up-the-middle defender who provides balance
+#: from the left side of the plate and consistent production in the lower third
+#: of the Phillies order.
+_PHI_STOTT = BatterStats(
+    name="Bryson Stott",
+    avg=0.265,
+    obp=0.328,
+    slg=0.418,
+    hr_per_600_pa=14,
+    sb_per_season=14,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=58,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=64,
+    runs_per_season=72,
+)
+
+#: Alec Bohm — 3B, RHP, productive corner infielder with reliable contact and
+#: solid gap power; his ability to hit for average and drive in runs from the
+#: right side makes him a steady presence in the middle of the Phillies lineup.
+_PHI_BOHM = BatterStats(
+    name="Alec Bohm",
+    avg=0.272,
+    obp=0.328,
+    slg=0.430,
+    hr_per_600_pa=18,
+    sb_per_season=4,
+    doubles_per_600_pa=32,
+    games_played=145,
+    power_rating=66,
+    bats="R",
+    pitches_per_pa=3.76,
+    rbi_per_season=78,
+    runs_per_season=68,
+)
+
+#: Trea Turner — SS, RHP, elite shortstop combining premium athleticism with
+#: plus power and elite speed; his ability to hit for average, reach base, and
+#: steal bags at a high clip makes him a dangerous table-setter at the top of
+#: the Phillies order.
+_PHI_TURNER = BatterStats(
+    name="Trea Turner",
+    avg=0.278,
+    obp=0.340,
+    slg=0.490,
+    hr_per_600_pa=24,
+    sb_per_season=30,
+    doubles_per_600_pa=32,
+    games_played=150,
+    power_rating=78,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=82,
+    runs_per_season=92,
+)
+
+#: Brandon Marsh — LF, LHP, athletic left fielder with plus defense and an
+#: improving offensive approach; left-handed bat with solid gap power and good
+#: speed who provides consistent value at the top of the Phillies outfield.
+_PHI_MARSH = BatterStats(
+    name="Brandon Marsh",
+    avg=0.258,
+    obp=0.330,
+    slg=0.420,
+    hr_per_600_pa=14,
+    sb_per_season=16,
+    doubles_per_600_pa=26,
+    games_played=135,
+    power_rating=58,
+    bats="L",
+    pitches_per_pa=3.74,
+    rbi_per_season=58,
+    runs_per_season=68,
+)
+
+#: Justin Crawford — CF, LHP, young and explosive center fielder with elite
+#: speed and outstanding range; his plus athleticism and developing offensive
+#: tools make him a dangerous top-of-order option who can manufacture runs for
+#: the Phillies on the basepaths.
+_PHI_CRAWFORD = BatterStats(
+    name="Justin Crawford",
+    avg=0.255,
+    obp=0.322,
+    slg=0.390,
+    hr_per_600_pa=8,
+    sb_per_season=22,
+    doubles_per_600_pa=22,
+    games_played=120,
+    power_rating=48,
+    bats="L",
+    pitches_per_pa=3.70,
+    rbi_per_season=44,
+    runs_per_season=66,
+)
+
+#: Adolis Garcia — RF, RHP, powerful right fielder with premium raw power and
+#: a strong throwing arm; his plus pop and ability to drive the ball to all
+#: fields make him a dangerous middle-of-the-order threat in the Phillies
+#: lineup.
+_PHI_GARCIA = BatterStats(
+    name="Adolis Garcia",
+    avg=0.252,
+    obp=0.305,
+    slg=0.462,
+    hr_per_600_pa=28,
+    sb_per_season=12,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=76,
+    bats="R",
+    pitches_per_pa=3.68,
+    rbi_per_season=82,
+    runs_per_season=72,
+)
+
+#: Kyle Schwarber — DH, LHP, elite power hitter and the most feared bat in the
+#: Phillies lineup from the designated hitter spot; leads the team in home runs
+#: and power rating with a disciplined approach, plus raw power, and a fearsome
+#: pull-side swing that generates elite exit velocity.
+_PHI_SCHWARBER = BatterStats(
+    name="Kyle Schwarber",
+    avg=0.244,
+    obp=0.358,
+    slg=0.526,
+    hr_per_600_pa=42,
+    sb_per_season=2,
+    doubles_per_600_pa=24,
+    games_played=145,
+    power_rating=96,
+    bats="L",
+    pitches_per_pa=4.05,
+    rbi_per_season=96,
+    runs_per_season=90,
+)
+
+#: 2026 Phillies lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+PHILLIES_LINEUP_2026: List[BatterStats] = [
+    _PHI_REALMUTO,
+    _PHI_HARPER,
+    _PHI_STOTT,
+    _PHI_BOHM,
+    _PHI_TURNER,
+    _PHI_MARSH,
+    _PHI_CRAWFORD,
+    _PHI_GARCIA,
+    _PHI_SCHWARBER,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Zack Wheeler — RHP ace; elite arm strength, plus fastball velocity, and
+#: a devastating slider-splitter combination make him one of the best pitchers
+#: in baseball; the unquestioned ace and workhorse atop the Philadelphia
+#: Phillies rotation.
+_PHI_WHEELER = PitcherStats(
+    name="Zack Wheeler",
+    era=2.98,
+    k_per_9=10.8,
+    innings_per_start=6.5,
+    whip=1.08,
+    arm_strength=90.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Cristopher Sanchez — LHP second starter; deceptive arm angle and a plus
+#: sinker-slider combination generate elite ground-ball rates; a durable and
+#: reliable number-two option who provides length and keeps the offense in the
+#: game for Philadelphia.
+_PHI_CSANCHEZ = PitcherStats(
+    name="Cristopher Sanchez",
+    era=3.72,
+    k_per_9=9.2,
+    innings_per_start=6.0,
+    whip=1.20,
+    arm_strength=74.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Jesus Luzardo — LHP mid-rotation arm; lively four-seamer and a sharp
+#: breaking ball give him significant swing-and-miss potential as a third
+#: starter who can go deep into games for Philadelphia.
+_PHI_LUZARDO = PitcherStats(
+    name="Jesus Luzardo",
+    era=4.05,
+    k_per_9=9.5,
+    innings_per_start=5.5,
+    whip=1.24,
+    arm_strength=70.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: Aaron Nola — RHP fourth starter; elite spin rate and plus command of a
+#: four-pitch mix allow him to carve up lineups despite slightly diminished
+#: velocity; a proven innings-eater who gives the Phillies reliable length.
+_PHI_NOLA = PitcherStats(
+    name="Aaron Nola",
+    era=4.20,
+    k_per_9=10.2,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Taijuan Walker — RHP fifth starter; split-changeup specialist who can miss
+#: bats against right-handed lineups; provides depth and spot-start value at
+#: the back of the Philadelphia rotation.
+_PHI_WALKER = PitcherStats(
+    name="Taijuan Walker",
+    era=4.52,
+    k_per_9=8.5,
+    innings_per_start=5.2,
+    whip=1.30,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Phillies starting rotation (ace first).
+PHILLIES_ROTATION_2026: List[PitcherStats] = [
+    _PHI_WHEELER,
+    _PHI_CSANCHEZ,
+    _PHI_LUZARDO,
+    _PHI_NOLA,
+    _PHI_WALKER,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Brad Keller — RHP high-leverage reliever; plus sinker and slider generate
+#: heavy ground balls and keep the ball in the park; a reliable bridge option
+#: in high-leverage situations out of the Phillies bullpen.
+_PHI_KELLER = PitcherStats(
+    name="Brad Keller",
+    era=3.78,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Jose Alvarado — LHP elite setup arm; blazing fastball that regularly touches
+#: triple digits combined with a wipeout slider make him virtually unhittable
+#: from the left side; the Phillies primary left-handed weapon in high-leverage
+#: late-game situations.
+_PHI_ALVARADO = PitcherStats(
+    name="Jose Alvarado",
+    era=3.55,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.16,
+    arm_strength=72.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: Orion Kerkering — RHP high-spin reliever; sharp breaking ball and plus
+#: fastball command give him the ability to miss bats in key spots; projects
+#: as a valuable middle-of-the-bullpen option for Philadelphia.
+_PHI_KERKERING = PitcherStats(
+    name="Orion Kerkering",
+    era=3.82,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Tanner Banks — LHP middle reliever; deceptive delivery and solid command
+#: of a three-pitch mix make him an effective option against left-handed bats
+#: and a versatile weapon from the Phillies bullpen.
+_PHI_BANKS = PitcherStats(
+    name="Tanner Banks",
+    era=4.00,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Jonathan Bowlan — RHP depth reliever; heavy sinker and solid command
+#: provide a ground-ball option with decent strikeout upside out of the
+#: Phillies bullpen.
+_PHI_BOWLAN = PitcherStats(
+    name="Jonathan Bowlan",
+    era=4.12,
+    k_per_9=8.5,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Jhoan Duran — CL, RHP, elite closer; the best ERA in the Phillies bullpen;
+#: triple-digit splinker and elite spin make him virtually untouchable in the
+#: ninth inning; one of the most dominant closers in the National League who
+#: locks down games for Philadelphia.
+_PHI_DURAN = PitcherStats(
+    name="Jhoan Duran",
+    era=2.55,
+    k_per_9=13.5,
+    innings_per_start=1.0,
+    whip=0.98,
+    arm_strength=88.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: 2026 Phillies bullpen (setup arms + closer; closer is last entry, index 5 = Duran).
+PHILLIES_BULLPEN_2026: List[PitcherStats] = [
+    _PHI_KELLER,
+    _PHI_ALVARADO,
+    _PHI_KERKERING,
+    _PHI_BANKS,
+    _PHI_BOWLAN,
+    _PHI_DURAN,
+]
+
+
+@dataclass
+class PhilliesRoster:
+    """
+    Bundle of Philadelphia Phillies projected 2026 depth-chart starters,
+    rotation, and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Jhoan Duran).
+
+    Examples
+    --------
+    ::
+
+        roster = PhilliesRoster.default()
+        print(roster.rotation[0].name)   # "Zack Wheeler"
+        print(roster.lineup[1].name)     # "Bryce Harper"
+        print(roster.bullpen[-1].name)   # "Jhoan Duran"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "PhilliesRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(PHILLIES_LINEUP_2026),
+            rotation=list(PHILLIES_ROTATION_2026),
+            bullpen=list(PHILLIES_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
