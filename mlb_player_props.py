@@ -10658,6 +10658,422 @@ class PiratesRoster:
         )
 
 
+# St. Louis Cardinals — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Pedro Pages
+#   1B – Alec Burleson
+#   2B – JJ Wetherholt
+#   3B – Nolan Gorman
+#   SS – Masyn Winn
+#   LF – Lars Nootbaar
+#   CF – Victor Scott II
+#   RF – Jordan Walker
+#   DH – Ivan Herrera
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Pedro Pages — C, RHP, athletic young catcher with a strong arm and
+#: improving offensive game; projects as the everyday backstop in St. Louis.
+_STL_PAGES = BatterStats(
+    name="Pedro Pages",
+    avg=0.250,
+    obp=0.322,
+    slg=0.408,
+    hr_per_600_pa=14,
+    sb_per_season=3,
+    doubles_per_600_pa=22,
+    games_played=120,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.88,
+    rbi_per_season=52,
+    runs_per_season=52,
+)
+
+#: Alec Burleson — 1B, LHP, left-handed power bat with solid contact skills;
+#: emerging corner presence who drives the ball to all fields and handles
+#: lefties effectively.
+_STL_BURLESON = BatterStats(
+    name="Alec Burleson",
+    avg=0.268,
+    obp=0.330,
+    slg=0.462,
+    hr_per_600_pa=22,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=145,
+    power_rating=68,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=80,
+    runs_per_season=72,
+)
+
+#: JJ Wetherholt — 2B, RHP, energetic young middle infielder with developing
+#: power and solid plate discipline; projects as an offensive catalyst at the
+#: top of the lineup.
+_STL_WETHERHOLT = BatterStats(
+    name="JJ Wetherholt",
+    avg=0.262,
+    obp=0.342,
+    slg=0.430,
+    hr_per_600_pa=14,
+    sb_per_season=12,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=58,
+    runs_per_season=70,
+)
+
+#: Nolan Gorman — 3B, LHP, high-ceiling power hitter with massive raw power;
+#: leads St. Louis in home-run output when healthy and is one of the most
+#: dangerous left-handed bats in the NL Central.
+_STL_GORMAN = BatterStats(
+    name="Nolan Gorman",
+    avg=0.248,
+    obp=0.318,
+    slg=0.500,
+    hr_per_600_pa=32,
+    sb_per_season=4,
+    doubles_per_600_pa=24,
+    games_played=140,
+    power_rating=82,
+    bats="L",
+    pitches_per_pa=3.75,
+    rbi_per_season=90,
+    runs_per_season=75,
+)
+
+#: Masyn Winn — SS, RHP, elite defensive shortstop with growing offensive
+#: contributions; plus speed and improving plate discipline make him an
+#: anchor at the top of the St. Louis order.
+_STL_WINN = BatterStats(
+    name="Masyn Winn",
+    avg=0.270,
+    obp=0.340,
+    slg=0.418,
+    hr_per_600_pa=12,
+    sb_per_season=28,
+    doubles_per_600_pa=26,
+    games_played=152,
+    power_rating=56,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=58,
+    runs_per_season=82,
+)
+
+#: Lars Nootbaar — LF, LHP, patient left-handed hitter with outstanding
+#: on-base skills and solid gap power; an ideal table-setter who draws
+#: walks and works pitchers deep into counts.
+_STL_NOOTBAAR = BatterStats(
+    name="Lars Nootbaar",
+    avg=0.262,
+    obp=0.355,
+    slg=0.445,
+    hr_per_600_pa=16,
+    sb_per_season=10,
+    doubles_per_600_pa=28,
+    games_played=142,
+    power_rating=62,
+    bats="L",
+    pitches_per_pa=4.05,
+    rbi_per_season=65,
+    runs_per_season=78,
+)
+
+#: Victor Scott II — CF, LHP, elite speedster with outstanding range in
+#: center field; leads St. Louis in stolen bases and uses his legs to create
+#: havoc on the basepaths.
+_STL_VSCOTT = BatterStats(
+    name="Victor Scott II",
+    avg=0.255,
+    obp=0.318,
+    slg=0.390,
+    hr_per_600_pa=6,
+    sb_per_season=40,
+    doubles_per_600_pa=22,
+    games_played=148,
+    power_rating=42,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=42,
+    runs_per_season=80,
+)
+
+#: Jordan Walker — RF, RHP, athletic outfielder with big raw power and
+#: developing plate discipline; projects as a cornerstone bat in the Cardinals
+#: lineup as he continues to mature.
+_STL_WALKER = BatterStats(
+    name="Jordan Walker",
+    avg=0.260,
+    obp=0.330,
+    slg=0.460,
+    hr_per_600_pa=22,
+    sb_per_season=8,
+    doubles_per_600_pa=26,
+    games_played=145,
+    power_rating=70,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=75,
+    runs_per_season=70,
+)
+
+#: Ivan Herrera — DH, RHP, switch-hitting offensive catcher used as the
+#: designated hitter; strong bat-to-ball skills and improving power make
+#: him a reliable middle-of-the-order option.
+_STL_HERRERA = BatterStats(
+    name="Ivan Herrera",
+    avg=0.262,
+    obp=0.342,
+    slg=0.440,
+    hr_per_600_pa=16,
+    sb_per_season=2,
+    doubles_per_600_pa=24,
+    games_played=130,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=62,
+    runs_per_season=58,
+)
+
+#: 2026 Cardinals lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+CARDINALS_LINEUP_2026: List[BatterStats] = [
+    _STL_PAGES,
+    _STL_BURLESON,
+    _STL_WETHERHOLT,
+    _STL_GORMAN,
+    _STL_WINN,
+    _STL_NOOTBAAR,
+    _STL_VSCOTT,
+    _STL_WALKER,
+    _STL_HERRERA,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Matthew Liberatore — LHP top-of-rotation arm; improving fastball-changeup
+#: combination allows him to miss bats from the left side and lead the
+#: Cardinals staff.
+_STL_LIBERATORE = PitcherStats(
+    name="Matthew Liberatore",
+    era=3.65,
+    k_per_9=9.8,
+    innings_per_start=6.0,
+    whip=1.20,
+    arm_strength=72.0,
+    throws="L",
+    pitches_per_pa=3.88,
+)
+
+#: Michael McGreevy — RHP solid mid-rotation starter; above-average
+#: command and a plus changeup allow him to pitch to contact and eat innings
+#: in St. Louis.
+_STL_MCGREEVY = PitcherStats(
+    name="Michael McGreevy",
+    era=4.00,
+    k_per_9=8.8,
+    innings_per_start=5.5,
+    whip=1.24,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Dustin May — RHP sinker-slider specialist; elite groundball rate and
+#: above-average velocity give him a ceiling as a No. 3 or better when
+#: healthy.
+_STL_DMAY = PitcherStats(
+    name="Dustin May",
+    era=3.85,
+    k_per_9=9.2,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Kyle Leahy — RHP back-of-rotation option; reliable command of a four-pitch
+#: mix and solid ground-ball tendencies keep him competitive deep into games.
+_STL_LEAHY = PitcherStats(
+    name="Kyle Leahy",
+    era=4.30,
+    k_per_9=7.8,
+    innings_per_start=5.2,
+    whip=1.30,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Andre Pallante — RHP fifth-starter depth; heavy sinker generates weak
+#: contact and keeps the ball on the ground; most effective when ahead in
+#: the count.
+_STL_PALLANTE = PitcherStats(
+    name="Andre Pallante",
+    era=4.45,
+    k_per_9=7.5,
+    innings_per_start=5.0,
+    whip=1.32,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: 2026 Cardinals starting rotation (ace first).
+CARDINALS_ROTATION_2026: List[PitcherStats] = [
+    _STL_LIBERATORE,
+    _STL_MCGREEVY,
+    _STL_DMAY,
+    _STL_LEAHY,
+    _STL_PALLANTE,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Matt Svanson — RHP high-leverage setup arm; sharp slider and plus
+#: fastball-slider combination make him a trusted option in the seventh and
+#: eighth innings.
+_STL_SVANSON = PitcherStats(
+    name="Matt Svanson",
+    era=3.60,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Ryne Stanek — RHP power reliever; triple-digit fastball used as an
+#: opener or in high-leverage situations; misses bats consistently with
+#: elite velocity.
+_STL_STANEK = PitcherStats(
+    name="Ryne Stanek",
+    era=3.40,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Chris Roycroft — RHP middle reliever; solid slider-heavy approach and
+#: above-average groundball rate make him effective against right-handed
+#: bats.
+_STL_ROYCROFT = PitcherStats(
+    name="Chris Roycroft",
+    era=3.80,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: George Soriano — RHP setup specialist; deceptive arm action and a
+#: heavy sinker generate weak contact and keep runners off the bases in
+#: mid-to-late-game situations.
+_STL_GSORIANO = PitcherStats(
+    name="George Soriano",
+    era=3.70,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Matthew Pushard — LHP situational reliever; deceptive left-handed
+#: approach neutralises left-handed bats; used in matchup situations across
+#: the seventh and eighth innings.
+_STL_PUSHARD = PitcherStats(
+    name="Matthew Pushard",
+    era=3.55,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=56.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Riley O'Brien — LHP closer; the best ERA in the Cardinals bullpen; elite
+#: left-handed command and a devastating breaking ball make him the premier
+#: ninth-inning option in St. Louis.
+_STL_OBRIEN = PitcherStats(
+    name="Riley O'Brien",
+    era=2.70,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.08,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.85,
+)
+
+#: 2026 Cardinals bullpen (setup arms + closer; closer is last entry, index 5 = O'Brien).
+CARDINALS_BULLPEN_2026: List[PitcherStats] = [
+    _STL_SVANSON,
+    _STL_STANEK,
+    _STL_ROYCROFT,
+    _STL_GSORIANO,
+    _STL_PUSHARD,
+    _STL_OBRIEN,
+]
+
+
+@dataclass
+class CardinalsRoster:
+    """
+    Bundle of St. Louis Cardinals projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Riley O'Brien).
+
+    Examples
+    --------
+    ::
+
+        roster = CardinalsRoster.default()
+        print(roster.rotation[0].name)   # "Matthew Liberatore"
+        print(roster.lineup[3].name)     # "Nolan Gorman"
+        print(roster.bullpen[-1].name)   # "Riley O'Brien"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "CardinalsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(CARDINALS_LINEUP_2026),
+            rotation=list(CARDINALS_ROTATION_2026),
+            bullpen=list(CARDINALS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

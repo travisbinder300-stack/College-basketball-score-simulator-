@@ -9919,5 +9919,256 @@ class TestPiratesRoster(unittest.TestCase):
         self.assertIn("Marcell Ozuna", player_names)
 
 
+from mlb_player_props import (  # noqa: E402
+    CardinalsRoster,
+    CARDINALS_LINEUP_2026,
+    CARDINALS_ROTATION_2026,
+    CARDINALS_BULLPEN_2026,
+)
+
+_STL_LINEUP_NAMES = [
+    "Pedro Pages",
+    "Alec Burleson",
+    "JJ Wetherholt",
+    "Nolan Gorman",
+    "Masyn Winn",
+    "Lars Nootbaar",
+    "Victor Scott II",
+    "Jordan Walker",
+    "Ivan Herrera",
+]
+
+_STL_ROTATION_NAMES = [
+    "Matthew Liberatore",
+    "Michael McGreevy",
+    "Dustin May",
+    "Kyle Leahy",
+    "Andre Pallante",
+]
+
+_STL_BULLPEN_NAMES = [
+    "Matt Svanson",
+    "Ryne Stanek",
+    "Chris Roycroft",
+    "George Soriano",
+    "Matthew Pushard",
+    "Riley O'Brien",
+]
+
+
+class TestCardinalsRoster(unittest.TestCase):
+    """Tests for CARDINALS_LINEUP_2026, CARDINALS_ROTATION_2026,
+    CARDINALS_BULLPEN_2026, and CardinalsRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(CARDINALS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_starters(self):
+        self.assertEqual(len(CARDINALS_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(CARDINALS_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in CARDINALS_LINEUP_2026], _STL_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in CARDINALS_ROTATION_2026], _STL_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in CARDINALS_BULLPEN_2026], _STL_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in CARDINALS_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()
+
+    def test_batter_avg_in_range(self):
+        for b in CARDINALS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in CARDINALS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in CARDINALS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_nonnegative(self):
+        for b in CARDINALS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in CARDINALS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in CARDINALS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in CARDINALS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — key batters
+    # ------------------------------------------------------------------
+
+    def test_pages_bats_right(self):
+        self.assertEqual(CARDINALS_LINEUP_2026[0].bats, "R")
+
+    def test_burleson_bats_left(self):
+        self.assertEqual(CARDINALS_LINEUP_2026[1].bats, "L")
+
+    def test_gorman_bats_left(self):
+        self.assertEqual(CARDINALS_LINEUP_2026[3].bats, "L")
+
+    def test_winn_bats_right(self):
+        self.assertEqual(CARDINALS_LINEUP_2026[4].bats, "R")
+
+    def test_nootbaar_bats_left(self):
+        self.assertEqual(CARDINALS_LINEUP_2026[5].bats, "L")
+
+    def test_vscott_bats_left(self):
+        self.assertEqual(CARDINALS_LINEUP_2026[6].bats, "L")
+
+    def test_walker_bats_right(self):
+        self.assertEqual(CARDINALS_LINEUP_2026[7].bats, "R")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_pass_validation(self):
+        for p in CARDINALS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_all_bullpen_pass_validation(self):
+        for p in CARDINALS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_rotation_era_positive(self):
+        for p in CARDINALS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_bullpen_era_positive(self):
+        for p in CARDINALS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_rotation_k_per_9_in_range(self):
+        for p in CARDINALS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_bullpen_k_per_9_in_range(self):
+        for p in CARDINALS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_liberatore_throws_left(self):
+        self.assertEqual(CARDINALS_ROTATION_2026[0].throws, "L")
+
+    def test_mcgreevy_throws_right(self):
+        self.assertEqual(CARDINALS_ROTATION_2026[1].throws, "R")
+
+    def test_pushard_throws_left(self):
+        pushard = next(p for p in CARDINALS_BULLPEN_2026 if p.name == "Matthew Pushard")
+        self.assertEqual(pushard.throws, "L")
+
+    def test_obrien_throws_left(self):
+        self.assertEqual(CARDINALS_BULLPEN_2026[-1].throws, "L")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_liberatore_has_best_rotation_era(self):
+        """Matthew Liberatore is modelled as the ace (best ERA) in the rotation."""
+        min_era = min(p.era for p in CARDINALS_ROTATION_2026)
+        self.assertAlmostEqual(CARDINALS_ROTATION_2026[0].era, min_era)
+
+    def test_obrien_has_best_bullpen_era(self):
+        """Riley O'Brien (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in CARDINALS_BULLPEN_2026)
+        self.assertAlmostEqual(CARDINALS_BULLPEN_2026[-1].era, min_era)
+
+    def test_gorman_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in CARDINALS_LINEUP_2026)
+        self.assertAlmostEqual(CARDINALS_LINEUP_2026[3].hr_per_600_pa, max_hr)
+
+    def test_gorman_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in CARDINALS_LINEUP_2026)
+        self.assertAlmostEqual(CARDINALS_LINEUP_2026[3].power_rating, max_power)
+
+    def test_vscott_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in CARDINALS_LINEUP_2026)
+        self.assertAlmostEqual(CARDINALS_LINEUP_2026[6].sb_per_season, max_sb)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(CARDINALS_BULLPEN_2026[-1].era, CARDINALS_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # CardinalsRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_cardinals_roster_instance(self):
+        self.assertIsInstance(CardinalsRoster.default(), CardinalsRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(CardinalsRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(CardinalsRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(CardinalsRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = CardinalsRoster.default()
+        r2 = CardinalsRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = CardinalsRoster.default()
+        r2 = CardinalsRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = CardinalsRoster.default()
+        r2 = CardinalsRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
 if __name__ == "__main__":
     unittest.main()
