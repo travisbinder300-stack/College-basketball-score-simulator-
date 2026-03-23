@@ -14391,6 +14391,436 @@ DODGERS_BULLPEN_2026: List[PitcherStats] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# San Diego Padres — 2026 Projected Roster
+# ---------------------------------------------------------------------------
+# Depth-chart source (starter at each position):
+#   C  Freddy Fermin · 1B Gavin Sheets · 2B Jake Cronenworth
+#   3B Manny Machado · SS Xander Bogaerts · LF Ramon Laureano
+#   CF Jackson Merrill · RF Fernando Tatis Jr. · DH Miguel Andujar
+#   SP Michael King · Nick Pivetta · Joe Musgrove · Randy Vasquez
+#      · German Marquez
+#   RP Jason Adam · Jeremiah Estrada · Adrian Morejon · Wandy Peralta
+#      · Yuki Matsui · Mason Miller (CL)
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Freddy Fermin — C, bats right; solid defensive catcher with good
+#: contact skills and reliable plate presence; an above-average receiver
+#: who handles the Padres pitching staff well and contributes offensively
+#: from behind the plate.
+_SD_FERMIN = BatterStats(
+    name="Freddy Fermin",
+    avg=0.268,
+    obp=0.318,
+    slg=0.390,
+    hr_per_600_pa=8,
+    sb_per_season=2,
+    doubles_per_600_pa=28,
+    games_played=130,
+    power_rating=50,
+    bats="R",
+    pitches_per_pa=3.70,
+    rbi_per_season=48,
+    runs_per_season=52,
+)
+
+#: Gavin Sheets — 1B, bats left; patient left-handed hitter with solid
+#: gap power and good on-base skills; provides reliable production at
+#: first base and fits well in the middle of the San Diego lineup.
+_SD_SHEETS = BatterStats(
+    name="Gavin Sheets",
+    avg=0.262,
+    obp=0.330,
+    slg=0.462,
+    hr_per_600_pa=22,
+    sb_per_season=2,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=70,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=74,
+    runs_per_season=66,
+)
+
+#: Jake Cronenworth — 2B, bats left; versatile left-handed infielder
+#: with solid contact skills, above-average plate discipline, and
+#: reliable defense; provides steady offensive production and positional
+#: flexibility throughout the San Diego lineup.
+_SD_CRONENWORTH = BatterStats(
+    name="Jake Cronenworth",
+    avg=0.258,
+    obp=0.338,
+    slg=0.428,
+    hr_per_600_pa=18,
+    sb_per_season=8,
+    doubles_per_600_pa=28,
+    games_played=145,
+    power_rating=64,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=68,
+    runs_per_season=72,
+)
+
+#: Manny Machado — 3B, bats right; perennial All-Star third baseman with
+#: elite power, above-average contact, and gold-glove-caliber defense;
+#: one of the best all-around players in the National League and the
+#: cornerstone of the Padres franchise.
+_SD_MACHADO = BatterStats(
+    name="Manny Machado",
+    avg=0.282,
+    obp=0.358,
+    slg=0.510,
+    hr_per_600_pa=28,
+    sb_per_season=6,
+    doubles_per_600_pa=34,
+    games_played=150,
+    power_rating=84,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=92,
+    runs_per_season=84,
+)
+
+#: Xander Bogaerts — SS, bats right; veteran shortstop with excellent
+#: contact skills, solid power for his position, and consistent
+#: on-base ability; provides proven middle-of-the-order production
+#: and above-average defense in the San Diego infield.
+_SD_BOGAERTS = BatterStats(
+    name="Xander Bogaerts",
+    avg=0.272,
+    obp=0.344,
+    slg=0.470,
+    hr_per_600_pa=22,
+    sb_per_season=6,
+    doubles_per_600_pa=30,
+    games_played=140,
+    power_rating=72,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=78,
+    runs_per_season=78,
+)
+
+#: Ramon Laureano — LF, bats right; dynamic right-handed outfielder
+#: with solid power, above-average speed, and a cannon arm in the
+#: outfield; provides an important combination of pop and defense
+#: for the Padres in left field.
+_SD_LAUREANO = BatterStats(
+    name="Ramon Laureano",
+    avg=0.252,
+    obp=0.322,
+    slg=0.462,
+    hr_per_600_pa=24,
+    sb_per_season=14,
+    doubles_per_600_pa=24,
+    games_played=135,
+    power_rating=74,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=68,
+    runs_per_season=70,
+)
+
+#: Jackson Merrill — CF, bats left; electrifying young center fielder
+#: with excellent speed, developing power, and plus defensive instincts;
+#: projects as a cornerstone for the Padres and one of the premier
+#: all-around outfielders in the National League West.
+_SD_MERRILL = BatterStats(
+    name="Jackson Merrill",
+    avg=0.270,
+    obp=0.330,
+    slg=0.448,
+    hr_per_600_pa=18,
+    sb_per_season=20,
+    doubles_per_600_pa=30,
+    games_played=155,
+    power_rating=68,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=68,
+    runs_per_season=84,
+)
+
+#: Fernando Tatis Jr. — RF, bats right; electric right fielder with
+#: elite power, premium speed, and the most home runs per 600 PA on
+#: the roster; leads the Padres in HR/600PA, power rating, stolen
+#: bases, and runs scored; one of the most exciting players in baseball.
+_SD_TATIS = BatterStats(
+    name="Fernando Tatis Jr.",
+    avg=0.272,
+    obp=0.342,
+    slg=0.520,
+    hr_per_600_pa=32,
+    sb_per_season=26,
+    doubles_per_600_pa=28,
+    games_played=145,
+    power_rating=88,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=88,
+    runs_per_season=92,
+)
+
+#: Miguel Andujar — DH, bats right; right-handed power hitter who
+#: provides consistent production as the Padres designated hitter;
+#: solid gap power and line-drive stroke make him a reliable middle-of-
+#: the-order presence in the San Diego lineup.
+_SD_ANDUJAR = BatterStats(
+    name="Miguel Andujar",
+    avg=0.268,
+    obp=0.320,
+    slg=0.460,
+    hr_per_600_pa=24,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=74,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=76,
+    runs_per_season=68,
+)
+
+#: 2026 Padres lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+PADRES_LINEUP_2026: List[BatterStats] = [
+    _SD_FERMIN,
+    _SD_SHEETS,
+    _SD_CRONENWORTH,
+    _SD_MACHADO,
+    _SD_BOGAERTS,
+    _SD_LAUREANO,
+    _SD_MERRILL,
+    _SD_TATIS,
+    _SD_ANDUJAR,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Michael King — RHP ace; elite right-hander with outstanding command,
+#: a devastating cutter, and the ability to induce weak contact and
+#: generate swing-and-miss at a premium rate; the clear ace of the
+#: San Diego rotation.
+_SD_KING = PitcherStats(
+    name="Michael King",
+    era=3.30,
+    k_per_9=10.0,
+    innings_per_start=6.0,
+    whip=1.18,
+    arm_strength=78.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Nick Pivetta — RHP second starter; hard-throwing right-hander with
+#: elite velocity, a high-spin curveball, and solid strikeout ability;
+#: gives San Diego a premium swing-and-miss option in the number-two
+#: spot of the rotation.
+_SD_PIVETTA = PitcherStats(
+    name="Nick Pivetta",
+    era=3.80,
+    k_per_9=9.5,
+    innings_per_start=5.5,
+    whip=1.24,
+    arm_strength=74.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Joe Musgrove — RHP third starter; polished right-hander with
+#: excellent command, multiple quality pitches, and the ability to
+#: work deep into games; provides reliable depth in the middle of
+#: the San Diego starting rotation.
+_SD_MUSGROVE = PitcherStats(
+    name="Joe Musgrove",
+    era=3.50,
+    k_per_9=9.0,
+    innings_per_start=5.8,
+    whip=1.20,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Randy Vasquez — RHP fourth starter; solid right-hander with reliable
+#: stuff and good mound presence; provides quality innings in the
+#: middle of the San Diego rotation as a dependable back-half option.
+_SD_VASQUEZ = PitcherStats(
+    name="Randy Vasquez",
+    era=4.10,
+    k_per_9=8.5,
+    innings_per_start=5.2,
+    whip=1.30,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: German Marquez — RHP fifth starter; veteran right-hander with solid
+#: secondary pitches and quality experience; fills the back of the
+#: Padres rotation providing reliable depth innings.
+_SD_MARQUEZ = PitcherStats(
+    name="German Marquez",
+    era=4.30,
+    k_per_9=8.0,
+    innings_per_start=5.0,
+    whip=1.35,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: 2026 Padres starting rotation (ace first).
+PADRES_ROTATION_2026: List[PitcherStats] = [
+    _SD_KING,
+    _SD_PIVETTA,
+    _SD_MUSGROVE,
+    _SD_VASQUEZ,
+    _SD_MARQUEZ,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Jason Adam — RHP setup reliever; hard-throwing right-hander with a
+#: devastating slider and elite velocity; provides premium high-leverage
+#: setup relief ahead of the closer in the San Diego bullpen.
+_SD_JADAM = PitcherStats(
+    name="Jason Adam",
+    era=3.00,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Jeremiah Estrada — RHP middle reliever; electric right-hander with
+#: high-spin stuff and the ability to miss bats in multiple innings;
+#: provides valuable swing-and-miss depth in the San Diego bullpen.
+_SD_ESTRADA = PitcherStats(
+    name="Jeremiah Estrada",
+    era=3.30,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Adrian Morejon — LHP middle reliever; left-handed specialist with
+#: solid velocity and a quality arsenal; provides important left-handed
+#: depth and situational flexibility in the San Diego bullpen.
+_SD_MOREJON = PitcherStats(
+    name="Adrian Morejon",
+    era=3.50,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Wandy Peralta — LHP setup reliever; crafty left-hander with excellent
+#: movement on his pitches and the ability to neutralize tough left-handed
+#: hitters; provides quality left-handed leverage options in the San
+#: Diego late-inning mix.
+_SD_PERALTA = PitcherStats(
+    name="Wandy Peralta",
+    era=3.20,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=70.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Yuki Matsui — LHP depth reliever; left-handed arm with a deceptive
+#: delivery and quality offspeed; provides back-of-the-bullpen depth
+#: and multi-inning capability for the San Diego pitching staff.
+_SD_MATSUI = PitcherStats(
+    name="Yuki Matsui",
+    era=3.40,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=70.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Mason Miller — CL, RHP, elite closer; the best ERA in the San Diego
+#: bullpen; triple-digit heat and a devastating slider make him virtually
+#: unhittable in save situations; one of the most dominant closers in
+#: baseball and the anchor of the Padres ninth inning.
+_SD_MILLER = PitcherStats(
+    name="Mason Miller",
+    era=2.50,
+    k_per_9=13.5,
+    innings_per_start=1.0,
+    whip=1.00,
+    arm_strength=92.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: 2026 Padres bullpen (setup arms + closer; closer is last entry, index 5 = Miller).
+PADRES_BULLPEN_2026: List[PitcherStats] = [
+    _SD_JADAM,
+    _SD_ESTRADA,
+    _SD_MOREJON,
+    _SD_PERALTA,
+    _SD_MATSUI,
+    _SD_MILLER,
+]
+
+
+@dataclass
+class PadresRoster:
+    """
+    Bundle of San Diego Padres projected 2026 depth-chart starters,
+    rotation, and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Mason Miller).
+
+    Examples
+    --------
+    ::
+
+        roster = PadresRoster.default()
+        print(roster.rotation[0].name)   # "Michael King"
+        print(roster.lineup[7].name)     # "Fernando Tatis Jr."
+        print(roster.bullpen[-1].name)   # "Mason Miller"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "PadresRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(PADRES_LINEUP_2026),
+            rotation=list(PADRES_ROTATION_2026),
+            bullpen=list(PADRES_BULLPEN_2026),
+        )
+
+
 @dataclass
 class DodgersRoster:
     """

@@ -11825,6 +11825,204 @@ class TestRockiesRoster(unittest.TestCase):
 
 
 from mlb_player_props import (  # noqa: E402
+    PadresRoster,
+    PADRES_LINEUP_2026,
+    PADRES_ROTATION_2026,
+    PADRES_BULLPEN_2026,
+)
+
+_SD_LINEUP_NAMES = [
+    "Freddy Fermin",
+    "Gavin Sheets",
+    "Jake Cronenworth",
+    "Manny Machado",
+    "Xander Bogaerts",
+    "Ramon Laureano",
+    "Jackson Merrill",
+    "Fernando Tatis Jr.",
+    "Miguel Andujar",
+]
+
+_SD_ROTATION_NAMES = [
+    "Michael King",
+    "Nick Pivetta",
+    "Joe Musgrove",
+    "Randy Vasquez",
+    "German Marquez",
+]
+
+_SD_BULLPEN_NAMES = [
+    "Jason Adam",
+    "Jeremiah Estrada",
+    "Adrian Morejon",
+    "Wandy Peralta",
+    "Yuki Matsui",
+    "Mason Miller",
+]
+
+
+class TestPadresRoster(unittest.TestCase):
+    """Tests for PADRES_LINEUP_2026, PADRES_ROTATION_2026,
+    PADRES_BULLPEN_2026, and PadresRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_length(self):
+        self.assertEqual(len(PADRES_LINEUP_2026), 9)
+
+    def test_rotation_length(self):
+        self.assertEqual(len(PADRES_ROTATION_2026), 5)
+
+    def test_bullpen_length(self):
+        self.assertEqual(len(PADRES_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in PADRES_LINEUP_2026], _SD_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in PADRES_ROTATION_2026], _SD_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in PADRES_BULLPEN_2026], _SD_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — data quality
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_positive(self):
+        for batter in PADRES_LINEUP_2026:
+            self.assertGreater(batter.avg, 0)
+
+    def test_all_lineup_obp_above_avg(self):
+        for b in PADRES_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_all_lineup_slg_above_avg(self):
+        for b in PADRES_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_all_lineup_hr_nonneg(self):
+        for b in PADRES_LINEUP_2026:
+            self.assertGreaterEqual(b.hr_per_600_pa, 0)
+
+    def test_all_lineup_sb_nonneg(self):
+        for b in PADRES_LINEUP_2026:
+            self.assertGreaterEqual(b.sb_per_season, 0)
+
+    def test_all_rotation_era_positive(self):
+        for p in PADRES_ROTATION_2026:
+            self.assertGreater(p.era, 0)
+
+    def test_all_bullpen_era_positive(self):
+        for p in PADRES_BULLPEN_2026:
+            self.assertGreater(p.era, 0)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — handedness
+    # ------------------------------------------------------------------
+
+    def test_fermin_bats_right(self):
+        self.assertEqual(PADRES_LINEUP_2026[0].bats, "R")
+
+    def test_sheets_bats_left(self):
+        self.assertEqual(PADRES_LINEUP_2026[1].bats, "L")
+
+    def test_cronenworth_bats_left(self):
+        self.assertEqual(PADRES_LINEUP_2026[2].bats, "L")
+
+    def test_machado_bats_right(self):
+        self.assertEqual(PADRES_LINEUP_2026[3].bats, "R")
+
+    def test_bogaerts_bats_right(self):
+        self.assertEqual(PADRES_LINEUP_2026[4].bats, "R")
+
+    def test_laureano_bats_right(self):
+        self.assertEqual(PADRES_LINEUP_2026[5].bats, "R")
+
+    def test_merrill_bats_left(self):
+        self.assertEqual(PADRES_LINEUP_2026[6].bats, "L")
+
+    def test_tatis_bats_right(self):
+        self.assertEqual(PADRES_LINEUP_2026[7].bats, "R")
+
+    def test_andujar_bats_right(self):
+        self.assertEqual(PADRES_LINEUP_2026[8].bats, "R")
+
+    # ------------------------------------------------------------------
+    # Module-level constants — statistical leaders
+    # ------------------------------------------------------------------
+
+    def test_king_has_best_rotation_era(self):
+        """Michael King (ace) has the best ERA in the rotation."""
+        min_era = min(p.era for p in PADRES_ROTATION_2026)
+        self.assertAlmostEqual(PADRES_ROTATION_2026[0].era, min_era)
+
+    def test_miller_has_best_bullpen_era(self):
+        """Mason Miller (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in PADRES_BULLPEN_2026)
+        self.assertAlmostEqual(PADRES_BULLPEN_2026[-1].era, min_era)
+
+    def test_tatis_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in PADRES_LINEUP_2026)
+        self.assertAlmostEqual(PADRES_LINEUP_2026[7].hr_per_600_pa, max_hr)
+
+    def test_tatis_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in PADRES_LINEUP_2026)
+        self.assertAlmostEqual(PADRES_LINEUP_2026[7].power_rating, max_power)
+
+    def test_tatis_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in PADRES_LINEUP_2026)
+        self.assertAlmostEqual(PADRES_LINEUP_2026[7].sb_per_season, max_sb)
+
+    def test_machado_leads_rbi(self):
+        max_rbi = max(b.rbi_per_season for b in PADRES_LINEUP_2026)
+        self.assertAlmostEqual(PADRES_LINEUP_2026[3].rbi_per_season, max_rbi)
+
+    def test_tatis_leads_runs(self):
+        max_runs = max(b.runs_per_season for b in PADRES_LINEUP_2026)
+        self.assertAlmostEqual(PADRES_LINEUP_2026[7].runs_per_season, max_runs)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(PADRES_BULLPEN_2026[-1].era, PADRES_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # PadresRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_padres_roster_instance(self):
+        self.assertIsInstance(PadresRoster.default(), PadresRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(PadresRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(PadresRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(PadresRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = PadresRoster.default()
+        r2 = PadresRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = PadresRoster.default()
+        r2 = PadresRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = PadresRoster.default()
+        r2 = PadresRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
+from mlb_player_props import (  # noqa: E402
     DodgersRoster,
     DODGERS_LINEUP_2026,
     DODGERS_ROTATION_2026,
