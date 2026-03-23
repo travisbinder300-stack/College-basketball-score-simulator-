@@ -11492,6 +11492,424 @@ class BravesRoster:
         )
 
 
+# Miami Marlins — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Agustin Ramirez
+#   1B – Christopher Morel
+#   2B – Xavier Edwards
+#   3B – Connor Norby
+#   SS – Otto Lopez
+#   LF – Kyle Stowers
+#   CF – Jakob Marsee
+#   RF – Owen Caissie
+#   DH – Griffin Conine
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Agustin Ramirez — C, RHP, young catching prospect with a strong defensive
+#: profile and developing offensive tools; projects as the everyday catcher
+#: in Miami after moving through the system rapidly.
+_MIA_RAMIREZ_A = BatterStats(
+    name="Agustin Ramirez",
+    avg=0.248,
+    obp=0.318,
+    slg=0.400,
+    hr_per_600_pa=14,
+    sb_per_season=2,
+    doubles_per_600_pa=20,
+    games_played=95,
+    power_rating=56,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=42,
+    runs_per_season=38,
+)
+
+#: Christopher Morel — 1B, RHP, versatile power bat with above-average raw
+#: strength; projects into the corner spot and provides a high-ceiling
+#: offensive option anchoring the Miami lineup.
+_MIA_MOREL = BatterStats(
+    name="Christopher Morel",
+    avg=0.238,
+    obp=0.308,
+    slg=0.450,
+    hr_per_600_pa=28,
+    sb_per_season=8,
+    doubles_per_600_pa=24,
+    games_played=135,
+    power_rating=74,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=72,
+    runs_per_season=60,
+)
+
+#: Xavier Edwards — 2B, S, switch-hitting speedster with outstanding contact
+#: ability and elite plate coverage; one of the fastest players in the game
+#: and a dynamic top-of-the-order threat.
+_MIA_EDWARDS = BatterStats(
+    name="Xavier Edwards",
+    avg=0.285,
+    obp=0.348,
+    slg=0.390,
+    hr_per_600_pa=6,
+    sb_per_season=34,
+    doubles_per_600_pa=24,
+    games_played=140,
+    power_rating=42,
+    bats="S",
+    pitches_per_pa=3.72,
+    rbi_per_season=48,
+    runs_per_season=78,
+)
+
+#: Connor Norby — 3B, RHP, athletic infielder with solid all-around offensive
+#: contributions; provides reliable contact and sneaky gap power from the
+#: third-base slot in the Miami lineup.
+_MIA_NORBY = BatterStats(
+    name="Connor Norby",
+    avg=0.255,
+    obp=0.320,
+    slg=0.415,
+    hr_per_600_pa=16,
+    sb_per_season=10,
+    doubles_per_600_pa=26,
+    games_played=130,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.76,
+    rbi_per_season=52,
+    runs_per_season=56,
+)
+
+#: Otto Lopez — SS, RHP, versatile utility infielder with above-average
+#: contact skills and the defensive versatility to hold his own at shortstop;
+#: brings reliable contact from the bottom of the order.
+_MIA_OLOPEZ = BatterStats(
+    name="Otto Lopez",
+    avg=0.262,
+    obp=0.320,
+    slg=0.380,
+    hr_per_600_pa=8,
+    sb_per_season=12,
+    doubles_per_600_pa=22,
+    games_played=120,
+    power_rating=44,
+    bats="R",
+    pitches_per_pa=3.75,
+    rbi_per_season=42,
+    runs_per_season=50,
+)
+
+#: Kyle Stowers — LF, LHP, left-handed power bat with an improving approach;
+#: generates plus raw power from the left side and provides everyday
+#: production from the left-field corner in Miami.
+_MIA_STOWERS = BatterStats(
+    name="Kyle Stowers",
+    avg=0.245,
+    obp=0.315,
+    slg=0.445,
+    hr_per_600_pa=22,
+    sb_per_season=6,
+    doubles_per_600_pa=24,
+    games_played=125,
+    power_rating=68,
+    bats="L",
+    pitches_per_pa=3.80,
+    rbi_per_season=62,
+    runs_per_season=55,
+)
+
+#: Jakob Marsee — CF, LHP, athletic center fielder with plus speed and
+#: developing offensive game; projects as the everyday center fielder and
+#: provides excellent range with a patient approach at the plate.
+_MIA_MARSEE = BatterStats(
+    name="Jakob Marsee",
+    avg=0.258,
+    obp=0.330,
+    slg=0.390,
+    hr_per_600_pa=8,
+    sb_per_season=28,
+    doubles_per_600_pa=20,
+    games_played=130,
+    power_rating=44,
+    bats="L",
+    pitches_per_pa=3.75,
+    rbi_per_season=40,
+    runs_per_season=60,
+)
+
+#: Owen Caissie — RF, LHP, left-handed power outfielder with high-ceiling
+#: offensive tools and developing plate coverage; a top prospect stepping
+#: into an everyday role in Miami's right-field corner.
+_MIA_CAISSIE = BatterStats(
+    name="Owen Caissie",
+    avg=0.252,
+    obp=0.328,
+    slg=0.460,
+    hr_per_600_pa=24,
+    sb_per_season=6,
+    doubles_per_600_pa=26,
+    games_played=130,
+    power_rating=72,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=65,
+    runs_per_season=55,
+)
+
+#: Griffin Conine — DH, LHP, left-handed power hitter deployed as the
+#: designated hitter; generates above-average raw power and provides a
+#: dangerous bat from the middle of the Miami order.
+_MIA_CONINE = BatterStats(
+    name="Griffin Conine",
+    avg=0.242,
+    obp=0.312,
+    slg=0.455,
+    hr_per_600_pa=26,
+    sb_per_season=4,
+    doubles_per_600_pa=22,
+    games_played=128,
+    power_rating=70,
+    bats="L",
+    pitches_per_pa=3.80,
+    rbi_per_season=68,
+    runs_per_season=52,
+)
+
+#: 2026 Marlins lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+MARLINS_LINEUP_2026: List[BatterStats] = [
+    _MIA_RAMIREZ_A,
+    _MIA_MOREL,
+    _MIA_EDWARDS,
+    _MIA_NORBY,
+    _MIA_OLOPEZ,
+    _MIA_STOWERS,
+    _MIA_MARSEE,
+    _MIA_CAISSIE,
+    _MIA_CONINE,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Sandy Alcantara — RHP ace; elite durability and a diverse four-pitch mix
+#: headlined by a plus fastball and devastating changeup; the unquestioned
+#: ace of the Miami staff when healthy and at the top of his game.
+_MIA_ALCANTARA = PitcherStats(
+    name="Sandy Alcantara",
+    era=3.40,
+    k_per_9=9.8,
+    innings_per_start=6.5,
+    whip=1.14,
+    arm_strength=80.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: Eury Perez — RHP high-ceiling young starter; electric arm with a
+#: devastating slider and improving command; projects as a future ace
+#: and steps into the number-two role behind Alcantara.
+_MIA_EPEREZ = PitcherStats(
+    name="Eury Perez",
+    era=3.75,
+    k_per_9=10.5,
+    innings_per_start=5.8,
+    whip=1.20,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Max Meyer — RHP mid-rotation arm; high-velocity fastball paired with a
+#: sharp slider give him the ability to miss bats and post solid strikeout
+#: numbers deep into games for Miami.
+_MIA_MMEYER = PitcherStats(
+    name="Max Meyer",
+    era=4.00,
+    k_per_9=10.0,
+    innings_per_start=5.5,
+    whip=1.24,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Chris Paddack — RHP back-of-rotation option; solid three-pitch mix and
+#: above-average command give him the ability to eat innings and keep Miami
+#: competitive through the middle of the order.
+_MIA_PADDACK = PitcherStats(
+    name="Chris Paddack",
+    era=4.35,
+    k_per_9=8.8,
+    innings_per_start=5.2,
+    whip=1.28,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Janson Junk — RHP fifth-starter depth; relies on plus command and a
+#: deceptive delivery to generate weak contact; most effective when he
+#: throws strikes early and works quickly through opposing lineups.
+_MIA_JUNK = PitcherStats(
+    name="Janson Junk",
+    era=4.65,
+    k_per_9=7.5,
+    innings_per_start=5.0,
+    whip=1.35,
+    arm_strength=56.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Marlins starting rotation (ace first).
+MARLINS_ROTATION_2026: List[PitcherStats] = [
+    _MIA_ALCANTARA,
+    _MIA_EPEREZ,
+    _MIA_MMEYER,
+    _MIA_PADDACK,
+    _MIA_JUNK,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Calvin Faucher — RHP high-leverage setup arm; elite velocity and a
+#: sharp breaking ball make him one of the most trusted late-inning options
+#: in the Miami bullpen.
+_MIA_FAUCHER = PitcherStats(
+    name="Calvin Faucher",
+    era=3.60,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Anthony Bender — RHP setup specialist; electric sinker-slider combination
+#: generates ground balls and swinging strikes; a reliable bridge arm
+#: between the rotation and the closer in Miami.
+_MIA_BENDER = PitcherStats(
+    name="Anthony Bender",
+    era=3.70,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: John King — LHP middle reliever; effective left-handed option with a
+#: deceptive arm angle; neutralises left-handed bats and provides a
+#: reliable matchup option through the middle innings for Miami.
+_MIA_KING = PitcherStats(
+    name="John King",
+    era=3.85,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.25,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Lake Bachar — RHP middle reliever; high spin-rate slider and solid
+#: fastball command give him the ability to post above-average strikeout
+#: numbers out of the Miami bullpen.
+_MIA_BACHAR = PitcherStats(
+    name="Lake Bachar",
+    era=4.00,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Tyler Phillips — RHP swingman/long reliever; solid command and a reliable
+#: four-pitch mix allow him to work multiple innings and provide length
+#: behind the starter when needed by Miami.
+_MIA_TPHILLIPS = PitcherStats(
+    name="Tyler Phillips",
+    era=4.20,
+    k_per_9=8.0,
+    innings_per_start=1.5,
+    whip=1.32,
+    arm_strength=54.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Pete Fairbanks — CL, RHP, elite closer; the best ERA in the Miami
+#: bullpen; devastating splitter paired with premium fastball velocity make
+#: him one of the most feared ninth-inning arms in the National League.
+_MIA_FAIRBANKS = PitcherStats(
+    name="Pete Fairbanks",
+    era=2.80,
+    k_per_9=12.0,
+    innings_per_start=1.0,
+    whip=1.05,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Marlins bullpen (setup arms + closer; closer is last entry, index 5 = Fairbanks).
+MARLINS_BULLPEN_2026: List[PitcherStats] = [
+    _MIA_FAUCHER,
+    _MIA_BENDER,
+    _MIA_KING,
+    _MIA_BACHAR,
+    _MIA_TPHILLIPS,
+    _MIA_FAIRBANKS,
+]
+
+
+@dataclass
+class MarlinsRoster:
+    """
+    Bundle of Miami Marlins projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Pete Fairbanks).
+
+    Examples
+    --------
+    ::
+
+        roster = MarlinsRoster.default()
+        print(roster.rotation[0].name)   # "Sandy Alcantara"
+        print(roster.lineup[2].name)     # "Xavier Edwards"
+        print(roster.bullpen[-1].name)   # "Pete Fairbanks"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "MarlinsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(MARLINS_LINEUP_2026),
+            rotation=list(MARLINS_ROTATION_2026),
+            bullpen=list(MARLINS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

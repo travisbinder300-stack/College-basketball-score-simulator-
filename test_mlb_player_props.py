@@ -10425,5 +10425,256 @@ class TestBravesRoster(unittest.TestCase):
         self.assertEqual(len(r2.bullpen), 6)
 
 
+from mlb_player_props import (  # noqa: E402
+    MarlinsRoster,
+    MARLINS_LINEUP_2026,
+    MARLINS_ROTATION_2026,
+    MARLINS_BULLPEN_2026,
+)
+
+_MIA_LINEUP_NAMES = [
+    "Agustin Ramirez",
+    "Christopher Morel",
+    "Xavier Edwards",
+    "Connor Norby",
+    "Otto Lopez",
+    "Kyle Stowers",
+    "Jakob Marsee",
+    "Owen Caissie",
+    "Griffin Conine",
+]
+
+_MIA_ROTATION_NAMES = [
+    "Sandy Alcantara",
+    "Eury Perez",
+    "Max Meyer",
+    "Chris Paddack",
+    "Janson Junk",
+]
+
+_MIA_BULLPEN_NAMES = [
+    "Calvin Faucher",
+    "Anthony Bender",
+    "John King",
+    "Lake Bachar",
+    "Tyler Phillips",
+    "Pete Fairbanks",
+]
+
+
+class TestMarlinsRoster(unittest.TestCase):
+    """Tests for MARLINS_LINEUP_2026, MARLINS_ROTATION_2026,
+    MARLINS_BULLPEN_2026, and MarlinsRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_has_nine_batters(self):
+        self.assertEqual(len(MARLINS_LINEUP_2026), 9)
+
+    def test_rotation_has_five_starters(self):
+        self.assertEqual(len(MARLINS_ROTATION_2026), 5)
+
+    def test_bullpen_has_six_pitchers(self):
+        self.assertEqual(len(MARLINS_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in MARLINS_LINEUP_2026], _MIA_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in MARLINS_ROTATION_2026], _MIA_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in MARLINS_BULLPEN_2026], _MIA_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in MARLINS_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()
+
+    def test_batter_avg_in_range(self):
+        for b in MARLINS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in MARLINS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in MARLINS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_nonnegative(self):
+        for b in MARLINS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in MARLINS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in MARLINS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in MARLINS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — key batters
+    # ------------------------------------------------------------------
+
+    def test_ramirez_bats_right(self):
+        self.assertEqual(MARLINS_LINEUP_2026[0].bats, "R")
+
+    def test_morel_bats_right(self):
+        self.assertEqual(MARLINS_LINEUP_2026[1].bats, "R")
+
+    def test_edwards_bats_switch(self):
+        self.assertEqual(MARLINS_LINEUP_2026[2].bats, "S")
+
+    def test_stowers_bats_left(self):
+        self.assertEqual(MARLINS_LINEUP_2026[5].bats, "L")
+
+    def test_marsee_bats_left(self):
+        self.assertEqual(MARLINS_LINEUP_2026[6].bats, "L")
+
+    def test_caissie_bats_left(self):
+        self.assertEqual(MARLINS_LINEUP_2026[7].bats, "L")
+
+    def test_conine_bats_left(self):
+        self.assertEqual(MARLINS_LINEUP_2026[8].bats, "L")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_pass_validation(self):
+        for p in MARLINS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_all_bullpen_pass_validation(self):
+        for p in MARLINS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_rotation_era_positive(self):
+        for p in MARLINS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_bullpen_era_positive(self):
+        for p in MARLINS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_rotation_k_per_9_in_range(self):
+        for p in MARLINS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_bullpen_k_per_9_in_range(self):
+        for p in MARLINS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_alcantara_throws_right(self):
+        self.assertEqual(MARLINS_ROTATION_2026[0].throws, "R")
+
+    def test_perez_throws_right(self):
+        self.assertEqual(MARLINS_ROTATION_2026[1].throws, "R")
+
+    def test_king_throws_left(self):
+        king = next(p for p in MARLINS_BULLPEN_2026 if p.name == "John King")
+        self.assertEqual(king.throws, "L")
+
+    def test_fairbanks_throws_right(self):
+        self.assertEqual(MARLINS_BULLPEN_2026[-1].throws, "R")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_alcantara_has_best_rotation_era(self):
+        """Sandy Alcantara is modelled as the ace (best ERA) in the rotation."""
+        min_era = min(p.era for p in MARLINS_ROTATION_2026)
+        self.assertAlmostEqual(MARLINS_ROTATION_2026[0].era, min_era)
+
+    def test_fairbanks_has_best_bullpen_era(self):
+        """Pete Fairbanks (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in MARLINS_BULLPEN_2026)
+        self.assertAlmostEqual(MARLINS_BULLPEN_2026[-1].era, min_era)
+
+    def test_morel_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in MARLINS_LINEUP_2026)
+        self.assertAlmostEqual(MARLINS_LINEUP_2026[1].hr_per_600_pa, max_hr)
+
+    def test_morel_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in MARLINS_LINEUP_2026)
+        self.assertAlmostEqual(MARLINS_LINEUP_2026[1].power_rating, max_power)
+
+    def test_edwards_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in MARLINS_LINEUP_2026)
+        self.assertAlmostEqual(MARLINS_LINEUP_2026[2].sb_per_season, max_sb)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(MARLINS_BULLPEN_2026[-1].era, MARLINS_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # MarlinsRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_marlins_roster_instance(self):
+        self.assertIsInstance(MarlinsRoster.default(), MarlinsRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(MarlinsRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(MarlinsRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(MarlinsRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = MarlinsRoster.default()
+        r2 = MarlinsRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = MarlinsRoster.default()
+        r2 = MarlinsRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = MarlinsRoster.default()
+        r2 = MarlinsRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
 if __name__ == "__main__":
     unittest.main()
