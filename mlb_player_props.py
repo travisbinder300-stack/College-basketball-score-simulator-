@@ -13175,6 +13175,422 @@ class NationalsRoster:
         )
 
 
+# Arizona Diamondbacks — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Gabriel Moreno
+#   1B – Pavin Smith
+#   2B – Ketel Marte
+#   3B – Nolan Arenado
+#   SS – Geraldo Perdomo
+#   LF – Alek Thomas
+#   CF – Jordan Lawlar
+#   RF – Corbin Carroll
+#   DH – Carlos Santana
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Gabriel Moreno — C, bats right; athletic catcher with plus arm strength
+#: and an improving offensive profile; provides reliable contact and solid
+#: defensive presence behind the plate for Arizona.
+_ARI_MORENO = BatterStats(
+    name="Gabriel Moreno",
+    avg=0.268,
+    obp=0.322,
+    slg=0.400,
+    hr_per_600_pa=12,
+    sb_per_season=4,
+    doubles_per_600_pa=22,
+    games_played=115,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.70,
+    rbi_per_season=52,
+    runs_per_season=54,
+)
+
+#: Pavin Smith — 1B, bats left; patient left-handed bat with solid gap
+#: power and above-average on-base skills; provides reliable production
+#: at first base and serves as lineup depth across positions for Arizona.
+_ARI_PSMITH = BatterStats(
+    name="Pavin Smith",
+    avg=0.258,
+    obp=0.338,
+    slg=0.418,
+    hr_per_600_pa=14,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=130,
+    power_rating=60,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=62,
+    runs_per_season=60,
+)
+
+#: Ketel Marte — 2B, switch hitter; one of the best all-around hitters in
+#: the National League; elite contact from both sides of the plate combined
+#: with premium raw power makes him the clear offensive centerpiece of
+#: the Arizona lineup; leads the team in home runs and power rating.
+_ARI_MARTE = BatterStats(
+    name="Ketel Marte",
+    avg=0.284,
+    obp=0.358,
+    slg=0.502,
+    hr_per_600_pa=26,
+    sb_per_season=10,
+    doubles_per_600_pa=34,
+    games_played=140,
+    power_rating=84,
+    bats="S",
+    pitches_per_pa=3.84,
+    rbi_per_season=90,
+    runs_per_season=88,
+)
+
+#: Nolan Arenado — 3B, bats right; elite defensive third baseman with
+#: consistent power and reliable run-production; provides middle-of-the-
+#: order production and Gold Glove defense for the Arizona infield.
+_ARI_ARENADO = BatterStats(
+    name="Nolan Arenado",
+    avg=0.268,
+    obp=0.326,
+    slg=0.455,
+    hr_per_600_pa=22,
+    sb_per_season=2,
+    doubles_per_600_pa=30,
+    games_played=138,
+    power_rating=76,
+    bats="R",
+    pitches_per_pa=3.74,
+    rbi_per_season=82,
+    runs_per_season=68,
+)
+
+#: Geraldo Perdomo — SS, switch hitter; athletic shortstop with solid
+#: defense and a developing offensive profile; provides reliable depth
+#: across the infield and above-average athleticism in the Arizona lineup.
+_ARI_PERDOMO = BatterStats(
+    name="Geraldo Perdomo",
+    avg=0.258,
+    obp=0.330,
+    slg=0.378,
+    hr_per_600_pa=8,
+    sb_per_season=14,
+    doubles_per_600_pa=22,
+    games_played=135,
+    power_rating=48,
+    bats="S",
+    pitches_per_pa=3.72,
+    rbi_per_season=48,
+    runs_per_season=66,
+)
+
+#: Alek Thomas — LF, bats left; athletic left fielder with above-average
+#: defense and solid contact skills; provides reliable outfield coverage
+#: and depth for the Arizona lineup.
+_ARI_THOMAS = BatterStats(
+    name="Alek Thomas",
+    avg=0.255,
+    obp=0.318,
+    slg=0.400,
+    hr_per_600_pa=12,
+    sb_per_season=12,
+    doubles_per_600_pa=22,
+    games_played=128,
+    power_rating=56,
+    bats="L",
+    pitches_per_pa=3.72,
+    rbi_per_season=52,
+    runs_per_season=62,
+)
+
+#: Jordan Lawlar — CF, bats right; highly touted prospect with premium
+#: athleticism and plus speed; projects as an above-average defensive
+#: center fielder with developing offensive tools for Arizona.
+_ARI_LAWLAR = BatterStats(
+    name="Jordan Lawlar",
+    avg=0.262,
+    obp=0.332,
+    slg=0.412,
+    hr_per_600_pa=12,
+    sb_per_season=16,
+    doubles_per_600_pa=24,
+    games_played=130,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.74,
+    rbi_per_season=56,
+    runs_per_season=68,
+)
+
+#: Corbin Carroll — RF, bats left; elite young outfielder and one of the
+#: most exciting players in baseball; premium speed and athleticism make
+#: him the stolen-base leader on the Arizona roster; developing power
+#: adds another dimension to his offensive game.
+_ARI_CARROLL = BatterStats(
+    name="Corbin Carroll",
+    avg=0.262,
+    obp=0.340,
+    slg=0.438,
+    hr_per_600_pa=16,
+    sb_per_season=28,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=66,
+    bats="L",
+    pitches_per_pa=3.76,
+    rbi_per_season=68,
+    runs_per_season=82,
+)
+
+#: Carlos Santana — DH, switch hitter; veteran switch hitter with elite
+#: plate discipline and reliable power; provides experienced middle-of-
+#: the-order production from the designated hitter spot for Arizona.
+_ARI_CSANTANA = BatterStats(
+    name="Carlos Santana",
+    avg=0.245,
+    obp=0.352,
+    slg=0.398,
+    hr_per_600_pa=16,
+    sb_per_season=2,
+    doubles_per_600_pa=24,
+    games_played=125,
+    power_rating=58,
+    bats="S",
+    pitches_per_pa=3.90,
+    rbi_per_season=62,
+    runs_per_season=58,
+)
+
+#: 2026 Diamondbacks lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+DIAMONDBACKS_LINEUP_2026: List[BatterStats] = [
+    _ARI_MORENO,
+    _ARI_PSMITH,
+    _ARI_MARTE,
+    _ARI_ARENADO,
+    _ARI_PERDOMO,
+    _ARI_THOMAS,
+    _ARI_LAWLAR,
+    _ARI_CARROLL,
+    _ARI_CSANTANA,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Merrill Kelly — RHP ace; plus fastball paired with excellent command and
+#: a deep arsenal give him the ability to generate weak contact and work
+#: deep into games; the clear ace of the Arizona rotation when healthy.
+_ARI_KELLY = PitcherStats(
+    name="Merrill Kelly",
+    era=3.60,
+    k_per_9=8.8,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Zac Gallen — RHP second starter; plus changeup and excellent command
+#: make him one of the most reliable arms in the National League West;
+#: consistently works deep into games for Arizona.
+_ARI_GALLEN = PitcherStats(
+    name="Zac Gallen",
+    era=3.85,
+    k_per_9=9.2,
+    innings_per_start=6.0,
+    whip=1.24,
+    arm_strength=74.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Ryne Nelson — RHP third starter; mid-rotation arm with solid command
+#: and a serviceable three-pitch mix; provides reliable innings in the
+#: middle of the Arizona rotation.
+_ARI_NELSON = PitcherStats(
+    name="Ryne Nelson",
+    era=4.10,
+    k_per_9=8.5,
+    innings_per_start=5.8,
+    whip=1.28,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Eduardo Rodriguez — LHP fourth starter; left-handed deception and a
+#: solid changeup-breaking ball combination give him the ability to navigate
+#: lineups as Arizona's left-handed rotation option.
+_ARI_EROD = PitcherStats(
+    name="Eduardo Rodriguez",
+    era=4.30,
+    k_per_9=9.0,
+    innings_per_start=5.5,
+    whip=1.28,
+    arm_strength=66.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Michael Soroka — RHP fifth starter; premium sinker and solid command
+#: generate ground balls and give him the ability to pitch deep into games
+#: at the back end of the Arizona rotation.
+_ARI_SOROKA = PitcherStats(
+    name="Michael Soroka",
+    era=4.55,
+    k_per_9=8.0,
+    innings_per_start=5.5,
+    whip=1.32,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: 2026 Diamondbacks starting rotation (ace first).
+DIAMONDBACKS_ROTATION_2026: List[PitcherStats] = [
+    _ARI_KELLY,
+    _ARI_GALLEN,
+    _ARI_NELSON,
+    _ARI_EROD,
+    _ARI_SOROKA,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Taylor Clarke — RHP setup reliever; power sinker and solid breaking ball
+#: generate ground balls in high-leverage situations out of the Arizona bullpen.
+_ARI_TCLARKE = PitcherStats(
+    name="Taylor Clarke",
+    era=3.72,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Brandyn Garcia — RHP middle reliever; solid fastball-slider combination
+#: provides reliable bullpen depth and multi-inning capability for Arizona.
+_ARI_BGARCIA = PitcherStats(
+    name="Brandyn Garcia",
+    era=3.88,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Juan Morillo — RHP high-leverage reliever; elite velocity and sharp
+#: breaking ball give him significant swing-and-miss ability out of the
+#: Arizona bullpen.
+_ARI_MORILLO = PitcherStats(
+    name="Juan Morillo",
+    era=3.95,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Kevin Ginkel — RHP setup reliever; plus slider and improving fastball
+#: make him a reliable seventh-inning option out of the Arizona bullpen.
+_ARI_GINKEL = PitcherStats(
+    name="Kevin Ginkel",
+    era=3.72,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Ryan Thompson — RHP depth reliever; solid arm provides back-of-the-
+#: bullpen depth and long-relief capability for Arizona.
+_ARI_RTHOMPSON = PitcherStats(
+    name="Ryan Thompson",
+    era=4.05,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Paul Sewald — CL, RHP, elite closer; the best ERA in the Arizona
+#: bullpen; explosive fastball and devastating splitter make him nearly
+#: unhittable in save situations; Arizona's primary ninth-inning option.
+_ARI_SEWALD = PitcherStats(
+    name="Paul Sewald",
+    era=2.88,
+    k_per_9=11.5,
+    innings_per_start=1.0,
+    whip=1.08,
+    arm_strength=78.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Diamondbacks bullpen (setup arms + closer; closer is last entry, index 5 = Sewald).
+DIAMONDBACKS_BULLPEN_2026: List[PitcherStats] = [
+    _ARI_TCLARKE,
+    _ARI_BGARCIA,
+    _ARI_MORILLO,
+    _ARI_GINKEL,
+    _ARI_RTHOMPSON,
+    _ARI_SEWALD,
+]
+
+
+@dataclass
+class DiamondbacksRoster:
+    """
+    Bundle of Arizona Diamondbacks projected 2026 depth-chart starters,
+    rotation, and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Paul Sewald).
+
+    Examples
+    --------
+    ::
+
+        roster = DiamondbacksRoster.default()
+        print(roster.rotation[0].name)   # "Merrill Kelly"
+        print(roster.lineup[2].name)     # "Ketel Marte"
+        print(roster.bullpen[-1].name)   # "Paul Sewald"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "DiamondbacksRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(DIAMONDBACKS_LINEUP_2026),
+            rotation=list(DIAMONDBACKS_ROTATION_2026),
+            bullpen=list(DIAMONDBACKS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

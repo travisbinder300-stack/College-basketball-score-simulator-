@@ -11444,5 +11444,195 @@ class TestNationalsRoster(unittest.TestCase):
         self.assertEqual(len(r2.bullpen), 6)
 
 
+from mlb_player_props import (  # noqa: E402
+    DiamondbacksRoster,
+    DIAMONDBACKS_LINEUP_2026,
+    DIAMONDBACKS_ROTATION_2026,
+    DIAMONDBACKS_BULLPEN_2026,
+)
+
+_ARI_LINEUP_NAMES = [
+    "Gabriel Moreno",
+    "Pavin Smith",
+    "Ketel Marte",
+    "Nolan Arenado",
+    "Geraldo Perdomo",
+    "Alek Thomas",
+    "Jordan Lawlar",
+    "Corbin Carroll",
+    "Carlos Santana",
+]
+
+_ARI_ROTATION_NAMES = [
+    "Merrill Kelly",
+    "Zac Gallen",
+    "Ryne Nelson",
+    "Eduardo Rodriguez",
+    "Michael Soroka",
+]
+
+_ARI_BULLPEN_NAMES = [
+    "Taylor Clarke",
+    "Brandyn Garcia",
+    "Juan Morillo",
+    "Kevin Ginkel",
+    "Ryan Thompson",
+    "Paul Sewald",
+]
+
+
+class TestDiamondbacksRoster(unittest.TestCase):
+    """Tests for DIAMONDBACKS_LINEUP_2026, DIAMONDBACKS_ROTATION_2026,
+    DIAMONDBACKS_BULLPEN_2026, and DiamondbacksRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_length(self):
+        self.assertEqual(len(DIAMONDBACKS_LINEUP_2026), 9)
+
+    def test_rotation_length(self):
+        self.assertEqual(len(DIAMONDBACKS_ROTATION_2026), 5)
+
+    def test_bullpen_length(self):
+        self.assertEqual(len(DIAMONDBACKS_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in DIAMONDBACKS_LINEUP_2026], _ARI_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in DIAMONDBACKS_ROTATION_2026], _ARI_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in DIAMONDBACKS_BULLPEN_2026], _ARI_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — data quality
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_positive(self):
+        for batter in DIAMONDBACKS_LINEUP_2026:
+            self.assertGreater(batter.avg, 0)
+
+    def test_all_lineup_obp_above_avg(self):
+        for b in DIAMONDBACKS_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_all_lineup_slg_above_avg(self):
+        for b in DIAMONDBACKS_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_all_lineup_hr_nonneg(self):
+        for b in DIAMONDBACKS_LINEUP_2026:
+            self.assertGreaterEqual(b.hr_per_600_pa, 0)
+
+    def test_all_lineup_sb_nonneg(self):
+        for b in DIAMONDBACKS_LINEUP_2026:
+            self.assertGreaterEqual(b.sb_per_season, 0)
+
+    def test_all_rotation_era_positive(self):
+        for p in DIAMONDBACKS_ROTATION_2026:
+            self.assertGreater(p.era, 0)
+
+    def test_all_bullpen_era_positive(self):
+        for p in DIAMONDBACKS_BULLPEN_2026:
+            self.assertGreater(p.era, 0)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — handedness
+    # ------------------------------------------------------------------
+
+    def test_moreno_bats_right(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[0].bats, "R")
+
+    def test_psmith_bats_left(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[1].bats, "L")
+
+    def test_marte_bats_switch(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[2].bats, "S")
+
+    def test_arenado_bats_right(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[3].bats, "R")
+
+    def test_perdomo_bats_switch(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[4].bats, "S")
+
+    def test_thomas_bats_left(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[5].bats, "L")
+
+    def test_lawlar_bats_right(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[6].bats, "R")
+
+    def test_carroll_bats_left(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[7].bats, "L")
+
+    def test_santana_bats_switch(self):
+        self.assertEqual(DIAMONDBACKS_LINEUP_2026[8].bats, "S")
+
+    # ------------------------------------------------------------------
+    # Module-level constants — statistical leaders
+    # ------------------------------------------------------------------
+
+    def test_kelly_has_best_rotation_era(self):
+        """Merrill Kelly (ace) has the best ERA in the rotation."""
+        min_era = min(p.era for p in DIAMONDBACKS_ROTATION_2026)
+        self.assertAlmostEqual(DIAMONDBACKS_ROTATION_2026[0].era, min_era)
+
+    def test_sewald_has_best_bullpen_era(self):
+        """Paul Sewald (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in DIAMONDBACKS_BULLPEN_2026)
+        self.assertAlmostEqual(DIAMONDBACKS_BULLPEN_2026[-1].era, min_era)
+
+    def test_marte_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in DIAMONDBACKS_LINEUP_2026)
+        self.assertAlmostEqual(DIAMONDBACKS_LINEUP_2026[2].hr_per_600_pa, max_hr)
+
+    def test_marte_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in DIAMONDBACKS_LINEUP_2026)
+        self.assertAlmostEqual(DIAMONDBACKS_LINEUP_2026[2].power_rating, max_power)
+
+    def test_carroll_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in DIAMONDBACKS_LINEUP_2026)
+        self.assertAlmostEqual(DIAMONDBACKS_LINEUP_2026[7].sb_per_season, max_sb)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(DIAMONDBACKS_BULLPEN_2026[-1].era, DIAMONDBACKS_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # DiamondbacksRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_diamondbacks_roster_instance(self):
+        self.assertIsInstance(DiamondbacksRoster.default(), DiamondbacksRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(DiamondbacksRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(DiamondbacksRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(DiamondbacksRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = DiamondbacksRoster.default()
+        r2 = DiamondbacksRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = DiamondbacksRoster.default()
+        r2 = DiamondbacksRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = DiamondbacksRoster.default()
+        r2 = DiamondbacksRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
 if __name__ == "__main__":
     unittest.main()
