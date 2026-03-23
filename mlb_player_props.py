@@ -12759,6 +12759,422 @@ class PhilliesRoster:
         )
 
 
+# Washington Nationals — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Keibert Ruiz
+#   1B – Andres Chaparro
+#   2B – Luis Garcia Jr.
+#   3B – Brady House
+#   SS – CJ Abrams
+#   LF – James Wood
+#   CF – Jacob Young
+#   RF – Joey Wiemer
+#   DH – Daylen Lile
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Keibert Ruiz — C, switch hitter; solid all-around catcher with reliable
+#: contact from both sides of the plate, good arm, and improving power;
+#: anchors the Washington battery as the clear starter behind the plate.
+_WSH_RUIZ = BatterStats(
+    name="Keibert Ruiz",
+    avg=0.262,
+    obp=0.330,
+    slg=0.415,
+    hr_per_600_pa=16,
+    sb_per_season=8,
+    doubles_per_600_pa=26,
+    games_played=120,
+    power_rating=62,
+    bats="S",
+    pitches_per_pa=3.78,
+    rbi_per_season=64,
+    runs_per_season=62,
+)
+
+#: Andres Chaparro — 1B, RHP, corner infielder with above-average raw power
+#: and improving contact; right-handed bat who provides middle-of-the-order
+#: production and solid run-production potential for Washington.
+_WSH_CHAPARRO = BatterStats(
+    name="Andres Chaparro",
+    avg=0.260,
+    obp=0.318,
+    slg=0.450,
+    hr_per_600_pa=20,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=130,
+    power_rating=68,
+    bats="R",
+    pitches_per_pa=3.74,
+    rbi_per_season=72,
+    runs_per_season=60,
+)
+
+#: Luis Garcia Jr. — 2B, RHP, versatile middle infielder with solid defense
+#: and improving offensive profile; provides speed, contact, and depth across
+#: multiple infield positions for the Washington lineup.
+_WSH_LGARCIA = BatterStats(
+    name="Luis Garcia Jr.",
+    avg=0.260,
+    obp=0.322,
+    slg=0.400,
+    hr_per_600_pa=12,
+    sb_per_season=14,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=56,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=58,
+    runs_per_season=72,
+)
+
+#: Brady House — 3B, RHP, highly touted prospect with plus power potential
+#: and a strong arm at third base; projects as a middle-of-the-order force
+#: as he continues to develop for Washington.
+_WSH_HOUSE = BatterStats(
+    name="Brady House",
+    avg=0.255,
+    obp=0.315,
+    slg=0.425,
+    hr_per_600_pa=16,
+    sb_per_season=6,
+    doubles_per_600_pa=28,
+    games_played=120,
+    power_rating=64,
+    bats="R",
+    pitches_per_pa=3.76,
+    rbi_per_season=62,
+    runs_per_season=58,
+)
+
+#: CJ Abrams — SS, LHP, athletic shortstop with plus speed and developing
+#: power; leads the team in stolen bases and provides premium athleticism
+#: at the top of the Washington order.
+_WSH_ABRAMS = BatterStats(
+    name="CJ Abrams",
+    avg=0.262,
+    obp=0.330,
+    slg=0.420,
+    hr_per_600_pa=16,
+    sb_per_season=26,
+    doubles_per_600_pa=26,
+    games_played=145,
+    power_rating=62,
+    bats="L",
+    pitches_per_pa=3.74,
+    rbi_per_season=62,
+    runs_per_season=80,
+)
+
+#: James Wood — LF, LHP, elite young outfielder and the best offensive
+#: player on the Nationals; combines premium raw power with above-average
+#: contact skills, plus a long-striding approach that generates elite exit
+#: velocity; leads the team in home runs and power rating.
+_WSH_WOOD = BatterStats(
+    name="James Wood",
+    avg=0.272,
+    obp=0.350,
+    slg=0.480,
+    hr_per_600_pa=26,
+    sb_per_season=12,
+    doubles_per_600_pa=30,
+    games_played=140,
+    power_rating=82,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=86,
+    runs_per_season=82,
+)
+
+#: Jacob Young — CF, RHP, speedy center fielder with outstanding range and
+#: plus athleticism; provides above-average defense and solid stolen-base
+#: threat at the top of the Washington lineup.
+_WSH_YOUNG = BatterStats(
+    name="Jacob Young",
+    avg=0.248,
+    obp=0.312,
+    slg=0.370,
+    hr_per_600_pa=8,
+    sb_per_season=22,
+    doubles_per_600_pa=20,
+    games_played=120,
+    power_rating=44,
+    bats="R",
+    pitches_per_pa=3.68,
+    rbi_per_season=40,
+    runs_per_season=64,
+)
+
+#: Joey Wiemer — RF, RHP, powerful right fielder with a plus arm and raw
+#: pop; strikeout-prone but capable of driving the ball with authority
+#: when he connects; provides right-handed balance in the Washington outfield.
+_WSH_WIEMER = BatterStats(
+    name="Joey Wiemer",
+    avg=0.242,
+    obp=0.308,
+    slg=0.420,
+    hr_per_600_pa=18,
+    sb_per_season=10,
+    doubles_per_600_pa=22,
+    games_played=130,
+    power_rating=64,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=58,
+    runs_per_season=58,
+)
+
+#: Daylen Lile — DH, LHP, left-handed bat with a compact swing and gap
+#: power; provides reliable contact from the designated hitter spot and
+#: serves as depth across the Washington outfield.
+_WSH_LILE = BatterStats(
+    name="Daylen Lile",
+    avg=0.255,
+    obp=0.325,
+    slg=0.420,
+    hr_per_600_pa=14,
+    sb_per_season=10,
+    doubles_per_600_pa=24,
+    games_played=120,
+    power_rating=60,
+    bats="L",
+    pitches_per_pa=3.74,
+    rbi_per_season=54,
+    runs_per_season=62,
+)
+
+#: 2026 Nationals lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+NATIONALS_LINEUP_2026: List[BatterStats] = [
+    _WSH_RUIZ,
+    _WSH_CHAPARRO,
+    _WSH_LGARCIA,
+    _WSH_HOUSE,
+    _WSH_ABRAMS,
+    _WSH_WOOD,
+    _WSH_YOUNG,
+    _WSH_WIEMER,
+    _WSH_LILE,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Cade Cavalli — RHP ace; electric fastball and plus breaking ball give him
+#: significant swing-and-miss potential at the top of the Washington rotation;
+#: the unquestioned ace when healthy and the best pitcher on the Nationals staff.
+_WSH_CAVALLI = PitcherStats(
+    name="Cade Cavalli",
+    era=3.80,
+    k_per_9=10.0,
+    innings_per_start=5.8,
+    whip=1.22,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Zack Littell — RHP second starter; plus sinker and solid command of a
+#: three-pitch mix generate ground balls and keep Washington competitive
+#: through five-plus innings; a reliable mid-rotation option.
+_WSH_LITTELL = PitcherStats(
+    name="Zack Littell",
+    era=4.10,
+    k_per_9=8.5,
+    innings_per_start=5.8,
+    whip=1.28,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Foster Griffin — LHP third starter; deceptive arm angle and a solid
+#: changeup-curveball combination give him the ability to navigate lineups
+#: as a left-handed mid-rotation arm for Washington.
+_WSH_GRIFFIN = PitcherStats(
+    name="Foster Griffin",
+    era=4.40,
+    k_per_9=8.8,
+    innings_per_start=5.5,
+    whip=1.30,
+    arm_strength=64.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Miles Mikolas — RHP fourth starter; sinker-heavy approach and elite
+#: command allow him to pitch deep into games with minimal walks; provides
+#: reliable length at the back end of the Washington rotation.
+_WSH_MIKOLAS = PitcherStats(
+    name="Miles Mikolas",
+    era=4.55,
+    k_per_9=8.0,
+    innings_per_start=5.5,
+    whip=1.28,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Jake Irvin — RHP fifth starter; mid-rotation arm with solid control and
+#: a serviceable three-pitch mix; provides depth innings and spot-start
+#: value at the back of the Washington rotation.
+_WSH_IRVIN = PitcherStats(
+    name="Jake Irvin",
+    era=4.72,
+    k_per_9=8.0,
+    innings_per_start=5.2,
+    whip=1.32,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: 2026 Nationals starting rotation (ace first).
+NATIONALS_ROTATION_2026: List[PitcherStats] = [
+    _WSH_CAVALLI,
+    _WSH_LITTELL,
+    _WSH_GRIFFIN,
+    _WSH_MIKOLAS,
+    _WSH_IRVIN,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Cionel Perez — LHP high-leverage reliever; elite velocity and a sharp
+#: slider make him a left-handed weapon in key spots out of the Nationals
+#: bullpen.
+_WSH_CPEREZ = PitcherStats(
+    name="Cionel Perez",
+    era=3.62,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=70.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Brad Lord — RHP setup reliever; heavy sinker and solid command generate
+#: ground balls in high-leverage situations out of the Washington bullpen.
+_WSH_LORD = PitcherStats(
+    name="Brad Lord",
+    era=3.88,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: P.J. Poulin — RHP middle reliever; sharp breaking ball and plus fastball
+#: give him the ability to miss bats in the middle frames for Washington.
+_WSH_POULIN = PitcherStats(
+    name="P.J. Poulin",
+    era=4.00,
+    k_per_9=9.2,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Gus Varland — RHP depth reliever; power sinker and solid secondary
+#: pitches provide a reliable ground-ball option out of the Nationals
+#: bullpen.
+_WSH_VARLAND = PitcherStats(
+    name="Gus Varland",
+    era=4.12,
+    k_per_9=8.8,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Paxton Schultz — RHP depth reliever; mid-90s fastball and decent command
+#: give him upside as a back-of-the-bullpen arm for Washington.
+_WSH_SCHULTZ = PitcherStats(
+    name="Paxton Schultz",
+    era=4.20,
+    k_per_9=8.5,
+    innings_per_start=1.0,
+    whip=1.30,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Clayton Beeter — CL, RHP, elite closer; the best ERA in the Nationals
+#: bullpen; plus fastball and sharp slider make him nearly untouchable in
+#: save situations; Washington's primary ninth-inning option.
+_WSH_BEETER = PitcherStats(
+    name="Clayton Beeter",
+    era=2.90,
+    k_per_9=11.5,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=78.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Nationals bullpen (setup arms + closer; closer is last entry, index 5 = Beeter).
+NATIONALS_BULLPEN_2026: List[PitcherStats] = [
+    _WSH_CPEREZ,
+    _WSH_LORD,
+    _WSH_POULIN,
+    _WSH_VARLAND,
+    _WSH_SCHULTZ,
+    _WSH_BEETER,
+]
+
+
+@dataclass
+class NationalsRoster:
+    """
+    Bundle of Washington Nationals projected 2026 depth-chart starters,
+    rotation, and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Clayton Beeter).
+
+    Examples
+    --------
+    ::
+
+        roster = NationalsRoster.default()
+        print(roster.rotation[0].name)   # "Cade Cavalli"
+        print(roster.lineup[5].name)     # "James Wood"
+        print(roster.bullpen[-1].name)   # "Clayton Beeter"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "NationalsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(NATIONALS_LINEUP_2026),
+            rotation=list(NATIONALS_ROTATION_2026),
+            bullpen=list(NATIONALS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
