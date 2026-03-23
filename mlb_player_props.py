@@ -11910,6 +11910,426 @@ class MarlinsRoster:
         )
 
 
+# New York Mets — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Francisco Alvarez
+#   1B – Brett Baty
+#   2B – Marcus Semien
+#   3B – Bo Bichette
+#   SS – Francisco Lindor
+#   LF – Juan Soto
+#   CF – Luis Robert Jr.
+#   RF – Carson Benge
+#   DH – Jorge Polanco
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Francisco Alvarez — C, RHP, elite offensive catcher with plus raw power
+#: and a developing approach; one of the best hitting catchers in baseball
+#: when healthy and an offensive cornerstone behind the plate for New York.
+_NYM_ALVAREZ = BatterStats(
+    name="Francisco Alvarez",
+    avg=0.248,
+    obp=0.340,
+    slg=0.462,
+    hr_per_600_pa=28,
+    sb_per_season=3,
+    doubles_per_600_pa=22,
+    games_played=118,
+    power_rating=76,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=72,
+    runs_per_season=60,
+)
+
+#: Brett Baty — 1B, LHP, left-handed corner bat with solid gap power and
+#: improving plate discipline; projects as the everyday first baseman and
+#: provides a dangerous left-handed presence in the middle of the Mets order.
+_NYM_BATY = BatterStats(
+    name="Brett Baty",
+    avg=0.255,
+    obp=0.328,
+    slg=0.432,
+    hr_per_600_pa=20,
+    sb_per_season=4,
+    doubles_per_600_pa=26,
+    games_played=135,
+    power_rating=66,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=68,
+    runs_per_season=62,
+)
+
+#: Marcus Semien — 2B, RHP, elite all-around second baseman with power,
+#: speed, and outstanding durability; a perennial All-Star who anchors the
+#: Mets middle infield and contributes across every offensive category.
+_NYM_SEMIEN = BatterStats(
+    name="Marcus Semien",
+    avg=0.260,
+    obp=0.332,
+    slg=0.462,
+    hr_per_600_pa=26,
+    sb_per_season=16,
+    doubles_per_600_pa=32,
+    games_played=155,
+    power_rating=76,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=88,
+    runs_per_season=92,
+)
+
+#: Bo Bichette — 3B, RHP, elite contact hitter and one of the best doubles
+#: producers in the game; outstanding bat-to-ball skills and gap power make
+#: him a dangerous presence batting in the heart of the Mets lineup.
+_NYM_BICHETTE = BatterStats(
+    name="Bo Bichette",
+    avg=0.272,
+    obp=0.328,
+    slg=0.448,
+    hr_per_600_pa=18,
+    sb_per_season=12,
+    doubles_per_600_pa=38,
+    games_played=145,
+    power_rating=64,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=74,
+    runs_per_season=82,
+)
+
+#: Francisco Lindor — SS, S, elite switch-hitting shortstop with plus power,
+#: above-average speed, and outstanding defence; the captain and face of the
+#: Mets franchise who consistently produces at the top of the lineup.
+_NYM_LINDOR = BatterStats(
+    name="Francisco Lindor",
+    avg=0.275,
+    obp=0.358,
+    slg=0.478,
+    hr_per_600_pa=26,
+    sb_per_season=18,
+    doubles_per_600_pa=34,
+    games_played=155,
+    power_rating=78,
+    bats="S",
+    pitches_per_pa=3.80,
+    rbi_per_season=88,
+    runs_per_season=92,
+)
+
+#: Juan Soto — LF, LHP, generational offensive talent and the best hitter
+#: in the Mets lineup; elite plate discipline, plus raw power, and a
+#: legendary eye at the plate make him one of the most feared hitters in
+#: baseball and the undisputed offensive anchor for New York.
+_NYM_SOTO = BatterStats(
+    name="Juan Soto",
+    avg=0.285,
+    obp=0.412,
+    slg=0.542,
+    hr_per_600_pa=38,
+    sb_per_season=8,
+    doubles_per_600_pa=30,
+    games_played=155,
+    power_rating=92,
+    bats="L",
+    pitches_per_pa=4.15,
+    rbi_per_season=106,
+    runs_per_season=100,
+)
+
+#: Luis Robert Jr. — CF, RHP, elite five-tool center fielder with premium
+#: raw power, explosive speed, and outstanding range in the outfield; one
+#: of the most exciting players in baseball when healthy and at his best.
+_NYM_ROBERT = BatterStats(
+    name="Luis Robert Jr.",
+    avg=0.270,
+    obp=0.335,
+    slg=0.522,
+    hr_per_600_pa=36,
+    sb_per_season=20,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=88,
+    bats="R",
+    pitches_per_pa=3.75,
+    rbi_per_season=92,
+    runs_per_season=85,
+)
+
+#: Carson Benge — RF, LHP, athletic right fielder with plus speed and
+#: developing offensive tools; provides energy at the bottom of the order
+#: and is a dangerous baserunner who takes the extra base consistently.
+_NYM_BENGE = BatterStats(
+    name="Carson Benge",
+    avg=0.258,
+    obp=0.322,
+    slg=0.412,
+    hr_per_600_pa=14,
+    sb_per_season=24,
+    doubles_per_600_pa=24,
+    games_played=130,
+    power_rating=56,
+    bats="L",
+    pitches_per_pa=3.72,
+    rbi_per_season=52,
+    runs_per_season=66,
+)
+
+#: Jorge Polanco — DH, S, switch-hitting veteran with solid gap power and
+#: reliable contact skills; provides experienced production from the
+#: designated hitter slot and rounds out a potent Mets lineup.
+_NYM_POLANCO = BatterStats(
+    name="Jorge Polanco",
+    avg=0.262,
+    obp=0.338,
+    slg=0.440,
+    hr_per_600_pa=18,
+    sb_per_season=6,
+    doubles_per_600_pa=28,
+    games_played=130,
+    power_rating=66,
+    bats="S",
+    pitches_per_pa=3.80,
+    rbi_per_season=68,
+    runs_per_season=68,
+)
+
+#: 2026 Mets lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+METS_LINEUP_2026: List[BatterStats] = [
+    _NYM_ALVAREZ,
+    _NYM_BATY,
+    _NYM_SEMIEN,
+    _NYM_BICHETTE,
+    _NYM_LINDOR,
+    _NYM_SOTO,
+    _NYM_ROBERT,
+    _NYM_BENGE,
+    _NYM_POLANCO,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Freddy Peralta — RHP ace; electric four-seamer with elite spin and a
+#: devastating breaking ball generate a high strikeout rate; the unquestioned
+#: ace and workhorse at the top of the New York Mets rotation.
+_NYM_PERALTA = PitcherStats(
+    name="Freddy Peralta",
+    era=3.10,
+    k_per_9=11.2,
+    innings_per_start=6.2,
+    whip=1.12,
+    arm_strength=82.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Nolan McLean — RHP high-ceiling second starter; plus velocity and an
+#: improving off-speed arsenal help him project as a reliable number-two
+#: option behind Peralta in the Mets rotation.
+_NYM_MCLEAN = PitcherStats(
+    name="Nolan McLean",
+    era=3.78,
+    k_per_9=9.5,
+    innings_per_start=5.8,
+    whip=1.20,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: David Peterson — LHP mid-rotation southpaw; deceptive arm angle and a
+#: solid three-pitch mix allow him to neutralise left-handed bats and
+#: pitch deep into games for New York.
+_NYM_PETERSON = PitcherStats(
+    name="David Peterson",
+    era=4.00,
+    k_per_9=9.0,
+    innings_per_start=5.5,
+    whip=1.24,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Clay Holmes — RHP sinker/slider specialist; elite ground-ball rate and
+#: reliable command make him a durable innings-eater at the back of the
+#: Mets rotation with solid strikeout potential.
+_NYM_HOLMES = PitcherStats(
+    name="Clay Holmes",
+    era=4.22,
+    k_per_9=8.5,
+    innings_per_start=5.2,
+    whip=1.28,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Kodai Senga — RHP fifth-starter option returning from injury; plus ghost
+#: forkball paired with a lively fastball gives him significant swing-and-miss
+#: potential; projects to step back into the rotation for New York.
+_NYM_SENGA = PitcherStats(
+    name="Kodai Senga",
+    era=4.40,
+    k_per_9=10.8,
+    innings_per_start=5.0,
+    whip=1.32,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Mets starting rotation (ace first).
+METS_ROTATION_2026: List[PitcherStats] = [
+    _NYM_PERALTA,
+    _NYM_MCLEAN,
+    _NYM_PETERSON,
+    _NYM_HOLMES,
+    _NYM_SENGA,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Luke Weaver — RHP high-leverage setup arm; excellent spin-rate and a
+#: sharp slider give him the ability to miss bats and shut down opposing
+#: lineups in the eighth inning for New York.
+_NYM_WEAVER = PitcherStats(
+    name="Luke Weaver",
+    era=3.48,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: A.J. Minter — LHP setup specialist; elite left-on-left numbers backed by
+#: a plus fastball-slider combination; a trusted bridge option from the Mets
+#: bullpen in high-leverage situations.
+_NYM_MINTER = PitcherStats(
+    name="A.J. Minter",
+    era=3.58,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=66.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Brooks Raley — LHP middle reliever; deceptive delivery and a sharp
+#: breaking ball make him an effective left-handed option for the Mets
+#: through the middle innings against tough left-handed bats.
+_NYM_RALEY = PitcherStats(
+    name="Brooks Raley",
+    era=3.80,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=62.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Luis Garcia — LHP middle reliever; solid command and an effective
+#: three-pitch mix give him the ability to work multiple batters and
+#: provide matchup versatility out of the Mets bullpen.
+_NYM_LGARCIA = PitcherStats(
+    name="Luis Garcia",
+    era=4.00,
+    k_per_9=8.5,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=56.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Huascar Brazoban — RHP high-leverage reliever; premium velocity and an
+#: overpowering fastball-slider mix make him a dangerous option in late-game
+#: situations before the closer takes over for New York.
+_NYM_BRAZOBAN = PitcherStats(
+    name="Huascar Brazoban",
+    era=4.10,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.30,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Devin Williams — CL, RHP, elite closer; the best ERA in the Mets
+#: bullpen; devastating Airbender changeup generates one of the highest
+#: whiff rates in baseball and makes him virtually unhittable in the ninth
+#: inning for New York.
+_NYM_DWILLIAMS = PitcherStats(
+    name="Devin Williams",
+    era=2.60,
+    k_per_9=14.0,
+    innings_per_start=1.0,
+    whip=0.96,
+    arm_strength=82.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: 2026 Mets bullpen (setup arms + closer; closer is last entry, index 5 = Williams).
+METS_BULLPEN_2026: List[PitcherStats] = [
+    _NYM_WEAVER,
+    _NYM_MINTER,
+    _NYM_RALEY,
+    _NYM_LGARCIA,
+    _NYM_BRAZOBAN,
+    _NYM_DWILLIAMS,
+]
+
+
+@dataclass
+class MetsRoster:
+    """
+    Bundle of New York Mets projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Devin Williams).
+
+    Examples
+    --------
+    ::
+
+        roster = MetsRoster.default()
+        print(roster.rotation[0].name)   # "Freddy Peralta"
+        print(roster.lineup[5].name)     # "Juan Soto"
+        print(roster.bullpen[-1].name)   # "Devin Williams"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "MetsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(METS_LINEUP_2026),
+            rotation=list(METS_ROTATION_2026),
+            bullpen=list(METS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

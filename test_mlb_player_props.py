@@ -10676,5 +10676,256 @@ class TestMarlinsRoster(unittest.TestCase):
         self.assertEqual(len(r2.bullpen), 6)
 
 
+from mlb_player_props import (  # noqa: E402
+    MetsRoster,
+    METS_LINEUP_2026,
+    METS_ROTATION_2026,
+    METS_BULLPEN_2026,
+)
+
+_NYM_LINEUP_NAMES = [
+    "Francisco Alvarez",
+    "Brett Baty",
+    "Marcus Semien",
+    "Bo Bichette",
+    "Francisco Lindor",
+    "Juan Soto",
+    "Luis Robert Jr.",
+    "Carson Benge",
+    "Jorge Polanco",
+]
+
+_NYM_ROTATION_NAMES = [
+    "Freddy Peralta",
+    "Nolan McLean",
+    "David Peterson",
+    "Clay Holmes",
+    "Kodai Senga",
+]
+
+_NYM_BULLPEN_NAMES = [
+    "Luke Weaver",
+    "A.J. Minter",
+    "Brooks Raley",
+    "Luis Garcia",
+    "Huascar Brazoban",
+    "Devin Williams",
+]
+
+
+class TestMetsRoster(unittest.TestCase):
+    """Tests for METS_LINEUP_2026, METS_ROTATION_2026,
+    METS_BULLPEN_2026, and MetsRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_length(self):
+        self.assertEqual(len(METS_LINEUP_2026), 9)
+
+    def test_rotation_length(self):
+        self.assertEqual(len(METS_ROTATION_2026), 5)
+
+    def test_bullpen_length(self):
+        self.assertEqual(len(METS_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in METS_LINEUP_2026], _NYM_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in METS_ROTATION_2026], _NYM_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in METS_BULLPEN_2026], _NYM_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # BatterStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_batters_pass_validation(self):
+        for batter in METS_LINEUP_2026:
+            with self.subTest(player=batter.name):
+                batter.validate()
+
+    def test_batter_avg_in_range(self):
+        for b in METS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreater(b.avg, 0.180)
+                self.assertLess(b.avg, 0.380)
+
+    def test_batter_obp_gte_avg(self):
+        for b in METS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_batter_slg_gte_avg(self):
+        for b in METS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_batter_hr_nonnegative(self):
+        for b in METS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.hr_per_600_pa, 0.0)
+
+    def test_batter_rbi_nonnegative(self):
+        for b in METS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.rbi_per_season, 0.0)
+
+    def test_batter_runs_nonnegative(self):
+        for b in METS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.runs_per_season, 0.0)
+
+    def test_batter_power_rating_in_range(self):
+        for b in METS_LINEUP_2026:
+            with self.subTest(player=b.name):
+                self.assertGreaterEqual(b.power_rating, 0.0)
+                self.assertLessEqual(b.power_rating, 100.0)
+
+    # ------------------------------------------------------------------
+    # Handedness — key batters
+    # ------------------------------------------------------------------
+
+    def test_alvarez_bats_right(self):
+        self.assertEqual(METS_LINEUP_2026[0].bats, "R")
+
+    def test_baty_bats_left(self):
+        self.assertEqual(METS_LINEUP_2026[1].bats, "L")
+
+    def test_semien_bats_right(self):
+        self.assertEqual(METS_LINEUP_2026[2].bats, "R")
+
+    def test_lindor_bats_switch(self):
+        self.assertEqual(METS_LINEUP_2026[4].bats, "S")
+
+    def test_soto_bats_left(self):
+        self.assertEqual(METS_LINEUP_2026[5].bats, "L")
+
+    def test_benge_bats_left(self):
+        self.assertEqual(METS_LINEUP_2026[7].bats, "L")
+
+    def test_polanco_bats_switch(self):
+        self.assertEqual(METS_LINEUP_2026[8].bats, "S")
+
+    # ------------------------------------------------------------------
+    # PitcherStats validation
+    # ------------------------------------------------------------------
+
+    def test_all_rotation_pass_validation(self):
+        for p in METS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_all_bullpen_pass_validation(self):
+        for p in METS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                p.validate()
+
+    def test_rotation_era_positive(self):
+        for p in METS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_bullpen_era_positive(self):
+        for p in METS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.era, 0.0)
+
+    def test_rotation_k_per_9_in_range(self):
+        for p in METS_ROTATION_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    def test_bullpen_k_per_9_in_range(self):
+        for p in METS_BULLPEN_2026:
+            with self.subTest(player=p.name):
+                self.assertGreater(p.k_per_9, 0.0)
+                self.assertLessEqual(p.k_per_9, 20.0)
+
+    # ------------------------------------------------------------------
+    # Pitcher handedness
+    # ------------------------------------------------------------------
+
+    def test_peralta_throws_right(self):
+        self.assertEqual(METS_ROTATION_2026[0].throws, "R")
+
+    def test_peterson_throws_left(self):
+        self.assertEqual(METS_ROTATION_2026[2].throws, "L")
+
+    def test_minter_throws_left(self):
+        minter = next(p for p in METS_BULLPEN_2026 if p.name == "A.J. Minter")
+        self.assertEqual(minter.throws, "L")
+
+    def test_williams_throws_right(self):
+        self.assertEqual(METS_BULLPEN_2026[-1].throws, "R")
+
+    # ------------------------------------------------------------------
+    # Relative quality ordering
+    # ------------------------------------------------------------------
+
+    def test_peralta_has_best_rotation_era(self):
+        """Freddy Peralta is modelled as the ace (best ERA) in the rotation."""
+        min_era = min(p.era for p in METS_ROTATION_2026)
+        self.assertAlmostEqual(METS_ROTATION_2026[0].era, min_era)
+
+    def test_williams_has_best_bullpen_era(self):
+        """Devin Williams (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in METS_BULLPEN_2026)
+        self.assertAlmostEqual(METS_BULLPEN_2026[-1].era, min_era)
+
+    def test_soto_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in METS_LINEUP_2026)
+        self.assertAlmostEqual(METS_LINEUP_2026[5].hr_per_600_pa, max_hr)
+
+    def test_soto_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in METS_LINEUP_2026)
+        self.assertAlmostEqual(METS_LINEUP_2026[5].power_rating, max_power)
+
+    def test_benge_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in METS_LINEUP_2026)
+        self.assertAlmostEqual(METS_LINEUP_2026[7].sb_per_season, max_sb)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(METS_BULLPEN_2026[-1].era, METS_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # MetsRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_mets_roster_instance(self):
+        self.assertIsInstance(MetsRoster.default(), MetsRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(MetsRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(MetsRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(MetsRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = MetsRoster.default()
+        r2 = MetsRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = MetsRoster.default()
+        r2 = MetsRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = MetsRoster.default()
+        r2 = MetsRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
 if __name__ == "__main__":
     unittest.main()
