@@ -11074,6 +11074,424 @@ class CardinalsRoster:
         )
 
 
+# Atlanta Braves — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Drake Baldwin
+#   1B – Matt Olson
+#   2B – Ozzie Albies
+#   3B – Austin Riley
+#   SS – Ha-Seong Kim
+#   LF – Mike Yastrzemski
+#   CF – Michael Harris II
+#   RF – Ronald Acuna Jr.
+#   DH – Sean Murphy
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Drake Baldwin — C, RHP, promising young catcher with a strong arm and
+#: improving offensive production; projects as the everyday backstop in
+#: Atlanta after an impressive run through the system.
+_ATL_BALDWIN = BatterStats(
+    name="Drake Baldwin",
+    avg=0.255,
+    obp=0.328,
+    slg=0.430,
+    hr_per_600_pa=18,
+    sb_per_season=3,
+    doubles_per_600_pa=22,
+    games_played=120,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=55,
+    runs_per_season=52,
+)
+
+#: Matt Olson — 1B, LHP, elite left-handed power bat anchoring the heart of
+#: the Atlanta order; outstanding plate discipline pairs with massive raw
+#: power to make him one of the most dangerous run-producers in the NL.
+_ATL_OLSON = BatterStats(
+    name="Matt Olson",
+    avg=0.252,
+    obp=0.365,
+    slg=0.540,
+    hr_per_600_pa=38,
+    sb_per_season=2,
+    doubles_per_600_pa=28,
+    games_played=155,
+    power_rating=92,
+    bats="L",
+    pitches_per_pa=4.05,
+    rbi_per_season=102,
+    runs_per_season=90,
+)
+
+#: Ozzie Albies — 2B, S, switch-hitting second baseman with excellent speed
+#: and improving power; a dynamic leadoff option who can hurt pitchers from
+#: both sides of the plate and wreaks havoc on the basepaths.
+_ATL_ALBIES = BatterStats(
+    name="Ozzie Albies",
+    avg=0.272,
+    obp=0.330,
+    slg=0.465,
+    hr_per_600_pa=22,
+    sb_per_season=14,
+    doubles_per_600_pa=30,
+    games_played=148,
+    power_rating=68,
+    bats="S",
+    pitches_per_pa=3.78,
+    rbi_per_season=72,
+    runs_per_season=82,
+)
+
+#: Austin Riley — 3B, RHP, powerful right-handed corner bat with plus raw
+#: power and improving plate coverage; one of the premier run producers among
+#: National League third basemen.
+_ATL_RILEY = BatterStats(
+    name="Austin Riley",
+    avg=0.260,
+    obp=0.330,
+    slg=0.495,
+    hr_per_600_pa=32,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=84,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=90,
+    runs_per_season=78,
+)
+
+#: Ha-Seong Kim — SS, RHP, versatile Korean shortstop with above-average
+#: defense and solid offensive contributions; brings a complete two-way game
+#: to the Atlanta infield.
+_ATL_HSKIM = BatterStats(
+    name="Ha-Seong Kim",
+    avg=0.252,
+    obp=0.322,
+    slg=0.400,
+    hr_per_600_pa=12,
+    sb_per_season=10,
+    doubles_per_600_pa=22,
+    games_played=130,
+    power_rating=54,
+    bats="R",
+    pitches_per_pa=3.85,
+    rbi_per_season=50,
+    runs_per_season=60,
+)
+
+#: Mike Yastrzemski — LF, LHP, left-handed outfielder with solid on-base
+#: skills and gap power; a consistent professional hitter who works counts
+#: and puts the ball in play to the opposite field.
+_ATL_YASTRZEMSKI = BatterStats(
+    name="Mike Yastrzemski",
+    avg=0.240,
+    obp=0.318,
+    slg=0.400,
+    hr_per_600_pa=14,
+    sb_per_season=6,
+    doubles_per_600_pa=22,
+    games_played=130,
+    power_rating=56,
+    bats="L",
+    pitches_per_pa=3.85,
+    rbi_per_season=48,
+    runs_per_season=55,
+)
+
+#: Michael Harris II — CF, LHP, athletic center fielder with plus defense
+#: and improving offensive game; capable of impacting a game with both his
+#: bat and elite range in center field.
+_ATL_MHARRIS = BatterStats(
+    name="Michael Harris II",
+    avg=0.270,
+    obp=0.330,
+    slg=0.450,
+    hr_per_600_pa=18,
+    sb_per_season=20,
+    doubles_per_600_pa=26,
+    games_played=145,
+    power_rating=66,
+    bats="L",
+    pitches_per_pa=3.80,
+    rbi_per_season=65,
+    runs_per_season=72,
+)
+
+#: Ronald Acuna Jr. — RF, RHP, superstar right fielder with five-tool
+#: ability; leads Atlanta in stolen bases and delivers elite power-speed
+#: combination that makes him one of the most feared hitters in baseball.
+_ATL_ACUNA = BatterStats(
+    name="Ronald Acuna Jr.",
+    avg=0.285,
+    obp=0.375,
+    slg=0.520,
+    hr_per_600_pa=28,
+    sb_per_season=40,
+    doubles_per_600_pa=30,
+    games_played=145,
+    power_rating=88,
+    bats="R",
+    pitches_per_pa=3.95,
+    rbi_per_season=85,
+    runs_per_season=95,
+)
+
+#: Sean Murphy — DH, RHP, strong offensive catcher deployed as the designated
+#: hitter; excellent bat-to-ball skills and above-average pop make him a
+#: reliable middle-of-the-order presence.
+_ATL_SMURPHY = BatterStats(
+    name="Sean Murphy",
+    avg=0.240,
+    obp=0.330,
+    slg=0.405,
+    hr_per_600_pa=16,
+    sb_per_season=1,
+    doubles_per_600_pa=22,
+    games_played=110,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.88,
+    rbi_per_season=50,
+    runs_per_season=45,
+)
+
+#: 2026 Braves lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+BRAVES_LINEUP_2026: List[BatterStats] = [
+    _ATL_BALDWIN,
+    _ATL_OLSON,
+    _ATL_ALBIES,
+    _ATL_RILEY,
+    _ATL_HSKIM,
+    _ATL_YASTRZEMSKI,
+    _ATL_MHARRIS,
+    _ATL_ACUNA,
+    _ATL_SMURPHY,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Chris Sale — LHP top-of-rotation ace; elite strikeout stuff and superb
+#: command give him the best ERA on the Atlanta staff; durable and dependable
+#: when healthy.
+_ATL_SALE = PitcherStats(
+    name="Chris Sale",
+    era=3.45,
+    k_per_9=11.0,
+    innings_per_start=6.0,
+    whip=1.15,
+    arm_strength=78.0,
+    throws="L",
+    pitches_per_pa=3.90,
+)
+
+#: Spencer Strider — RHP high-velocity power arm; elite strikeout rate and
+#: devastating slider combination make him a dominant force when healthy
+#: and at full strength.
+_ATL_STRIDER = PitcherStats(
+    name="Spencer Strider",
+    era=3.65,
+    k_per_9=12.5,
+    innings_per_start=5.8,
+    whip=1.18,
+    arm_strength=84.0,
+    throws="R",
+    pitches_per_pa=3.85,
+)
+
+#: Reynaldo Lopez — RHP mid-rotation arm; above-average fastball velocity
+#: and a sharp slider allow him to miss bats and limit hard contact across
+#: the middle innings.
+_ATL_RLOPEZ = PitcherStats(
+    name="Reynaldo Lopez",
+    era=3.80,
+    k_per_9=9.5,
+    innings_per_start=5.5,
+    whip=1.22,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Grant Holmes — RHP back-of-rotation option; developing command of a
+#: three-pitch mix and improving strike-throwing ability make him a reliable
+#: innings-eater in the Atlanta rotation.
+_ATL_HOLMES = PitcherStats(
+    name="Grant Holmes",
+    era=4.20,
+    k_per_9=8.8,
+    innings_per_start=5.2,
+    whip=1.28,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Bryce Elder — RHP fifth-starter depth; heavy sinker generates weak
+#: contact and keeps the ball on the ground; most effective when he commands
+#: the strike zone and limits free passes.
+_ATL_ELDER = PitcherStats(
+    name="Bryce Elder",
+    era=4.50,
+    k_per_9=7.5,
+    innings_per_start=5.0,
+    whip=1.35,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: 2026 Braves starting rotation (ace first).
+BRAVES_ROTATION_2026: List[PitcherStats] = [
+    _ATL_SALE,
+    _ATL_STRIDER,
+    _ATL_RLOPEZ,
+    _ATL_HOLMES,
+    _ATL_ELDER,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Robert Suarez — RHP high-leverage setup arm; elite velocity and a sharp
+#: slider make him one of the most trusted late-inning options in the
+#: Atlanta bullpen.
+_ATL_SUAREZ = PitcherStats(
+    name="Robert Suarez",
+    era=3.50,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Dylan Lee — LHP situational reliever; deceptive left-handed delivery and
+#: a solid changeup neutralise left-handed bats effectively in middle and
+#: late-game situations.
+_ATL_DLEE = PitcherStats(
+    name="Dylan Lee",
+    era=3.65,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=60.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Tyler Kinley — RHP setup specialist; plus fastball-slider combination and
+#: elite arm strength give him the ability to generate swinging strikes in
+#: high-leverage situations.
+_ATL_KINLEY = PitcherStats(
+    name="Tyler Kinley",
+    era=3.80,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Aaron Bummer — LHP middle reliever; heavy sinker induces ground balls and
+#: an elite ability to neutralise left-handed power make him a valuable
+#: matchup option throughout the middle innings.
+_ATL_BUMMER = PitcherStats(
+    name="Aaron Bummer",
+    era=3.70,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=62.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Joel Payamps — RHP middle reliever; solid command of a three-pitch mix
+#: and a reliable arm give him the ability to bridge the gap between the
+#: starters and the closer in Atlanta.
+_ATL_PAYAMPS = PitcherStats(
+    name="Joel Payamps",
+    era=4.00,
+    k_per_9=8.5,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=58.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Raisel Iglesias — CL, RHP, elite closer; the best ERA in the Atlanta
+#: bullpen; devastating splitter and high fastball velocity make him one of
+#: the premier ninth-inning options in the National League.
+_ATL_IGLESIAS = PitcherStats(
+    name="Raisel Iglesias",
+    era=2.80,
+    k_per_9=11.5,
+    innings_per_start=1.0,
+    whip=1.05,
+    arm_strength=74.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Braves bullpen (setup arms + closer; closer is last entry, index 5 = Iglesias).
+BRAVES_BULLPEN_2026: List[PitcherStats] = [
+    _ATL_SUAREZ,
+    _ATL_DLEE,
+    _ATL_KINLEY,
+    _ATL_BUMMER,
+    _ATL_PAYAMPS,
+    _ATL_IGLESIAS,
+]
+
+
+@dataclass
+class BravesRoster:
+    """
+    Bundle of Atlanta Braves projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Raisel Iglesias).
+
+    Examples
+    --------
+    ::
+
+        roster = BravesRoster.default()
+        print(roster.rotation[0].name)   # "Chris Sale"
+        print(roster.lineup[1].name)     # "Matt Olson"
+        print(roster.bullpen[-1].name)   # "Raisel Iglesias"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "BravesRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(BRAVES_LINEUP_2026),
+            rotation=list(BRAVES_ROTATION_2026),
+            bullpen=list(BRAVES_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
