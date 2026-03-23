@@ -3434,6 +3434,484 @@ class TestUnabatedEdgeScreener(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# OutlierClient and OutlierEdgeScreener tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    OutlierAPIError,
+    OutlierClient,
+    OutlierEdgeScreener,
+    OUTLIER_BASE_URL,
+    OUTLIER_DEFAULT_MIN_EDGE,
+    OUTLIER_DEFAULT_REQUEST_TIMEOUT,
+)
+
+
+class TestOutlierClient(unittest.TestCase):
+    """Unit tests for OutlierClient (HTTP is mocked)."""
+
+    def _make_client(self, key="test-key"):
+        return OutlierClient(api_key=key)
+
+    def test_default_base_url(self):
+        c = self._make_client()
+        self.assertEqual(c.base_url, OUTLIER_BASE_URL.rstrip("/"))
+
+    def test_default_timeout(self):
+        c = self._make_client()
+        self.assertEqual(c.timeout, OUTLIER_DEFAULT_REQUEST_TIMEOUT)
+
+    def test_api_key_stored(self):
+        c = OutlierClient(api_key="my-key")
+        self.assertEqual(c.api_key, "my-key")
+
+    def test_non_string_api_key_raises(self):
+        with self.assertRaises(TypeError):
+            OutlierClient(api_key=12345)
+
+    def test_custom_base_url_stored(self):
+        c = OutlierClient(api_key="k", base_url="https://example.com/api/")
+        self.assertEqual(c.base_url, "https://example.com/api")
+
+    # ------------------------------------------------------------------
+    # _normalise_response
+    # ------------------------------------------------------------------
+
+    def test_normalise_response_list(self):
+        raw = [
+            {"player_name": "J. Doe", "prop_type": "strikeouts",
+             "line": 6.5, "over_odds": -115, "under_odds": -105, "book": "DK"},
+        ]
+        result = OutlierClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["player_name"], "J. Doe")
+        self.assertAlmostEqual(result[0]["line"], 6.5)
+
+    def test_normalise_response_data_envelope(self):
+        raw = {"data": [{"player_name": "A. Smith", "prop_type": "hits",
+                          "line": 1.5, "over_odds": +100, "under_odds": -120}]}
+        result = OutlierClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["player_name"], "A. Smith")
+
+    def test_normalise_response_props_envelope(self):
+        raw = {"props": [{"player_name": "B. Jones", "prop_type": "home runs",
+                           "line": 0.5, "over_odds": +220, "under_odds": -280}]}
+        result = OutlierClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["player_name"], "B. Jones")
+
+    def test_normalise_response_markets_envelope(self):
+        raw = {"markets": [{"player_name": "C. Lee", "prop_type": "stolen bases",
+                             "line": 0.5, "over_odds": +200, "under_odds": -260}]}
+        result = OutlierClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+
+    def test_normalise_response_empty_list(self):
+        self.assertEqual(OutlierClient._normalise_response([]), [])
+
+    def test_normalise_response_non_list_non_dict(self):
+        self.assertEqual(OutlierClient._normalise_response("bad"), [])
+
+    def test_normalise_response_skips_non_dict_items(self):
+        raw = [{"player_name": "A", "prop_type": "hits", "line": 1.5,
+                "over_odds": 100, "under_odds": -120}, "not a dict"]
+        result = OutlierClient._normalise_response(raw)
+        self.assertEqual(len(result), 1)
+
+    def test_normalise_response_alternate_field_names(self):
+        raw = [{"name": "D. Park", "stat_type": "doubles",
+                "value": 0.5, "over": +180, "under": -220, "source": "FD"}]
+        result = OutlierClient._normalise_response(raw)
+        self.assertEqual(result[0]["player_name"], "D. Park")
+        self.assertEqual(result[0]["prop_type"], "doubles")
+        self.assertAlmostEqual(result[0]["line"], 0.5)
+        self.assertEqual(result[0]["book"], "FD")
+
+    def test_normalise_response_handicap_field(self):
+        raw = [{"player_name": "E. Cruz", "market_type": "strikeouts",
+                "handicap": 5.5, "price_over": -110, "price_under": -110}]
+        result = OutlierClient._normalise_response(raw)
+        self.assertEqual(result[0]["prop_type"], "strikeouts")
+        self.assertAlmostEqual(result[0]["line"], 5.5)
+        self.assertAlmostEqual(result[0]["over_odds"], -110)
+
+    # ------------------------------------------------------------------
+    # fetch_player_props (HTTP mocked)
+    # ------------------------------------------------------------------
+
+    def _mock_urlopen(self, response_bytes):
+        import io
+        import unittest.mock as mock
+        cm = mock.MagicMock()
+        cm.__enter__ = mock.MagicMock(return_value=cm)
+        cm.__exit__ = mock.MagicMock(return_value=False)
+        cm.read = mock.MagicMock(return_value=response_bytes)
+        return cm
+
+    def test_fetch_player_props_success(self):
+        import unittest.mock as mock
+        payload = json.dumps([
+            {"player_name": "Test Player", "prop_type": "strikeouts",
+             "line": 5.5, "over_odds": -110, "under_odds": -110, "book": "DK"},
+        ]).encode()
+        with mock.patch("urllib.request.urlopen",
+                        return_value=self._mock_urlopen(payload)):
+            client = self._make_client()
+            results = client.fetch_player_props()
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["player_name"], "Test Player")
+
+    def test_fetch_player_props_with_game_id(self):
+        import unittest.mock as mock
+        payload = json.dumps([]).encode()
+        captured_url = []
+        original_request = urllib.request.Request
+
+        def fake_request(url, **kwargs):
+            captured_url.append(url)
+            return original_request(url, **kwargs)
+
+        with mock.patch("urllib.request.Request", side_effect=fake_request), \
+             mock.patch("urllib.request.urlopen",
+                        return_value=self._mock_urlopen(payload)):
+            self._make_client().fetch_player_props(
+                game_id="8f8b16993510bd2961e98dc9fa553ae1014fa0e7"
+            )
+        self.assertTrue(any("game_id=8f8b16993510bd2961e98dc9fa553ae1014fa0e7"
+                            in u for u in captured_url))
+
+    def test_fetch_player_props_with_split(self):
+        import unittest.mock as mock
+        payload = json.dumps([]).encode()
+        captured_url = []
+        original_request = urllib.request.Request
+
+        def fake_request(url, **kwargs):
+            captured_url.append(url)
+            return original_request(url, **kwargs)
+
+        with mock.patch("urllib.request.Request", side_effect=fake_request), \
+             mock.patch("urllib.request.urlopen",
+                        return_value=self._mock_urlopen(payload)):
+            self._make_client().fetch_player_props(split="prevSeason")
+        self.assertTrue(any("split=prevSeason" in u for u in captured_url))
+
+    def test_fetch_player_props_http_error_raises(self):
+        import unittest.mock as mock
+        with mock.patch(
+            "urllib.request.urlopen",
+            side_effect=urllib.error.HTTPError("url", 401, "Unauthorized", {}, None),
+        ):
+            with self.assertRaises(OutlierAPIError) as ctx:
+                self._make_client().fetch_player_props()
+        self.assertIn("401", str(ctx.exception))
+
+    def test_fetch_player_props_url_error_raises(self):
+        import unittest.mock as mock
+        with mock.patch(
+            "urllib.request.urlopen",
+            side_effect=urllib.error.URLError("Connection refused"),
+        ):
+            with self.assertRaises(OutlierAPIError):
+                self._make_client().fetch_player_props()
+
+    def test_fetch_player_props_bad_json_raises(self):
+        import unittest.mock as mock
+        with mock.patch(
+            "urllib.request.urlopen",
+            return_value=self._mock_urlopen(b"not json {{{"),
+        ):
+            with self.assertRaises(OutlierAPIError):
+                self._make_client().fetch_player_props()
+
+    # ------------------------------------------------------------------
+    # Constants
+    # ------------------------------------------------------------------
+
+    def test_base_url_constant_is_string(self):
+        self.assertIsInstance(OUTLIER_BASE_URL, str)
+        self.assertTrue(OUTLIER_BASE_URL.startswith("https://"))
+
+    def test_default_min_edge_constant(self):
+        self.assertAlmostEqual(OUTLIER_DEFAULT_MIN_EDGE, 0.05)
+
+    def test_default_request_timeout_constant(self):
+        self.assertIsInstance(OUTLIER_DEFAULT_REQUEST_TIMEOUT, int)
+        self.assertGreater(OUTLIER_DEFAULT_REQUEST_TIMEOUT, 0)
+
+
+class TestOutlierEdgeScreener(unittest.TestCase):
+    """Tests for OutlierEdgeScreener using pre-fetched market lines (no HTTP)."""
+
+    def _client(self):
+        return OutlierClient(api_key="test")
+
+    def _screener(self, min_edge=0.0):
+        return OutlierEdgeScreener(_make_screener_sim(), self._client(),
+                                   min_edge=min_edge)
+
+    # ------------------------------------------------------------------
+    # Prop type mapping
+    # ------------------------------------------------------------------
+
+    def test_normalise_prop_type_strikeouts(self):
+        self.assertEqual(
+            OutlierEdgeScreener._normalise_prop_type("strikeouts"), "Strikeouts"
+        )
+
+    def test_normalise_prop_type_case_insensitive(self):
+        self.assertEqual(
+            OutlierEdgeScreener._normalise_prop_type("HITS"), "Hits"
+        )
+
+    def test_normalise_prop_type_with_whitespace(self):
+        self.assertEqual(
+            OutlierEdgeScreener._normalise_prop_type("  home runs  "), "Home Runs"
+        )
+
+    def test_normalise_prop_type_unknown_returns_none(self):
+        self.assertIsNone(
+            OutlierEdgeScreener._normalise_prop_type("assists")
+        )
+
+    def test_prop_type_map_covers_all_pitcher_props(self):
+        for key in ("strikeouts", "outs recorded", "runs allowed", "pitch count"):
+            self.assertIsNotNone(
+                OutlierEdgeScreener._normalise_prop_type(key),
+                f"Missing mapping for '{key}'"
+            )
+
+    def test_prop_type_map_covers_all_batter_props(self):
+        for key in ("hits", "doubles", "home runs", "stolen bases",
+                    "plate appearances", "h+r+rbi"):
+            self.assertIsNotNone(
+                OutlierEdgeScreener._normalise_prop_type(key),
+                f"Missing mapping for '{key}'"
+            )
+
+    def test_prop_type_map_hits_plus_runs_plus_rbi_variant(self):
+        self.assertEqual(
+            OutlierEdgeScreener._normalise_prop_type("hits+runs+rbi"), "H+R+RBI"
+        )
+
+    # ------------------------------------------------------------------
+    # _find_edges
+    # ------------------------------------------------------------------
+
+    def test_no_lines_for_player_returns_empty(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(_default_pitcher())
+        screener = self._screener(min_edge=0.0)
+        edges = screener._find_edges("Unknown Player", report, [
+            _make_market_lines("Someone Else", "strikeouts", 4.5, -110, -110)[0]
+        ])
+        self.assertEqual(edges, [])
+
+    def test_unknown_prop_type_skipped(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(_default_pitcher())
+        screener = self._screener(min_edge=0.0)
+        edges = screener._find_edges("Test Pitcher", report, [
+            _make_market_lines("Test Pitcher", "assists", 2.5, -110, -110)[0]
+        ])
+        self.assertEqual(edges, [])
+
+    def test_over_edge_found_when_sim_prob_much_higher(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Ace P", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        report = sim.simulate_pitcher(pitcher)
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        lines = _make_market_lines("Ace P", "strikeouts", 3.5, +200, -300)
+        edges = screener._find_edges("Ace P", report, lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(len(over_edges) >= 1)
+        self.assertGreater(over_edges[0].edge, 0.0)
+
+    def test_edge_result_fields_populated_correctly(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Big K", era=2.5, k_per_9=13.0,
+                               innings_per_start=7.0, whip=0.95)
+        report = sim.simulate_pitcher(pitcher)
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        lines = _make_market_lines("Big K", "strikeouts", 3.5, +250, -350)
+        edges = screener._find_edges("Big K", report, lines)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+        e = over_edges[0]
+        self.assertEqual(e.player_name, "Big K")
+        self.assertEqual(e.prop, "Strikeouts")
+        self.assertAlmostEqual(e.line, 3.5)
+        self.assertEqual(e.side, "over")
+        self.assertAlmostEqual(e.american_odds, 250.0)
+        self.assertEqual(e.book, "TestBook")
+
+    def test_min_edge_filters_small_edges(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Mid K", era=3.5, k_per_9=8.5,
+                               innings_per_start=6.0, whip=1.2)
+        report = sim.simulate_pitcher(pitcher)
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.99)
+        lines = _make_market_lines("Mid K", "strikeouts", 5.5, -110, -110)
+        edges = screener._find_edges("Mid K", report, lines)
+        self.assertEqual(edges, [])
+
+    def test_under_edge_found(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Low K", era=5.0, k_per_9=5.0,
+                               innings_per_start=5.0, whip=1.5)
+        report = sim.simulate_pitcher(pitcher)
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        lines = _make_market_lines("Low K", "strikeouts", 7.5, +300, -450)
+        edges = screener._find_edges("Low K", report, lines)
+        under_edges = [e for e in edges if e.side == "under"]
+        self.assertTrue(len(under_edges) >= 1)
+        self.assertGreater(under_edges[0].edge, 0.0)
+
+    def test_none_odds_skipped(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(_default_pitcher())
+        screener = self._screener(min_edge=0.0)
+        lines = [{
+            "player_name": "Test Pitcher",
+            "prop_type": "strikeouts",
+            "line": 4.5,
+            "over_odds": None,
+            "under_odds": None,
+            "book": "",
+        }]
+        edges = screener._find_edges("Test Pitcher", report, lines)
+        self.assertEqual(edges, [])
+
+    def test_non_numeric_odds_skipped(self):
+        sim = _make_screener_sim()
+        report = sim.simulate_pitcher(_default_pitcher())
+        screener = self._screener(min_edge=0.0)
+        lines = [{
+            "player_name": "Test Pitcher",
+            "prop_type": "strikeouts",
+            "line": 4.5,
+            "over_odds": "N/A",
+            "under_odds": "N/A",
+            "book": "",
+        }]
+        edges = screener._find_edges("Test Pitcher", report, lines)
+        self.assertEqual(edges, [])
+
+    def test_edges_sorted_by_edge_descending(self):
+        sim = _make_screener_sim()
+        pitcher = PitcherStats("Sort K", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        report = sim.simulate_pitcher(pitcher)
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        lines = (
+            _make_market_lines("Sort K", "strikeouts", 3.5, +250, -350)
+            + _make_market_lines("Sort K", "strikeouts", 4.5, +150, -200)
+        )
+        edges = screener._find_edges("Sort K", report, lines)
+        if len(edges) >= 2:
+            for i in range(len(edges) - 1):
+                self.assertGreaterEqual(edges[i].edge, edges[i + 1].edge)
+
+    # ------------------------------------------------------------------
+    # screen_pitcher / screen_batter (market_lines injected, no HTTP)
+    # ------------------------------------------------------------------
+
+    def test_screen_pitcher_uses_injected_market_lines(self):
+        sim = _make_screener_sim()
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        pitcher = PitcherStats("Ace P", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        lines = _make_market_lines("Ace P", "strikeouts", 3.5, +300, -500)
+        edges = screener.screen_pitcher(pitcher, market_lines=lines)
+        self.assertIsInstance(edges, list)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_batter_uses_injected_market_lines(self):
+        sim = _make_screener_sim()
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        batter = _hrb_batter()
+        lines = _make_market_lines(batter.name, "hits", 0.5, +300, -500)
+        edges = screener.screen_batter(batter, market_lines=lines)
+        self.assertIsInstance(edges, list)
+        over_edges = [e for e in edges if e.side == "over"]
+        self.assertTrue(over_edges)
+
+    def test_screen_matchup_returns_combined_results(self):
+        sim = _make_screener_sim()
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        pitcher = PitcherStats("P1", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        batter = _hrb_batter()
+        lines = (
+            _make_market_lines("P1", "strikeouts", 3.5, +300, -500)
+            + _make_market_lines(batter.name, "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(pitcher, [batter], market_lines=lines)
+        player_names = {e.player_name for e in edges}
+        self.assertIn("P1", player_names)
+        self.assertIn(batter.name, player_names)
+
+    def test_screen_matchup_sorted_by_edge_descending(self):
+        sim = _make_screener_sim()
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        pitcher = PitcherStats("P1", era=2.0, k_per_9=14.0,
+                               innings_per_start=7.0, whip=0.9)
+        batter = _hrb_batter()
+        lines = (
+            _make_market_lines("P1", "strikeouts", 3.5, +300, -500)
+            + _make_market_lines(batter.name, "hits", 0.5, +300, -500)
+        )
+        edges = screener.screen_matchup(pitcher, [batter], market_lines=lines)
+        for i in range(len(edges) - 1):
+            self.assertGreaterEqual(edges[i].edge, edges[i + 1].edge)
+
+    def test_screen_pitcher_empty_market_returns_empty(self):
+        sim = _make_screener_sim()
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        self.assertEqual(
+            screener.screen_pitcher(_default_pitcher(), market_lines=[]), []
+        )
+
+    def test_screen_batter_empty_market_returns_empty(self):
+        sim = _make_screener_sim()
+        screener = OutlierEdgeScreener(sim, self._client(), min_edge=0.0)
+        self.assertEqual(
+            screener.screen_batter(_default_batter(), market_lines=[]), []
+        )
+
+    def test_screen_pitcher_accepts_game_id_param(self):
+        """game_id kwarg is accepted without error (HTTP call bypassed via market_lines)."""
+        screener = self._screener()
+        edges = screener.screen_pitcher(
+            _default_pitcher(),
+            market_lines=[],
+            game_id="8f8b16993510bd2961e98dc9fa553ae1014fa0e7",
+        )
+        self.assertIsInstance(edges, list)
+
+    def test_screen_pitcher_accepts_split_param(self):
+        """split kwarg is accepted without error (HTTP call bypassed via market_lines)."""
+        screener = self._screener()
+        edges = screener.screen_pitcher(
+            _default_pitcher(), market_lines=[], split="prevSeason"
+        )
+        self.assertIsInstance(edges, list)
+
+    def test_screen_batter_accepts_game_id_and_split(self):
+        screener = self._screener()
+        edges = screener.screen_batter(
+            _default_batter(),
+            market_lines=[],
+            game_id="8f8b16993510bd2961e98dc9fa553ae1014fa0e7",
+            split="prevSeason",
+        )
+        self.assertIsInstance(edges, list)
+
+
+# ---------------------------------------------------------------------------
 # Blue Jays 2026 Roster tests
 # ---------------------------------------------------------------------------
 

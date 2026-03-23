@@ -143,6 +143,44 @@ is surfaced as an :class:`EdgeResult`.
         #               Model 64.2 %  vs  Market 51.3 %  (+12.9 pp)
         #               Market odds: +95
 
+outlier.bet API Edge Screener
+-------------------------------
+:class:`OutlierEdgeScreener` fetches live MLB player-prop lines from the
+`outlier.bet <https://outlier.bet>`_ API and compares the market's implied
+probability against the simulator's probability for each line.  When the
+difference (the *edge*) exceeds a configurable threshold, the opportunity
+is surfaced as an :class:`EdgeResult`.
+
+An optional ``game_id`` (the hex hash from the outlier.bet game URL, e.g.
+``8f8b16993510bd2961e98dc9fa553ae1014fa0e7``) and ``split`` (e.g.
+``"prevSeason"``) may be supplied to restrict results to a single game and
+data split.
+
+::
+
+    from mlb_player_props import (
+        MLBPlayerPropsSimulator,
+        OutlierClient,
+        OutlierEdgeScreener,
+        PitcherStats,
+        BatterStats,
+    )
+
+    client   = OutlierClient(api_key="YOUR_OUTLIER_API_KEY")
+    sim      = MLBPlayerPropsSimulator(stadium=stadium, weather=weather, wind=wind)
+    screener = OutlierEdgeScreener(sim, client, min_edge=0.05)
+
+    pitcher = PitcherStats(name="Corbin Burnes", era=3.10, k_per_9=10.2,
+                           innings_per_start=6.1, whip=1.05)
+    game_id = "8f8b16993510bd2961e98dc9fa553ae1014fa0e7"
+    edges   = screener.screen_pitcher(pitcher, game_id=game_id, split="prevSeason")
+
+    for e in edges:
+        print(e)
+        # e.g.  ★ EDGE  Corbin Burnes | Strikeouts | O6.5
+        #               Model 64.2 %  vs  Market 51.3 %  (+12.9 pp)
+        #               Market odds: +95
+
 Toronto Blue Jays 2026 Roster
 ------------------------------
 Pre-built :class:`BatterStats` / :class:`PitcherStats` objects for the
@@ -730,6 +768,21 @@ UNABATED_DEFAULT_MIN_EDGE: float = 0.05
 
 # Default HTTP request timeout in seconds for all Unabated API calls.
 UNABATED_DEFAULT_REQUEST_TIMEOUT: int = 10
+
+# ---------------------------------------------------------------------------
+# outlier.bet API — edge-screener constants
+# ---------------------------------------------------------------------------
+# Base URL for the outlier.bet public REST API (v1).  All requests are sent as
+# GET requests; authentication is via a ``Bearer`` token in the
+# ``Authorization`` header.
+OUTLIER_BASE_URL: str = "https://api.outlier.bet/v1"
+
+# Default minimum edge (in probability percentage points) required before an
+# opportunity is surfaced as an :class:`EdgeResult`.
+OUTLIER_DEFAULT_MIN_EDGE: float = 0.05
+
+# Default HTTP request timeout in seconds for all outlier.bet API calls.
+OUTLIER_DEFAULT_REQUEST_TIMEOUT: int = 10
 
 # ---------------------------------------------------------------------------
 # Game-time (day / night / dome) constants
@@ -2969,6 +3022,472 @@ class UnabatedEdgeScreener:
                 market_prob = odds_to_implied_prob(american_odds)
 
                 # Retrieve the simulator's probability for this side/line.
+                if side == "over":
+                    sim_prob = pr.over_probabilities.get(line_val)
+                else:
+                    over_prob = pr.over_probabilities.get(line_val)
+                    sim_prob = 1.0 - over_prob if over_prob is not None else None
+
+                if sim_prob is None:
+                    continue
+
+                edge = sim_prob - market_prob
+                if edge >= self.min_edge:
+                    edges.append(EdgeResult(
+                        player_name=player_name,
+                        prop=prop_name,
+                        line=line_val,
+                        side=side,
+                        sim_prob=sim_prob,
+                        market_prob=market_prob,
+                        edge=edge,
+                        american_odds=american_odds,
+                        book=mkt.get("book", ""),
+                    ))
+
+        edges.sort(key=lambda e: -e.edge)
+        return edges
+
+
+# ---------------------------------------------------------------------------
+# outlier.bet API client & edge screener
+# ---------------------------------------------------------------------------
+
+class OutlierClient:
+    """
+    Thin HTTP client for the outlier.bet player-props API.
+
+    Uses only the Python standard library (:mod:`urllib.request`) — no
+    external packages are required.
+
+    Parameters
+    ----------
+    api_key : str
+        Your outlier.bet API key.  Sent as a ``Bearer`` token in the
+        ``Authorization`` header on every request.  When empty the header is
+        still sent; the server will return a ``401`` response.
+    base_url : str
+        API base URL.  Defaults to :data:`OUTLIER_BASE_URL`.
+    timeout : int
+        HTTP request timeout in seconds.  Defaults to
+        :data:`OUTLIER_DEFAULT_REQUEST_TIMEOUT`.
+
+    Notes
+    -----
+    The outlier.bet REST API returns JSON.  The ``fetch_player_props`` method
+    accepts an optional ``game_id`` that maps to the hash segment found in the
+    outlier.bet web URL
+    (``https://app.outlier.bet/MLB/games/{game_id}?…``).  Passing a
+    ``game_id`` adds a ``?game_id=`` query-string filter so only props for
+    that specific game are returned.
+
+    A ``split`` parameter (e.g. ``"prevSeason"``) may also be supplied to
+    request data for a particular historical split.
+
+    If the request fails for any reason (network error, non-2xx response, or
+    malformed JSON) an :class:`OutlierAPIError` is raised.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = OUTLIER_BASE_URL,
+        timeout: int = OUTLIER_DEFAULT_REQUEST_TIMEOUT,
+    ) -> None:
+        if not isinstance(api_key, str):
+            raise TypeError("api_key must be a string")
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def fetch_player_props(
+        self,
+        sport: str = "mlb",
+        game_id: Optional[str] = None,
+        split: Optional[str] = None,
+    ) -> List[Dict]:
+        """
+        Fetch live player-prop lines from the outlier.bet API.
+
+        Parameters
+        ----------
+        sport : str
+            Sport slug.  Defaults to ``"mlb"``.
+        game_id : str, optional
+            The outlier.bet game identifier (the hex hash from the web URL,
+            e.g. ``"8f8b16993510bd2961e98dc9fa553ae1014fa0e7"``).  When
+            provided, only props for that game are returned.
+        split : str, optional
+            Historical data split, e.g. ``"prevSeason"``.  Passed through as
+            a ``split`` query-string parameter when given.
+
+        Returns
+        -------
+        list of dict
+            Each dict represents one market line with at minimum the keys:
+
+            ``player_name`` (str), ``prop_type`` (str), ``line`` (float),
+            ``over_odds`` (float), ``under_odds`` (float),
+            ``book`` (str).
+
+            The exact schema is normalised in :meth:`_normalise_response`
+            before being returned.
+
+        Raises
+        ------
+        OutlierAPIError
+            On any HTTP error, timeout, or JSON decode failure.
+        """
+        params = [f"sport={sport}", "market_group=PLAYER_PROPS"]
+        if game_id is not None:
+            params.append(f"game_id={game_id}")
+        if split is not None:
+            params.append(f"split={split}")
+        url = f"{self.base_url}/props?{'&'.join(params)}"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Accept": "application/json",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310
+                raw = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            raise OutlierAPIError(
+                f"outlier.bet API returned HTTP {exc.code}: {exc.reason}"
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise OutlierAPIError(
+                f"outlier.bet API request failed: {exc.reason}"
+            ) from exc
+
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise OutlierAPIError(
+                f"outlier.bet API returned non-JSON response: {exc}"
+            ) from exc
+
+        return self._normalise_response(payload)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalise_response(payload: object) -> List[Dict]:
+        """
+        Normalise a raw outlier.bet API response to a flat list of line dicts.
+
+        The outlier.bet API may wrap the data inside a ``"data"`` or
+        ``"props"`` key, or return a list directly.  Each normalised dict is
+        guaranteed to have:
+
+        ``player_name``, ``prop_type``, ``line``, ``over_odds``,
+        ``under_odds``, ``book``.
+
+        Unknown / missing fields default to sensible values (empty string /
+        ``None`` for odds / 0 for line).
+        """
+        if isinstance(payload, dict):
+            items = payload.get("data", payload.get("props", payload.get("markets", [])))
+            if not isinstance(items, list):
+                items = [payload]
+        elif isinstance(payload, list):
+            items = payload
+        else:
+            return []
+
+        normalised: List[Dict] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            normalised.append({
+                "player_name": str(item.get("player_name", item.get("name", ""))),
+                "prop_type":   str(item.get("prop_type", item.get("stat_type",
+                                   item.get("market_type", "")))),
+                "line":        float(item.get("line", item.get("value",
+                                   item.get("handicap", 0)))),
+                "over_odds":   item.get("over_odds", item.get("over",
+                                   item.get("price_over", None))),
+                "under_odds":  item.get("under_odds", item.get("under",
+                                   item.get("price_under", None))),
+                "book":        str(item.get("book", item.get("sportsbook",
+                                   item.get("source", "")))),
+            })
+        return normalised
+
+
+class OutlierAPIError(Exception):
+    """Raised when an outlier.bet API request fails."""
+
+
+class OutlierEdgeScreener:
+    """
+    Screen MLB player props for edges by comparing the simulator's
+    probabilities against outlier.bet's live market lines.
+
+    An *edge* exists when:
+
+        ``sim_prob − market_implied_prob ≥ min_edge``
+
+    Both the over and the under side of every line are evaluated.  Only
+    results that clear the threshold are returned.
+
+    Parameters
+    ----------
+    simulator : MLBPlayerPropsSimulator
+        A configured simulator instance (stadium, weather, wind, optional
+        calibrator already set).
+    client : OutlierClient
+        An authenticated outlier.bet API client.
+    min_edge : float
+        Minimum edge in probability percentage points for a result to be
+        surfaced.  Defaults to :data:`OUTLIER_DEFAULT_MIN_EDGE` (0.05 = 5 pp).
+
+    Examples
+    --------
+    ::
+
+        client   = OutlierClient(api_key="YOUR_OUTLIER_API_KEY")
+        screener = OutlierEdgeScreener(sim, client, min_edge=0.04)
+        edges    = screener.screen_pitcher(pitcher_stats,
+                       game_id="8f8b16993510bd2961e98dc9fa553ae1014fa0e7",
+                       split="prevSeason")
+        for e in sorted(edges, key=lambda x: -x.edge):
+            print(e)
+    """
+
+    # Map from outlier.bet ``prop_type`` strings (case-insensitive) to the
+    # simulator's internal prop names used in PropResult.prop_name.
+    _PROP_TYPE_MAP: ClassVar[Dict[str, str]] = {
+        "strikeouts": "Strikeouts",
+        "pitcher strikeouts": "Strikeouts",
+        "outs recorded": "Outs Recorded",
+        "pitcher outs": "Outs Recorded",
+        "runs allowed": "Runs Allowed",
+        "pitcher runs allowed": "Runs Allowed",
+        "pitch count": "Pitch Count",
+        "pitcher pitch count": "Pitch Count",
+        "hits": "Hits",
+        "batter hits": "Hits",
+        "doubles": "Doubles",
+        "batter doubles": "Doubles",
+        "home runs": "Home Runs",
+        "batter home runs": "Home Runs",
+        "stolen bases": "Stolen Bases",
+        "batter stolen bases": "Stolen Bases",
+        "plate appearances": "Plate Appearances",
+        "batter plate appearances": "Plate Appearances",
+        "h+r+rbi": "H+R+RBI",
+        "hits + runs + rbi": "H+R+RBI",
+        "hits+runs+rbi": "H+R+RBI",
+    }
+
+    def __init__(
+        self,
+        simulator: "MLBPlayerPropsSimulator",
+        client: OutlierClient,
+        min_edge: float = OUTLIER_DEFAULT_MIN_EDGE,
+    ) -> None:
+        self.simulator = simulator
+        self.client = client
+        self.min_edge = min_edge
+
+    # ------------------------------------------------------------------
+    # Public screening API
+    # ------------------------------------------------------------------
+
+    def screen_pitcher(
+        self,
+        stats: "PitcherStats",
+        market_lines: Optional[List[Dict]] = None,
+        opponent_bats: Optional[str] = None,
+        is_home: Optional[bool] = None,
+        game_id: Optional[str] = None,
+        split: Optional[str] = None,
+    ) -> List[EdgeResult]:
+        """
+        Find edges for a starting pitcher.
+
+        Parameters
+        ----------
+        stats : PitcherStats
+        market_lines : list of dict, optional
+            Pre-fetched outlier.bet market lines.  When ``None``,
+            :meth:`OutlierClient.fetch_player_props` is called automatically.
+        opponent_bats : str, optional
+            Batting hand of the opposing lineup (``"R"``, ``"L"``, ``"S"``).
+        is_home : bool, optional
+            Whether the pitcher is at home.
+        game_id : str, optional
+            outlier.bet game identifier (passed to
+            :meth:`OutlierClient.fetch_player_props` when ``market_lines``
+            is ``None``).
+        split : str, optional
+            Historical split, e.g. ``"prevSeason"`` (passed through when
+            ``market_lines`` is ``None``).
+
+        Returns
+        -------
+        list of EdgeResult
+            Sorted by edge descending (largest edge first).
+        """
+        report = self.simulator.simulate_pitcher(
+            stats, opponent_bats=opponent_bats, is_home=is_home
+        )
+        if market_lines is None:
+            market_lines = self.client.fetch_player_props(game_id=game_id, split=split)
+        return self._find_edges(stats.name, report, market_lines)
+
+    def screen_batter(
+        self,
+        stats: "BatterStats",
+        market_lines: Optional[List[Dict]] = None,
+        opponent_throws: Optional[str] = None,
+        is_home: Optional[bool] = None,
+        game_id: Optional[str] = None,
+        split: Optional[str] = None,
+    ) -> List[EdgeResult]:
+        """
+        Find edges for a batter.
+
+        Parameters
+        ----------
+        stats : BatterStats
+        market_lines : list of dict, optional
+            Pre-fetched outlier.bet market lines.
+        opponent_throws : str, optional
+            Throwing hand of the opposing pitcher (``"R"`` or ``"L"``).
+        is_home : bool, optional
+            Whether the batter is at home.
+        game_id : str, optional
+            outlier.bet game identifier.
+        split : str, optional
+            Historical split, e.g. ``"prevSeason"``.
+
+        Returns
+        -------
+        list of EdgeResult
+            Sorted by edge descending.
+        """
+        report = self.simulator.simulate_batter(
+            stats, opponent_throws=opponent_throws, is_home=is_home
+        )
+        if market_lines is None:
+            market_lines = self.client.fetch_player_props(game_id=game_id, split=split)
+        return self._find_edges(stats.name, report, market_lines)
+
+    def screen_matchup(
+        self,
+        pitcher: "PitcherStats",
+        batters: List["BatterStats"],
+        market_lines: Optional[List[Dict]] = None,
+        pitcher_is_home: Optional[bool] = None,
+        game_id: Optional[str] = None,
+        split: Optional[str] = None,
+    ) -> List[EdgeResult]:
+        """
+        Find edges for an entire pitcher vs lineup matchup.
+
+        Parameters
+        ----------
+        pitcher : PitcherStats
+        batters : list of BatterStats
+        market_lines : list of dict, optional
+            Pre-fetched outlier.bet market lines.  When ``None``, the API is
+            called once and the result shared across all players.
+        pitcher_is_home : bool, optional
+        game_id : str, optional
+            outlier.bet game identifier.
+        split : str, optional
+            Historical split, e.g. ``"prevSeason"``.
+
+        Returns
+        -------
+        list of EdgeResult
+            All edges for all players in the matchup, sorted by edge descending.
+        """
+        if market_lines is None:
+            market_lines = self.client.fetch_player_props(game_id=game_id, split=split)
+        all_edges: List[EdgeResult] = []
+        batter_is_home: Optional[bool] = (
+            None if pitcher_is_home is None else not pitcher_is_home
+        )
+        all_edges.extend(
+            self.screen_pitcher(
+                pitcher,
+                market_lines=market_lines,
+                is_home=pitcher_is_home,
+            )
+        )
+        for batter in batters:
+            all_edges.extend(
+                self.screen_batter(
+                    batter,
+                    market_lines=market_lines,
+                    opponent_throws=pitcher.throws,
+                    is_home=batter_is_home,
+                )
+            )
+        all_edges.sort(key=lambda e: -e.edge)
+        return all_edges
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def _normalise_prop_type(cls, raw: str) -> Optional[str]:
+        """Map a raw outlier.bet prop-type string to a simulator prop name."""
+        return cls._PROP_TYPE_MAP.get(raw.strip().lower())
+
+    def _find_edges(
+        self,
+        player_name: str,
+        report: "PlayerPropsReport",
+        market_lines: List[Dict],
+    ) -> List[EdgeResult]:
+        """
+        Compare a simulator report against a list of market lines and return
+        all opportunities that meet the ``min_edge`` threshold.
+        """
+        prop_lookup: Dict[str, "PropResult"] = {
+            pr.prop_name: pr for pr in report.props
+        }
+
+        edges: List[EdgeResult] = []
+        for mkt in market_lines:
+            if mkt.get("player_name", "") != player_name:
+                continue
+            prop_name = self._normalise_prop_type(mkt.get("prop_type", ""))
+            if prop_name is None:
+                continue
+            pr = prop_lookup.get(prop_name)
+            if pr is None:
+                continue
+            try:
+                line_val = float(mkt["line"])
+            except (KeyError, TypeError, ValueError):
+                continue
+
+            for side, odds_key in (("over", "over_odds"), ("under", "under_odds")):
+                raw_odds = mkt.get(odds_key)
+                if raw_odds is None:
+                    continue
+                try:
+                    american_odds = float(raw_odds)
+                except (TypeError, ValueError):
+                    continue
+
+                market_prob = odds_to_implied_prob(american_odds)
+
                 if side == "over":
                     sim_prob = pr.over_probabilities.get(line_val)
                 else:
