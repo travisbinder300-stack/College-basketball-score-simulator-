@@ -14001,6 +14001,436 @@ class RockiesRoster:
         )
 
 
+# ---------------------------------------------------------------------------
+# Los Angeles Dodgers — 2026 Projected Roster
+# ---------------------------------------------------------------------------
+# Depth-chart source (starter at each position):
+#   C  Will Smith · 1B Freddie Freeman · 2B Tommy Edman · 3B Max Muncy
+#   SS Mookie Betts · LF Teoscar Hernandez · CF Andy Pages · RF Kyle Tucker
+#   DH Shohei Ohtani
+#   SP Yoshinobu Yamamoto · Blake Snell · Shohei Ohtani · Tyler Glasnow
+#      · Emmet Sheehan
+#   RP Tanner Scott · Alex Vesia · Jack Dreyer · Blake Treinen
+#      · Justin Wrobleski · Edwin Diaz (CL)
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Will Smith — C, bats right; elite offensive catcher with plus power
+#: and excellent plate discipline; one of the best hitting catchers in
+#: baseball; anchors the Dodgers lineup from behind the plate.
+_LAD_WSMITH = BatterStats(
+    name="Will Smith",
+    avg=0.265,
+    obp=0.360,
+    slg=0.468,
+    hr_per_600_pa=22,
+    sb_per_season=2,
+    doubles_per_600_pa=28,
+    games_played=135,
+    power_rating=74,
+    bats="R",
+    pitches_per_pa=3.90,
+    rbi_per_season=76,
+    runs_per_season=72,
+)
+
+#: Freddie Freeman — 1B, bats left; perennial MVP-caliber first baseman
+#: with elite contact skills, gap power, and high on-base ability;
+#: one of the most consistent hitters in baseball and the anchor of the
+#: Dodgers batting order.
+_LAD_FREEMAN = BatterStats(
+    name="Freddie Freeman",
+    avg=0.300,
+    obp=0.388,
+    slg=0.520,
+    hr_per_600_pa=24,
+    sb_per_season=8,
+    doubles_per_600_pa=38,
+    games_played=150,
+    power_rating=82,
+    bats="L",
+    pitches_per_pa=3.90,
+    rbi_per_season=98,
+    runs_per_season=92,
+)
+
+#: Tommy Edman — 2B, switch hitter; versatile switch-hitting second
+#: baseman with above-average speed, solid contact from both sides of
+#: the plate, and premium defensive range; provides stolen-base threat
+#: atop the Los Angeles lineup.
+_LAD_EDMAN = BatterStats(
+    name="Tommy Edman",
+    avg=0.262,
+    obp=0.322,
+    slg=0.418,
+    hr_per_600_pa=14,
+    sb_per_season=26,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=60,
+    bats="S",
+    pitches_per_pa=3.80,
+    rbi_per_season=60,
+    runs_per_season=82,
+)
+
+#: Max Muncy — 3B, bats left; power-hitting third baseman with premium
+#: home-run ability and elite walk rates; one of the most feared
+#: left-handed power bats in the National League.
+_LAD_MUNCY = BatterStats(
+    name="Max Muncy",
+    avg=0.235,
+    obp=0.348,
+    slg=0.450,
+    hr_per_600_pa=28,
+    sb_per_season=2,
+    doubles_per_600_pa=24,
+    games_played=130,
+    power_rating=76,
+    bats="L",
+    pitches_per_pa=3.96,
+    rbi_per_season=78,
+    runs_per_season=72,
+)
+
+#: Mookie Betts — SS, bats right; elite five-tool shortstop with
+#: above-average power, premium defense, and consistent on-base ability;
+#: one of the best all-around players in baseball and the spark plug of
+#: the Dodgers offense.
+_LAD_BETTS = BatterStats(
+    name="Mookie Betts",
+    avg=0.282,
+    obp=0.362,
+    slg=0.498,
+    hr_per_600_pa=26,
+    sb_per_season=16,
+    doubles_per_600_pa=32,
+    games_played=140,
+    power_rating=80,
+    bats="R",
+    pitches_per_pa=3.88,
+    rbi_per_season=82,
+    runs_per_season=90,
+)
+
+#: Teoscar Hernandez — LF, bats right; powerful right-handed slugger
+#: with above-average raw power, solid contact skills, and a strong
+#: throwing arm; provides a dangerous middle-of-the-order bat for Los
+#: Angeles in left field.
+_LAD_THERNANDEZ = BatterStats(
+    name="Teoscar Hernandez",
+    avg=0.272,
+    obp=0.322,
+    slg=0.498,
+    hr_per_600_pa=30,
+    sb_per_season=8,
+    doubles_per_600_pa=30,
+    games_played=145,
+    power_rating=80,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=90,
+    runs_per_season=78,
+)
+
+#: Andy Pages — CF, bats right; athletic center fielder with developing
+#: power and solid speed; projects as a reliable defensive presence in
+#: center field with improving offensive tools for the Dodgers.
+_LAD_PAGES = BatterStats(
+    name="Andy Pages",
+    avg=0.248,
+    obp=0.312,
+    slg=0.418,
+    hr_per_600_pa=20,
+    sb_per_season=12,
+    doubles_per_600_pa=26,
+    games_played=135,
+    power_rating=64,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=60,
+    runs_per_season=66,
+)
+
+#: Kyle Tucker — RF, bats left; elite right fielder with plus power,
+#: above-average speed, and premium plate discipline; one of the premier
+#: offensive players in baseball who provides both power and on-base
+#: value for Los Angeles.
+_LAD_TUCKER = BatterStats(
+    name="Kyle Tucker",
+    avg=0.280,
+    obp=0.360,
+    slg=0.510,
+    hr_per_600_pa=30,
+    sb_per_season=18,
+    doubles_per_600_pa=34,
+    games_played=150,
+    power_rating=84,
+    bats="L",
+    pitches_per_pa=3.88,
+    rbi_per_season=94,
+    runs_per_season=86,
+)
+
+#: Shohei Ohtani — DH, bats left; generational two-way superstar and
+#: the most valuable player in baseball; leads the Dodgers lineup in
+#: home runs per 600 PA, power rating, RBI, and runs scored; his
+#: otherworldly combination of elite hitting and pitching ability makes
+#: him the centerpiece of the Los Angeles franchise.
+_LAD_OHTANI = BatterStats(
+    name="Shohei Ohtani",
+    avg=0.300,
+    obp=0.390,
+    slg=0.650,
+    hr_per_600_pa=52,
+    sb_per_season=26,
+    doubles_per_600_pa=36,
+    games_played=155,
+    power_rating=100,
+    bats="L",
+    pitches_per_pa=3.92,
+    rbi_per_season=112,
+    runs_per_season=106,
+)
+
+#: 2026 Dodgers lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+DODGERS_LINEUP_2026: List[BatterStats] = [
+    _LAD_WSMITH,
+    _LAD_FREEMAN,
+    _LAD_EDMAN,
+    _LAD_MUNCY,
+    _LAD_BETTS,
+    _LAD_THERNANDEZ,
+    _LAD_PAGES,
+    _LAD_TUCKER,
+    _LAD_OHTANI,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Yoshinobu Yamamoto — RHP ace; elite right-hander with devastating
+#: splitter-fastball combination, elite command, and the ability to
+#: dominate any lineup; the clear rotation ace and one of the best
+#: pitchers in baseball for the Los Angeles Dodgers.
+_LAD_YAMAMOTO = PitcherStats(
+    name="Yoshinobu Yamamoto",
+    era=2.80,
+    k_per_9=11.5,
+    innings_per_start=6.2,
+    whip=1.02,
+    arm_strength=88.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Blake Snell — LHP second starter; dynamic left-hander with plus
+#: fastball-slider combination and devastating swing-and-miss stuff;
+#: an elite strikeout pitcher who pairs with Yamamoto to give Los
+#: Angeles one of the most formidable 1-2 punches in baseball.
+_LAD_SNELL = PitcherStats(
+    name="Blake Snell",
+    era=3.40,
+    k_per_9=11.5,
+    innings_per_start=5.5,
+    whip=1.18,
+    arm_strength=80.0,
+    throws="L",
+    pitches_per_pa=3.96,
+)
+
+#: Shohei Ohtani — LHP third starter; generational two-way player with
+#: triple-digit velocity, devastating splitter, and elite command;
+#: capable of dominating any lineup on the mound while also serving as
+#: the DH when not pitching.
+_LAD_OHTANI_P = PitcherStats(
+    name="Shohei Ohtani",
+    era=3.20,
+    k_per_9=11.0,
+    innings_per_start=5.8,
+    whip=1.10,
+    arm_strength=86.0,
+    throws="L",
+    pitches_per_pa=3.90,
+)
+
+#: Tyler Glasnow — RHP fourth starter; tall right-hander with elite
+#: fastball velocity and a high-spin curveball; one of the most
+#: dominant strikeout pitchers in baseball when healthy; provides
+#: elite swing-and-miss depth in the Dodgers rotation.
+_LAD_GLASNOW = PitcherStats(
+    name="Tyler Glasnow",
+    era=3.50,
+    k_per_9=12.5,
+    innings_per_start=5.5,
+    whip=1.15,
+    arm_strength=86.0,
+    throws="R",
+    pitches_per_pa=3.94,
+)
+
+#: Emmet Sheehan — RHP fifth starter; hard-throwing young right-hander
+#: with a quality fastball-breaking ball combination; provides reliable
+#: depth at the back of the Los Angeles rotation.
+_LAD_SHEEHAN = PitcherStats(
+    name="Emmet Sheehan",
+    era=4.10,
+    k_per_9=10.0,
+    innings_per_start=5.2,
+    whip=1.25,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: 2026 Dodgers starting rotation (ace first).
+DODGERS_ROTATION_2026: List[PitcherStats] = [
+    _LAD_YAMAMOTO,
+    _LAD_SNELL,
+    _LAD_OHTANI_P,
+    _LAD_GLASNOW,
+    _LAD_SHEEHAN,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Tanner Scott — LHP setup reliever; high-velocity left-hander with a
+#: devastating slider; one of the most dominant left-handed setup arms
+#: in baseball who provides elite high-leverage relief depth for Los
+#: Angeles.
+_LAD_TSCOTT = PitcherStats(
+    name="Tanner Scott",
+    era=2.90,
+    k_per_9=11.5,
+    innings_per_start=1.0,
+    whip=1.14,
+    arm_strength=80.0,
+    throws="L",
+    pitches_per_pa=3.88,
+)
+
+#: Alex Vesia — LHP specialist reliever; left-handed specialist with
+#: plus velocity and a sharp breaking ball; neutralizes left-handed
+#: hitters as an elite situational option in the Los Angeles bullpen.
+_LAD_VESIA = PitcherStats(
+    name="Alex Vesia",
+    era=3.10,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=76.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: Jack Dreyer — RHP middle reliever; solid right-hander with reliable
+#: fastball-slider combination; provides dependable middle-relief depth
+#: in the Los Angeles bullpen.
+_LAD_DREYER = PitcherStats(
+    name="Jack Dreyer",
+    era=3.40,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Blake Treinen — RHP setup reliever; heavy sinkerball right-hander
+#: with elite ground-ball rate and solid strikeout ability; provides
+#: valuable high-leverage relief depth in the Los Angeles bullpen.
+_LAD_TREINEN = PitcherStats(
+    name="Blake Treinen",
+    era=3.20,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Justin Wrobleski — LHP depth reliever; young left-hander with solid
+#: fastball-changeup combination; provides back-of-the-bullpen depth
+#: and multi-inning capability for Los Angeles.
+_LAD_WROBLESKI = PitcherStats(
+    name="Justin Wrobleski",
+    era=3.80,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Edwin Diaz — CL, RHP, elite closer; the best ERA in the Los Angeles
+#: bullpen; electric fastball and devastating slider give him the
+#: ability to blow away any lineup in the ninth inning; one of the most
+#: dominant closers in baseball and the anchor of the Dodgers bullpen.
+_LAD_DIAZ = PitcherStats(
+    name="Edwin Diaz",
+    era=2.50,
+    k_per_9=13.0,
+    innings_per_start=1.0,
+    whip=1.02,
+    arm_strength=90.0,
+    throws="R",
+    pitches_per_pa=3.92,
+)
+
+#: 2026 Dodgers bullpen (setup arms + closer; closer is last entry, index 5 = Diaz).
+DODGERS_BULLPEN_2026: List[PitcherStats] = [
+    _LAD_TSCOTT,
+    _LAD_VESIA,
+    _LAD_DREYER,
+    _LAD_TREINEN,
+    _LAD_WROBLESKI,
+    _LAD_DIAZ,
+]
+
+
+@dataclass
+class DodgersRoster:
+    """
+    Bundle of Los Angeles Dodgers projected 2026 depth-chart starters,
+    rotation, and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Edwin Diaz).
+
+    Examples
+    --------
+    ::
+
+        roster = DodgersRoster.default()
+        print(roster.rotation[0].name)   # "Yoshinobu Yamamoto"
+        print(roster.lineup[8].name)     # "Shohei Ohtani"
+        print(roster.bullpen[-1].name)   # "Edwin Diaz"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "DodgersRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(DODGERS_LINEUP_2026),
+            rotation=list(DODGERS_ROTATION_2026),
+            bullpen=list(DODGERS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

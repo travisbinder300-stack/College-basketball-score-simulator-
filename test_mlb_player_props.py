@@ -11824,5 +11824,203 @@ class TestRockiesRoster(unittest.TestCase):
         self.assertEqual(len(r2.bullpen), 6)
 
 
+from mlb_player_props import (  # noqa: E402
+    DodgersRoster,
+    DODGERS_LINEUP_2026,
+    DODGERS_ROTATION_2026,
+    DODGERS_BULLPEN_2026,
+)
+
+_LAD_LINEUP_NAMES = [
+    "Will Smith",
+    "Freddie Freeman",
+    "Tommy Edman",
+    "Max Muncy",
+    "Mookie Betts",
+    "Teoscar Hernandez",
+    "Andy Pages",
+    "Kyle Tucker",
+    "Shohei Ohtani",
+]
+
+_LAD_ROTATION_NAMES = [
+    "Yoshinobu Yamamoto",
+    "Blake Snell",
+    "Shohei Ohtani",
+    "Tyler Glasnow",
+    "Emmet Sheehan",
+]
+
+_LAD_BULLPEN_NAMES = [
+    "Tanner Scott",
+    "Alex Vesia",
+    "Jack Dreyer",
+    "Blake Treinen",
+    "Justin Wrobleski",
+    "Edwin Diaz",
+]
+
+
+class TestDodgersRoster(unittest.TestCase):
+    """Tests for DODGERS_LINEUP_2026, DODGERS_ROTATION_2026,
+    DODGERS_BULLPEN_2026, and DodgersRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_length(self):
+        self.assertEqual(len(DODGERS_LINEUP_2026), 9)
+
+    def test_rotation_length(self):
+        self.assertEqual(len(DODGERS_ROTATION_2026), 5)
+
+    def test_bullpen_length(self):
+        self.assertEqual(len(DODGERS_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in DODGERS_LINEUP_2026], _LAD_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in DODGERS_ROTATION_2026], _LAD_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in DODGERS_BULLPEN_2026], _LAD_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — data quality
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_positive(self):
+        for batter in DODGERS_LINEUP_2026:
+            self.assertGreater(batter.avg, 0)
+
+    def test_all_lineup_obp_above_avg(self):
+        for b in DODGERS_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_all_lineup_slg_above_avg(self):
+        for b in DODGERS_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_all_lineup_hr_nonneg(self):
+        for b in DODGERS_LINEUP_2026:
+            self.assertGreaterEqual(b.hr_per_600_pa, 0)
+
+    def test_all_lineup_sb_nonneg(self):
+        for b in DODGERS_LINEUP_2026:
+            self.assertGreaterEqual(b.sb_per_season, 0)
+
+    def test_all_rotation_era_positive(self):
+        for p in DODGERS_ROTATION_2026:
+            self.assertGreater(p.era, 0)
+
+    def test_all_bullpen_era_positive(self):
+        for p in DODGERS_BULLPEN_2026:
+            self.assertGreater(p.era, 0)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — handedness
+    # ------------------------------------------------------------------
+
+    def test_wsmith_bats_right(self):
+        self.assertEqual(DODGERS_LINEUP_2026[0].bats, "R")
+
+    def test_freeman_bats_left(self):
+        self.assertEqual(DODGERS_LINEUP_2026[1].bats, "L")
+
+    def test_edman_bats_switch(self):
+        self.assertEqual(DODGERS_LINEUP_2026[2].bats, "S")
+
+    def test_muncy_bats_left(self):
+        self.assertEqual(DODGERS_LINEUP_2026[3].bats, "L")
+
+    def test_betts_bats_right(self):
+        self.assertEqual(DODGERS_LINEUP_2026[4].bats, "R")
+
+    def test_thernandez_bats_right(self):
+        self.assertEqual(DODGERS_LINEUP_2026[5].bats, "R")
+
+    def test_pages_bats_right(self):
+        self.assertEqual(DODGERS_LINEUP_2026[6].bats, "R")
+
+    def test_tucker_bats_left(self):
+        self.assertEqual(DODGERS_LINEUP_2026[7].bats, "L")
+
+    def test_ohtani_bats_left(self):
+        self.assertEqual(DODGERS_LINEUP_2026[8].bats, "L")
+
+    # ------------------------------------------------------------------
+    # Module-level constants — statistical leaders
+    # ------------------------------------------------------------------
+
+    def test_yamamoto_has_best_rotation_era(self):
+        """Yoshinobu Yamamoto (ace) has the best ERA in the rotation."""
+        min_era = min(p.era for p in DODGERS_ROTATION_2026)
+        self.assertAlmostEqual(DODGERS_ROTATION_2026[0].era, min_era)
+
+    def test_diaz_has_best_bullpen_era(self):
+        """Edwin Diaz (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in DODGERS_BULLPEN_2026)
+        self.assertAlmostEqual(DODGERS_BULLPEN_2026[-1].era, min_era)
+
+    def test_ohtani_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in DODGERS_LINEUP_2026)
+        self.assertAlmostEqual(DODGERS_LINEUP_2026[8].hr_per_600_pa, max_hr)
+
+    def test_ohtani_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in DODGERS_LINEUP_2026)
+        self.assertAlmostEqual(DODGERS_LINEUP_2026[8].power_rating, max_power)
+
+    def test_ohtani_leads_rbi(self):
+        max_rbi = max(b.rbi_per_season for b in DODGERS_LINEUP_2026)
+        self.assertAlmostEqual(DODGERS_LINEUP_2026[8].rbi_per_season, max_rbi)
+
+    def test_ohtani_leads_runs(self):
+        max_runs = max(b.runs_per_season for b in DODGERS_LINEUP_2026)
+        self.assertAlmostEqual(DODGERS_LINEUP_2026[8].runs_per_season, max_runs)
+
+    def test_ohtani_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in DODGERS_LINEUP_2026)
+        self.assertAlmostEqual(DODGERS_LINEUP_2026[8].sb_per_season, max_sb)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(DODGERS_BULLPEN_2026[-1].era, DODGERS_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # DodgersRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_dodgers_roster_instance(self):
+        self.assertIsInstance(DodgersRoster.default(), DodgersRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(DodgersRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(DodgersRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(DodgersRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = DodgersRoster.default()
+        r2 = DodgersRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = DodgersRoster.default()
+        r2 = DodgersRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = DodgersRoster.default()
+        r2 = DodgersRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
 if __name__ == "__main__":
     unittest.main()
