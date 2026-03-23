@@ -10249,6 +10249,415 @@ class BrewersRoster:
         )
 
 
+# Pittsburgh Pirates — 2026 depth chart
+# ---------------------------------------------------------------------------
+# Positions (starters from depth chart):
+#   C  – Henry Davis
+#   1B – Spencer Horwitz
+#   2B – Brandon Lowe
+#   3B – Jared Triolo
+#   SS – Nick Gonzales
+#   LF – Bryan Reynolds
+#   CF – Oneil Cruz
+#   RF – Ryan O'Hearn
+#   DH – Marcell Ozuna
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Henry Davis — C, RHP, young offensive catcher with developing power;
+#: improving contact skills and a strong arm make him the everyday backstop
+#: in Pittsburgh.
+_PIT_DAVIS = BatterStats(
+    name="Henry Davis",
+    avg=0.248,
+    obp=0.338,
+    slg=0.425,
+    hr_per_600_pa=16,
+    sb_per_season=4,
+    doubles_per_600_pa=24,
+    games_played=130,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.92,
+    rbi_per_season=54,
+    runs_per_season=60,
+)
+
+#: Spencer Horwitz — 1B, LHP, disciplined on-base machine; elite walk rates
+#: and solid contact skills anchor the middle of the Pittsburgh lineup.
+_PIT_HORWITZ = BatterStats(
+    name="Spencer Horwitz",
+    avg=0.270,
+    obp=0.368,
+    slg=0.442,
+    hr_per_600_pa=14,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=58,
+    bats="L",
+    pitches_per_pa=4.12,
+    rbi_per_season=65,
+    runs_per_season=72,
+)
+
+#: Brandon Lowe — 2B, LHP, experienced middle infielder with plus power for
+#: the position; drives the ball well to all fields with a short, quick
+#: swing.
+_PIT_LOWE = BatterStats(
+    name="Brandon Lowe",
+    avg=0.248,
+    obp=0.328,
+    slg=0.452,
+    hr_per_600_pa=20,
+    sb_per_season=8,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=65,
+    bats="L",
+    pitches_per_pa=3.90,
+    rbi_per_season=68,
+    runs_per_season=72,
+)
+
+#: Jared Triolo — 3B, RHP, contact-first infielder with solid gap power;
+#: reliable defender who provides stability at the hot corner.
+_PIT_TRIOLO = BatterStats(
+    name="Jared Triolo",
+    avg=0.260,
+    obp=0.328,
+    slg=0.422,
+    hr_per_600_pa=14,
+    sb_per_season=8,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.84,
+    rbi_per_season=58,
+    runs_per_season=62,
+)
+
+#: Nick Gonzales — SS, RHP, toolsy shortstop prospect with improving contact
+#: and solid plate discipline; provides a blend of speed and gap power at
+#: the bottom of the order.
+_PIT_GONZALES = BatterStats(
+    name="Nick Gonzales",
+    avg=0.262,
+    obp=0.338,
+    slg=0.442,
+    hr_per_600_pa=15,
+    sb_per_season=10,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=60,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=60,
+    runs_per_season=68,
+)
+
+#: Bryan Reynolds — LF, switch hitter, consistent middle-of-the-order force;
+#: outstanding plate coverage from both sides delivers gap power and solid
+#: contact season after season.
+_PIT_REYNOLDS = BatterStats(
+    name="Bryan Reynolds",
+    avg=0.272,
+    obp=0.348,
+    slg=0.462,
+    hr_per_600_pa=22,
+    sb_per_season=14,
+    doubles_per_600_pa=30,
+    games_played=150,
+    power_rating=70,
+    bats="S",
+    pitches_per_pa=3.88,
+    rbi_per_season=80,
+    runs_per_season=85,
+)
+
+#: Oneil Cruz — CF, LHP, electric five-tool talent with massive raw power and
+#: elite speed; leads Pittsburgh in stolen bases and is one of the most
+#: physically gifted players in the NL.
+_PIT_CRUZ = BatterStats(
+    name="Oneil Cruz",
+    avg=0.255,
+    obp=0.320,
+    slg=0.478,
+    hr_per_600_pa=26,
+    sb_per_season=22,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=74,
+    bats="L",
+    pitches_per_pa=3.82,
+    rbi_per_season=75,
+    runs_per_season=80,
+)
+
+#: Ryan O'Hearn — RF, LHP, steady bat on the right side of the outfield;
+#: left-handed pull hitter with gap power and reliable production in the
+#: middle of the order.
+_PIT_OHEARN = BatterStats(
+    name="Ryan O'Hearn",
+    avg=0.258,
+    obp=0.330,
+    slg=0.442,
+    hr_per_600_pa=18,
+    sb_per_season=4,
+    doubles_per_600_pa=26,
+    games_played=140,
+    power_rating=64,
+    bats="L",
+    pitches_per_pa=3.86,
+    rbi_per_season=68,
+    runs_per_season=65,
+)
+
+#: Marcell Ozuna — DH, RHP, power-hitting designated hitter; leads Pittsburgh
+#: in home runs and slugging; one of the most dangerous right-handed bats in
+#: the lineup when locked in.
+_PIT_OZUNA = BatterStats(
+    name="Marcell Ozuna",
+    avg=0.258,
+    obp=0.330,
+    slg=0.522,
+    hr_per_600_pa=32,
+    sb_per_season=2,
+    doubles_per_600_pa=26,
+    games_played=148,
+    power_rating=80,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=92,
+    runs_per_season=70,
+)
+
+#: 2026 Pirates lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+PIRATES_LINEUP_2026: List[BatterStats] = [
+    _PIT_DAVIS,
+    _PIT_HORWITZ,
+    _PIT_LOWE,
+    _PIT_TRIOLO,
+    _PIT_GONZALES,
+    _PIT_REYNOLDS,
+    _PIT_CRUZ,
+    _PIT_OHEARN,
+    _PIT_OZUNA,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Paul Skenes — RHP ace; one of the most dominant young starters in
+#: baseball; blazing fastball paired with filthy breaking stuff; leads
+#: Pittsburgh's rotation with an elite ERA and strikeout rate.
+_PIT_SKENES = PitcherStats(
+    name="Paul Skenes",
+    era=2.90,
+    k_per_9=11.8,
+    innings_per_start=6.5,
+    whip=0.98,
+    arm_strength=90.0,
+    throws="R",
+    pitches_per_pa=3.75,
+)
+
+#: Mitch Keller — RHP reliable No. 2; strong fastball-curveball combination;
+#: a proven innings-eater who stabilises the Pittsburgh rotation.
+_PIT_KELLER = PitcherStats(
+    name="Mitch Keller",
+    era=3.65,
+    k_per_9=9.8,
+    innings_per_start=6.0,
+    whip=1.18,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Bubba Chandler — RHP promising young arm; plus fastball and sharp slider
+#: project as a future top-of-the-rotation piece for Pittsburgh.
+_PIT_CHANDLER = PitcherStats(
+    name="Bubba Chandler",
+    era=4.00,
+    k_per_9=9.5,
+    innings_per_start=5.5,
+    whip=1.24,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: Braxton Ashcraft — RHP developing starter; mid-90s fastball and a solid
+#: slider give him a path to consistency in the big-league rotation.
+_PIT_ASHCRAFT = PitcherStats(
+    name="Braxton Ashcraft",
+    era=4.25,
+    k_per_9=8.5,
+    innings_per_start=5.2,
+    whip=1.28,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.90,
+)
+
+#: Carmen Mlodzinski — RHP back-of-rotation option; keeps the ball on the
+#: ground with a heavy sinker and competes deep into games.
+_PIT_MLODZINSKI = PitcherStats(
+    name="Carmen Mlodzinski",
+    era=4.40,
+    k_per_9=8.2,
+    innings_per_start=5.0,
+    whip=1.30,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: 2026 Pirates starting rotation (ace first).
+PIRATES_ROTATION_2026: List[PitcherStats] = [
+    _PIT_SKENES,
+    _PIT_KELLER,
+    _PIT_CHANDLER,
+    _PIT_ASHCRAFT,
+    _PIT_MLODZINSKI,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Gregory Soto — LHP high-leverage reliever; overpowering left-handed arm
+#: with triple-digit velocity; neutralises left-handed lineups and is used
+#: in the highest-leverage spots.
+_PIT_SOTO = PitcherStats(
+    name="Gregory Soto",
+    era=3.75,
+    k_per_9=9.8,
+    innings_per_start=1.0,
+    whip=1.30,
+    arm_strength=66.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Isaac Mattson — RHP setup man; sharp slider and above-average fastball
+#: make him effective in multi-inning stints out of the pen.
+_PIT_MATTSON = PitcherStats(
+    name="Isaac Mattson",
+    era=3.55,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Mason Montgomery — LHP situational specialist; quality breaking ball
+#: provides a left-handed option to neutralise opposing hitters.
+_PIT_MONTGOMERY = PitcherStats(
+    name="Mason Montgomery",
+    era=3.60,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=58.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Justin Lawrence — RHP high-leverage arm; power reliever with electric
+#: stuff; used in crucial middle-inning situations to strand inherited
+#: runners.
+_PIT_LAWRENCE = PitcherStats(
+    name="Justin Lawrence",
+    era=3.50,
+    k_per_9=10.4,
+    innings_per_start=1.0,
+    whip=1.18,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Yohan Ramirez — RHP setup specialist; heavy sinking fastball and sharp
+#: slider generate weak contact and keep runners off the bases.
+_PIT_YRAMIREZ = PitcherStats(
+    name="Yohan Ramirez",
+    era=3.45,
+    k_per_9=10.2,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Dennis Santana — RHP closer; Pittsburgh's primary ninth-inning option with
+#: the best ERA in the bullpen; mid-to-upper-90s fastball and a hard slider
+#: overwhelm opposing hitters.
+_PIT_SANTANA = PitcherStats(
+    name="Dennis Santana",
+    era=2.65,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.08,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Pirates bullpen (setup arms + closer; closer is last entry, index 5 = Santana).
+PIRATES_BULLPEN_2026: List[PitcherStats] = [
+    _PIT_SOTO,
+    _PIT_MATTSON,
+    _PIT_MONTGOMERY,
+    _PIT_LAWRENCE,
+    _PIT_YRAMIREZ,
+    _PIT_SANTANA,
+]
+
+
+@dataclass
+class PiratesRoster:
+    """
+    Bundle of Pittsburgh Pirates projected 2026 depth-chart starters, rotation,
+    and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Dennis Santana).
+
+    Examples
+    --------
+    ::
+
+        roster = PiratesRoster.default()
+        print(roster.rotation[0].name)   # "Paul Skenes"
+        print(roster.lineup[8].name)     # "Marcell Ozuna"
+        print(roster.bullpen[-1].name)   # "Dennis Santana"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "PiratesRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(PIRATES_LINEUP_2026),
+            rotation=list(PIRATES_ROTATION_2026),
+            bullpen=list(PIRATES_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
