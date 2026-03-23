@@ -11634,5 +11634,195 @@ class TestDiamondbacksRoster(unittest.TestCase):
         self.assertEqual(len(r2.bullpen), 6)
 
 
+from mlb_player_props import (  # noqa: E402
+    RockiesRoster,
+    ROCKIES_LINEUP_2026,
+    ROCKIES_ROTATION_2026,
+    ROCKIES_BULLPEN_2026,
+)
+
+_COL_LINEUP_NAMES = [
+    "Hunter Goodman",
+    "T.J. Rumfield",
+    "Willi Castro",
+    "Kyle Karros",
+    "Ezequiel Tovar",
+    "Jordan Beck",
+    "Brenton Doyle",
+    "Jake McCarthy",
+    "Mickey Moniak",
+]
+
+_COL_ROTATION_NAMES = [
+    "Kyle Freeland",
+    "Michael Lorenzen",
+    "Jose Quintana",
+    "Tomoyuki Sugano",
+    "Ryan Feltner",
+]
+
+_COL_BULLPEN_NAMES = [
+    "Juan Mejia",
+    "Brennan Bernardino",
+    "Jaden Hill",
+    "Zach Agnos",
+    "Victor Vodnik",
+    "Seth Halvorsen",
+]
+
+
+class TestRockiesRoster(unittest.TestCase):
+    """Tests for ROCKIES_LINEUP_2026, ROCKIES_ROTATION_2026,
+    ROCKIES_BULLPEN_2026, and RockiesRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_length(self):
+        self.assertEqual(len(ROCKIES_LINEUP_2026), 9)
+
+    def test_rotation_length(self):
+        self.assertEqual(len(ROCKIES_ROTATION_2026), 5)
+
+    def test_bullpen_length(self):
+        self.assertEqual(len(ROCKIES_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in ROCKIES_LINEUP_2026], _COL_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in ROCKIES_ROTATION_2026], _COL_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in ROCKIES_BULLPEN_2026], _COL_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — data quality
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_positive(self):
+        for batter in ROCKIES_LINEUP_2026:
+            self.assertGreater(batter.avg, 0)
+
+    def test_all_lineup_obp_above_avg(self):
+        for b in ROCKIES_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_all_lineup_slg_above_avg(self):
+        for b in ROCKIES_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_all_lineup_hr_nonneg(self):
+        for b in ROCKIES_LINEUP_2026:
+            self.assertGreaterEqual(b.hr_per_600_pa, 0)
+
+    def test_all_lineup_sb_nonneg(self):
+        for b in ROCKIES_LINEUP_2026:
+            self.assertGreaterEqual(b.sb_per_season, 0)
+
+    def test_all_rotation_era_positive(self):
+        for p in ROCKIES_ROTATION_2026:
+            self.assertGreater(p.era, 0)
+
+    def test_all_bullpen_era_positive(self):
+        for p in ROCKIES_BULLPEN_2026:
+            self.assertGreater(p.era, 0)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — handedness
+    # ------------------------------------------------------------------
+
+    def test_goodman_bats_right(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[0].bats, "R")
+
+    def test_rumfield_bats_right(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[1].bats, "R")
+
+    def test_wcastro_bats_switch(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[2].bats, "S")
+
+    def test_karros_bats_right(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[3].bats, "R")
+
+    def test_tovar_bats_right(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[4].bats, "R")
+
+    def test_beck_bats_right(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[5].bats, "R")
+
+    def test_doyle_bats_right(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[6].bats, "R")
+
+    def test_mccarthy_bats_left(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[7].bats, "L")
+
+    def test_moniak_bats_left(self):
+        self.assertEqual(ROCKIES_LINEUP_2026[8].bats, "L")
+
+    # ------------------------------------------------------------------
+    # Module-level constants — statistical leaders
+    # ------------------------------------------------------------------
+
+    def test_freeland_has_best_rotation_era(self):
+        """Kyle Freeland (ace) has the best ERA in the rotation."""
+        min_era = min(p.era for p in ROCKIES_ROTATION_2026)
+        self.assertAlmostEqual(ROCKIES_ROTATION_2026[0].era, min_era)
+
+    def test_halvorsen_has_best_bullpen_era(self):
+        """Seth Halvorsen (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in ROCKIES_BULLPEN_2026)
+        self.assertAlmostEqual(ROCKIES_BULLPEN_2026[-1].era, min_era)
+
+    def test_goodman_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in ROCKIES_LINEUP_2026)
+        self.assertAlmostEqual(ROCKIES_LINEUP_2026[0].hr_per_600_pa, max_hr)
+
+    def test_goodman_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in ROCKIES_LINEUP_2026)
+        self.assertAlmostEqual(ROCKIES_LINEUP_2026[0].power_rating, max_power)
+
+    def test_doyle_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in ROCKIES_LINEUP_2026)
+        self.assertAlmostEqual(ROCKIES_LINEUP_2026[6].sb_per_season, max_sb)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(ROCKIES_BULLPEN_2026[-1].era, ROCKIES_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # RockiesRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_rockies_roster_instance(self):
+        self.assertIsInstance(RockiesRoster.default(), RockiesRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(RockiesRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(RockiesRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(RockiesRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = RockiesRoster.default()
+        r2 = RockiesRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = RockiesRoster.default()
+        r2 = RockiesRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = RockiesRoster.default()
+        r2 = RockiesRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
 if __name__ == "__main__":
     unittest.main()

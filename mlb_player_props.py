@@ -13591,6 +13591,416 @@ class DiamondbacksRoster:
         )
 
 
+# ---------------------------------------------------------------------------
+# Colorado Rockies — 2026 projected roster
+# ---------------------------------------------------------------------------
+
+# -- Lineup batters ----------------------------------------------------------
+
+#: Hunter Goodman — C, bats right; breakout power-hitting catcher with
+#: above-average raw power and solid receiving skills; leads the Colorado
+#: lineup in home runs and power rating; figures to be a cornerstone of
+#: the Rockies offense at Coors Field.
+_COL_GOODMAN = BatterStats(
+    name="Hunter Goodman",
+    avg=0.262,
+    obp=0.322,
+    slg=0.488,
+    hr_per_600_pa=28,
+    sb_per_season=4,
+    doubles_per_600_pa=28,
+    games_played=120,
+    power_rating=80,
+    bats="R",
+    pitches_per_pa=3.70,
+    rbi_per_season=78,
+    runs_per_season=60,
+)
+
+#: T.J. Rumfield — 1B, bats right; promising first-base prospect with
+#: solid contact skills and developing gap power; projects as a reliable
+#: offensive contributor at first base in the Colorado lineup.
+_COL_RUMFIELD = BatterStats(
+    name="T.J. Rumfield",
+    avg=0.268,
+    obp=0.334,
+    slg=0.438,
+    hr_per_600_pa=16,
+    sb_per_season=4,
+    doubles_per_600_pa=30,
+    games_played=130,
+    power_rating=62,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=66,
+    runs_per_season=64,
+)
+
+#: Willi Castro — 2B, switch hitter; versatile utility player with solid
+#: contact from both sides of the plate and the ability to play multiple
+#: positions; provides lineup flexibility and depth for Colorado.
+_COL_WCASTRO = BatterStats(
+    name="Willi Castro",
+    avg=0.270,
+    obp=0.328,
+    slg=0.408,
+    hr_per_600_pa=12,
+    sb_per_season=14,
+    doubles_per_600_pa=26,
+    games_played=130,
+    power_rating=54,
+    bats="S",
+    pitches_per_pa=3.72,
+    rbi_per_season=56,
+    runs_per_season=68,
+)
+
+#: Kyle Karros — 3B, bats right; athletic third-base prospect with solid
+#: defense and developing offensive tools; projects as a reliable glove
+#: at the hot corner with improving bat-to-ball skills for Colorado.
+_COL_KARROS = BatterStats(
+    name="Kyle Karros",
+    avg=0.262,
+    obp=0.330,
+    slg=0.420,
+    hr_per_600_pa=14,
+    sb_per_season=6,
+    doubles_per_600_pa=26,
+    games_played=125,
+    power_rating=58,
+    bats="R",
+    pitches_per_pa=3.74,
+    rbi_per_season=60,
+    runs_per_season=62,
+)
+
+#: Ezequiel Tovar — SS, bats right; premium defensive shortstop with
+#: developing offensive tools; plus glove and improving bat give him
+#: a high floor as the Colorado everyday shortstop at Coors Field.
+_COL_TOVAR = BatterStats(
+    name="Ezequiel Tovar",
+    avg=0.265,
+    obp=0.318,
+    slg=0.418,
+    hr_per_600_pa=14,
+    sb_per_season=12,
+    doubles_per_600_pa=26,
+    games_played=145,
+    power_rating=60,
+    bats="R",
+    pitches_per_pa=3.70,
+    rbi_per_season=62,
+    runs_per_season=70,
+)
+
+#: Jordan Beck — LF, bats right; young outfielder with premium athleticism
+#: and developing offensive tools; solid speed and improving contact give
+#: him a high ceiling in the Colorado left-field corner.
+_COL_BECK = BatterStats(
+    name="Jordan Beck",
+    avg=0.258,
+    obp=0.318,
+    slg=0.412,
+    hr_per_600_pa=16,
+    sb_per_season=16,
+    doubles_per_600_pa=24,
+    games_played=120,
+    power_rating=60,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=58,
+    runs_per_season=64,
+)
+
+#: Brenton Doyle — CF, bats right; elite defensive center fielder with
+#: premium speed and athleticism; leads the Colorado lineup in stolen
+#: bases; developing offensive tools with improving plate discipline
+#: give him a high floor as Colorado's everyday center fielder.
+_COL_DOYLE = BatterStats(
+    name="Brenton Doyle",
+    avg=0.258,
+    obp=0.318,
+    slg=0.415,
+    hr_per_600_pa=16,
+    sb_per_season=28,
+    doubles_per_600_pa=24,
+    games_played=145,
+    power_rating=60,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=60,
+    runs_per_season=76,
+)
+
+#: Jake McCarthy — RF, bats left; athletic outfielder with solid contact
+#: and above-average speed; reliable defensive presence in right field
+#: with developing power and consistent on-base ability for Colorado.
+_COL_MCCARTHY = BatterStats(
+    name="Jake McCarthy",
+    avg=0.262,
+    obp=0.328,
+    slg=0.402,
+    hr_per_600_pa=10,
+    sb_per_season=18,
+    doubles_per_600_pa=24,
+    games_played=135,
+    power_rating=52,
+    bats="L",
+    pitches_per_pa=3.72,
+    rbi_per_season=52,
+    runs_per_season=68,
+)
+
+#: Mickey Moniak — DH, bats left; left-handed hitter with solid power and
+#: athleticism; provides a potent bat from the DH spot for Colorado with
+#: developing gap power and improving contact skills.
+_COL_MONIAK = BatterStats(
+    name="Mickey Moniak",
+    avg=0.262,
+    obp=0.322,
+    slg=0.440,
+    hr_per_600_pa=20,
+    sb_per_season=10,
+    doubles_per_600_pa=26,
+    games_played=130,
+    power_rating=66,
+    bats="L",
+    pitches_per_pa=3.74,
+    rbi_per_season=68,
+    runs_per_season=64,
+)
+
+#: 2026 Rockies lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+ROCKIES_LINEUP_2026: List[BatterStats] = [
+    _COL_GOODMAN,
+    _COL_RUMFIELD,
+    _COL_WCASTRO,
+    _COL_KARROS,
+    _COL_TOVAR,
+    _COL_BECK,
+    _COL_DOYLE,
+    _COL_MCCARTHY,
+    _COL_MONIAK,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Kyle Freeland — LHP ace; crafty left-hander with elite command and a
+#: quality sinker-changeup combination; generates ground balls and works
+#: deep into games as Colorado's clear rotation ace at Coors Field.
+_COL_FREELAND = PitcherStats(
+    name="Kyle Freeland",
+    era=4.20,
+    k_per_9=7.8,
+    innings_per_start=5.8,
+    whip=1.30,
+    arm_strength=68.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Michael Lorenzen — RHP second starter; solid fastball-slider
+#: combination with good command; reliable innings-eater at the back of
+#: the rotation who can work deep into games for Colorado.
+_COL_LORENZEN = PitcherStats(
+    name="Michael Lorenzen",
+    era=4.50,
+    k_per_9=8.0,
+    innings_per_start=5.5,
+    whip=1.34,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.78,
+)
+
+#: Jose Quintana — LHP third starter; veteran left-hander with excellent
+#: command and a quality three-pitch mix; consistent strike-thrower who
+#: provides a steady presence in the middle of the Colorado rotation.
+_COL_QUINTANA = PitcherStats(
+    name="Jose Quintana",
+    era=4.45,
+    k_per_9=8.2,
+    innings_per_start=5.5,
+    whip=1.32,
+    arm_strength=64.0,
+    throws="L",
+    pitches_per_pa=3.78,
+)
+
+#: Tomoyuki Sugano — RHP fourth starter; cerebral right-hander with
+#: exceptional command and a plus changeup; uses sequencing and deception
+#: to navigate lineups as Colorado's fourth rotation option.
+_COL_SUGANO = PitcherStats(
+    name="Tomoyuki Sugano",
+    era=4.55,
+    k_per_9=7.5,
+    innings_per_start=5.5,
+    whip=1.34,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.76,
+)
+
+#: Ryan Feltner — RHP fifth starter; hard-throwing righty with solid
+#: fastball velocity and a developing breaking ball; provides reliable
+#: innings at the back of the Colorado rotation.
+_COL_FELTNER = PitcherStats(
+    name="Ryan Feltner",
+    era=4.85,
+    k_per_9=8.5,
+    innings_per_start=5.2,
+    whip=1.40,
+    arm_strength=60.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: 2026 Rockies starting rotation (ace first).
+ROCKIES_ROTATION_2026: List[PitcherStats] = [
+    _COL_FREELAND,
+    _COL_LORENZEN,
+    _COL_QUINTANA,
+    _COL_SUGANO,
+    _COL_FELTNER,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Juan Mejia — RHP setup reliever; lively fastball and a solid breaking
+#: ball provide reliable high-leverage relief depth out of the Colorado
+#: bullpen.
+_COL_JMEJIA = PitcherStats(
+    name="Juan Mejia",
+    era=3.88,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Brennan Bernardino — LHP specialist reliever; left-handed deception and
+#: a quality breaking ball give him the ability to neutralize left-handed
+#: hitters as a situational option in the Colorado bullpen.
+_COL_BERNARDINO = PitcherStats(
+    name="Brennan Bernardino",
+    era=4.05,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=64.0,
+    throws="L",
+    pitches_per_pa=3.80,
+)
+
+#: Jaden Hill — RHP middle reliever; plus velocity and a sharp slider
+#: give him significant swing-and-miss ability out of the Colorado
+#: bullpen as a high-ceiling relief arm.
+_COL_JHILL = PitcherStats(
+    name="Jaden Hill",
+    era=3.95,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=70.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Zach Agnos — RHP depth reliever; solid arm provides back-of-the-bullpen
+#: depth and multi-inning capability for the Colorado pitching staff.
+_COL_AGNOS = PitcherStats(
+    name="Zach Agnos",
+    era=4.20,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.30,
+    arm_strength=62.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Victor Vodnik — RHP setup reliever; electric fastball and hard slider
+#: give him plus swing-and-miss stuff as Colorado's primary setup option
+#: ahead of the closer.
+_COL_VODNIK = PitcherStats(
+    name="Victor Vodnik",
+    era=3.65,
+    k_per_9=11.0,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Seth Halvorsen — CL, RHP, elite closer; the best ERA in the Colorado
+#: bullpen; premium fastball and devastating offspeed give him the
+#: ability to dominate in save situations; Colorado's primary ninth-inning
+#: option and one of the best closers in the National League West.
+_COL_HALVORSEN = PitcherStats(
+    name="Seth Halvorsen",
+    era=3.10,
+    k_per_9=11.5,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=76.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Rockies bullpen (setup arms + closer; closer is last entry, index 5 = Halvorsen).
+ROCKIES_BULLPEN_2026: List[PitcherStats] = [
+    _COL_JMEJIA,
+    _COL_BERNARDINO,
+    _COL_JHILL,
+    _COL_AGNOS,
+    _COL_VODNIK,
+    _COL_HALVORSEN,
+]
+
+
+@dataclass
+class RockiesRoster:
+    """
+    Bundle of Colorado Rockies projected 2026 depth-chart starters,
+    rotation, and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Seth Halvorsen).
+
+    Examples
+    --------
+    ::
+
+        roster = RockiesRoster.default()
+        print(roster.rotation[0].name)   # "Kyle Freeland"
+        print(roster.lineup[4].name)     # "Ezequiel Tovar"
+        print(roster.bullpen[-1].name)   # "Seth Halvorsen"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "RockiesRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(ROCKIES_LINEUP_2026),
+            rotation=list(ROCKIES_ROTATION_2026),
+            bullpen=list(ROCKIES_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
