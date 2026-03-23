@@ -12220,5 +12220,207 @@ class TestDodgersRoster(unittest.TestCase):
         self.assertEqual(len(r2.bullpen), 6)
 
 
+from mlb_player_props import (  # noqa: E402
+    GiantsRoster,
+    GIANTS_LINEUP_2026,
+    GIANTS_ROTATION_2026,
+    GIANTS_BULLPEN_2026,
+)
+
+_SF_LINEUP_NAMES = [
+    "Patrick Bailey",
+    "Rafael Devers",
+    "Luis Arraez",
+    "Matt Chapman",
+    "Willy Adames",
+    "Heliot Ramos",
+    "Harrison Bader",
+    "Jung Hoo Lee",
+    "Jerar Encarnacion",
+]
+
+_SF_ROTATION_NAMES = [
+    "Logan Webb",
+    "Robbie Ray",
+    "Tyler Mahle",
+    "Adrian Houser",
+    "Landen Roupp",
+]
+
+_SF_BULLPEN_NAMES = [
+    "Joel Peguero",
+    "Erik Miller",
+    "Jose Butto",
+    "Spencer Bivens",
+    "Sam Hentges",
+    "Ryan Walker",
+]
+
+
+class TestGiantsRoster(unittest.TestCase):
+    """Tests for GIANTS_LINEUP_2026, GIANTS_ROTATION_2026,
+    GIANTS_BULLPEN_2026, and GiantsRoster."""
+
+    # ------------------------------------------------------------------
+    # Module-level constants — structural
+    # ------------------------------------------------------------------
+
+    def test_lineup_length(self):
+        self.assertEqual(len(GIANTS_LINEUP_2026), 9)
+
+    def test_rotation_length(self):
+        self.assertEqual(len(GIANTS_ROTATION_2026), 5)
+
+    def test_bullpen_length(self):
+        self.assertEqual(len(GIANTS_BULLPEN_2026), 6)
+
+    def test_lineup_names_in_order(self):
+        self.assertEqual([b.name for b in GIANTS_LINEUP_2026], _SF_LINEUP_NAMES)
+
+    def test_rotation_names_in_order(self):
+        self.assertEqual([p.name for p in GIANTS_ROTATION_2026], _SF_ROTATION_NAMES)
+
+    def test_bullpen_names_in_order(self):
+        self.assertEqual([p.name for p in GIANTS_BULLPEN_2026], _SF_BULLPEN_NAMES)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — data quality
+    # ------------------------------------------------------------------
+
+    def test_all_lineup_avg_positive(self):
+        for batter in GIANTS_LINEUP_2026:
+            self.assertGreater(batter.avg, 0)
+
+    def test_all_lineup_obp_above_avg(self):
+        for b in GIANTS_LINEUP_2026:
+            self.assertGreaterEqual(b.obp, b.avg)
+
+    def test_all_lineup_slg_above_avg(self):
+        for b in GIANTS_LINEUP_2026:
+            self.assertGreaterEqual(b.slg, b.avg)
+
+    def test_all_lineup_hr_nonneg(self):
+        for b in GIANTS_LINEUP_2026:
+            self.assertGreaterEqual(b.hr_per_600_pa, 0)
+
+    def test_all_lineup_sb_nonneg(self):
+        for b in GIANTS_LINEUP_2026:
+            self.assertGreaterEqual(b.sb_per_season, 0)
+
+    def test_all_rotation_era_positive(self):
+        for p in GIANTS_ROTATION_2026:
+            self.assertGreater(p.era, 0)
+
+    def test_all_bullpen_era_positive(self):
+        for p in GIANTS_BULLPEN_2026:
+            self.assertGreater(p.era, 0)
+
+    # ------------------------------------------------------------------
+    # Module-level constants — handedness
+    # ------------------------------------------------------------------
+
+    def test_bailey_bats_right(self):
+        self.assertEqual(GIANTS_LINEUP_2026[0].bats, "R")
+
+    def test_devers_bats_left(self):
+        self.assertEqual(GIANTS_LINEUP_2026[1].bats, "L")
+
+    def test_arraez_bats_left(self):
+        self.assertEqual(GIANTS_LINEUP_2026[2].bats, "L")
+
+    def test_chapman_bats_right(self):
+        self.assertEqual(GIANTS_LINEUP_2026[3].bats, "R")
+
+    def test_adames_bats_right(self):
+        self.assertEqual(GIANTS_LINEUP_2026[4].bats, "R")
+
+    def test_ramos_bats_right(self):
+        self.assertEqual(GIANTS_LINEUP_2026[5].bats, "R")
+
+    def test_bader_bats_right(self):
+        self.assertEqual(GIANTS_LINEUP_2026[6].bats, "R")
+
+    def test_jhlee_bats_left(self):
+        self.assertEqual(GIANTS_LINEUP_2026[7].bats, "L")
+
+    def test_encarnacion_bats_right(self):
+        self.assertEqual(GIANTS_LINEUP_2026[8].bats, "R")
+
+    # ------------------------------------------------------------------
+    # Module-level constants — statistical leaders
+    # ------------------------------------------------------------------
+
+    def test_webb_has_best_rotation_era(self):
+        """Logan Webb (ace) has the best ERA in the rotation."""
+        min_era = min(p.era for p in GIANTS_ROTATION_2026)
+        self.assertAlmostEqual(GIANTS_ROTATION_2026[0].era, min_era)
+
+    def test_walker_has_best_bullpen_era(self):
+        """Ryan Walker (closer) has the best ERA in the bullpen."""
+        min_era = min(p.era for p in GIANTS_BULLPEN_2026)
+        self.assertAlmostEqual(GIANTS_BULLPEN_2026[-1].era, min_era)
+
+    def test_devers_has_most_hr_per_600_pa(self):
+        max_hr = max(b.hr_per_600_pa for b in GIANTS_LINEUP_2026)
+        self.assertAlmostEqual(GIANTS_LINEUP_2026[1].hr_per_600_pa, max_hr)
+
+    def test_devers_has_highest_power_rating(self):
+        max_power = max(b.power_rating for b in GIANTS_LINEUP_2026)
+        self.assertAlmostEqual(GIANTS_LINEUP_2026[1].power_rating, max_power)
+
+    def test_devers_leads_rbi(self):
+        max_rbi = max(b.rbi_per_season for b in GIANTS_LINEUP_2026)
+        self.assertAlmostEqual(GIANTS_LINEUP_2026[1].rbi_per_season, max_rbi)
+
+    def test_devers_leads_runs(self):
+        max_runs = max(b.runs_per_season for b in GIANTS_LINEUP_2026)
+        self.assertAlmostEqual(GIANTS_LINEUP_2026[1].runs_per_season, max_runs)
+
+    def test_bader_leads_sb(self):
+        max_sb = max(b.sb_per_season for b in GIANTS_LINEUP_2026)
+        self.assertAlmostEqual(GIANTS_LINEUP_2026[6].sb_per_season, max_sb)
+
+    def test_arraez_leads_avg(self):
+        max_avg = max(b.avg for b in GIANTS_LINEUP_2026)
+        self.assertAlmostEqual(GIANTS_LINEUP_2026[2].avg, max_avg)
+
+    def test_closer_has_lower_era_than_first_starter(self):
+        self.assertLess(GIANTS_BULLPEN_2026[-1].era, GIANTS_ROTATION_2026[0].era)
+
+    # ------------------------------------------------------------------
+    # GiantsRoster dataclass
+    # ------------------------------------------------------------------
+
+    def test_default_returns_giants_roster_instance(self):
+        self.assertIsInstance(GiantsRoster.default(), GiantsRoster)
+
+    def test_default_lineup_length(self):
+        self.assertEqual(len(GiantsRoster.default().lineup), 9)
+
+    def test_default_rotation_length(self):
+        self.assertEqual(len(GiantsRoster.default().rotation), 5)
+
+    def test_default_bullpen_length(self):
+        self.assertEqual(len(GiantsRoster.default().bullpen), 6)
+
+    def test_default_lineup_is_copy(self):
+        r1 = GiantsRoster.default()
+        r2 = GiantsRoster.default()
+        r1.lineup.append(r1.lineup[0])
+        self.assertEqual(len(r2.lineup), 9)
+
+    def test_default_rotation_is_copy(self):
+        r1 = GiantsRoster.default()
+        r2 = GiantsRoster.default()
+        r1.rotation.append(r1.rotation[0])
+        self.assertEqual(len(r2.rotation), 5)
+
+    def test_default_bullpen_is_copy(self):
+        r1 = GiantsRoster.default()
+        r2 = GiantsRoster.default()
+        r1.bullpen.append(r1.bullpen[0])
+        self.assertEqual(len(r2.bullpen), 6)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14861,6 +14861,432 @@ class DodgersRoster:
         )
 
 
+# ---------------------------------------------------------------------------
+# San Francisco Giants — 2026 Projected Roster
+# ---------------------------------------------------------------------------
+# Depth-chart source (starter at each position):
+#   C  Patrick Bailey · 1B Rafael Devers · 2B Luis Arraez
+#   3B Matt Chapman · SS Willy Adames · LF Heliot Ramos
+#   CF Harrison Bader · RF Jung Hoo Lee · DH Jerar Encarnacion
+#   SP Logan Webb · Robbie Ray · Tyler Mahle · Adrian Houser
+#      · Landen Roupp
+#   RP Joel Peguero · Erik Miller · Jose Butto · Spencer Bivens
+#      · Sam Hentges · Ryan Walker (CL)
+# ---------------------------------------------------------------------------
+
+# -- Position players --------------------------------------------------------
+
+#: Patrick Bailey — C, bats right; elite defensive catcher with above-average
+#: receiving skills and a strong arm; provides reliable production behind
+#: the plate and handles the Giants pitching staff exceptionally well.
+_SF_BAILEY = BatterStats(
+    name="Patrick Bailey",
+    avg=0.248,
+    obp=0.320,
+    slg=0.378,
+    hr_per_600_pa=12,
+    sb_per_season=4,
+    doubles_per_600_pa=24,
+    games_played=120,
+    power_rating=52,
+    bats="R",
+    pitches_per_pa=3.72,
+    rbi_per_season=46,
+    runs_per_season=48,
+)
+
+#: Rafael Devers — 1B, bats left; elite left-handed power hitter with
+#: exceptional bat speed and tremendous raw power; leads the Giants in
+#: HR/600PA, power rating, RBI, and runs scored; one of the most
+#: dangerous left-handed hitters in the National League.
+_SF_DEVERS = BatterStats(
+    name="Rafael Devers",
+    avg=0.270,
+    obp=0.340,
+    slg=0.540,
+    hr_per_600_pa=32,
+    sb_per_season=4,
+    doubles_per_600_pa=38,
+    games_played=145,
+    power_rating=90,
+    bats="L",
+    pitches_per_pa=3.84,
+    rbi_per_season=98,
+    runs_per_season=92,
+)
+
+#: Luis Arraez — 2B, bats left; one of the best pure contact hitters in
+#: baseball; leads the Giants in batting average with an elite ability
+#: to make contact from any pitch location; elite plate discipline and
+#: consistent gap-to-gap production.
+_SF_ARRAEZ = BatterStats(
+    name="Luis Arraez",
+    avg=0.328,
+    obp=0.392,
+    slg=0.448,
+    hr_per_600_pa=6,
+    sb_per_season=6,
+    doubles_per_600_pa=36,
+    games_played=155,
+    power_rating=42,
+    bats="L",
+    pitches_per_pa=3.60,
+    rbi_per_season=68,
+    runs_per_season=82,
+)
+
+#: Matt Chapman — 3B, bats right; gold-glove-caliber third baseman with
+#: above-average power and an outstanding defensive presence; provides
+#: a premium combination of pop and elite defense at the hot corner for
+#: San Francisco.
+_SF_CHAPMAN = BatterStats(
+    name="Matt Chapman",
+    avg=0.252,
+    obp=0.330,
+    slg=0.480,
+    hr_per_600_pa=28,
+    sb_per_season=4,
+    doubles_per_600_pa=30,
+    games_played=150,
+    power_rating=80,
+    bats="R",
+    pitches_per_pa=3.86,
+    rbi_per_season=82,
+    runs_per_season=78,
+)
+
+#: Willy Adames — SS, bats right; right-handed shortstop with solid
+#: power for his position, above-average speed, and reliable everyday
+#: defense; provides consistent middle-of-the-order production in
+#: the Giants infield.
+_SF_ADAMES = BatterStats(
+    name="Willy Adames",
+    avg=0.250,
+    obp=0.325,
+    slg=0.452,
+    hr_per_600_pa=22,
+    sb_per_season=12,
+    doubles_per_600_pa=26,
+    games_played=145,
+    power_rating=70,
+    bats="R",
+    pitches_per_pa=3.82,
+    rbi_per_season=74,
+    runs_per_season=74,
+)
+
+#: Heliot Ramos — LF, bats right; young right-handed outfielder with
+#: developing power and above-average speed; provides a solid combination
+#: of offensive tools and improving defense in left field for the Giants.
+_SF_RAMOS = BatterStats(
+    name="Heliot Ramos",
+    avg=0.258,
+    obp=0.322,
+    slg=0.445,
+    hr_per_600_pa=20,
+    sb_per_season=12,
+    doubles_per_600_pa=28,
+    games_played=140,
+    power_rating=68,
+    bats="R",
+    pitches_per_pa=3.80,
+    rbi_per_season=64,
+    runs_per_season=66,
+)
+
+#: Harrison Bader — CF, bats right; elite defensive center fielder with
+#: plus speed and above-average arm strength; leads the Giants in stolen
+#: bases and provides outstanding range in center field; a proven
+#: run-prevention asset and baserunning threat.
+_SF_BADER = BatterStats(
+    name="Harrison Bader",
+    avg=0.248,
+    obp=0.315,
+    slg=0.398,
+    hr_per_600_pa=14,
+    sb_per_season=22,
+    doubles_per_600_pa=24,
+    games_played=130,
+    power_rating=56,
+    bats="R",
+    pitches_per_pa=3.76,
+    rbi_per_season=50,
+    runs_per_season=68,
+)
+
+#: Jung Hoo Lee — RF, bats left; crafty left-handed outfielder with solid
+#: contact skills, gap power, and excellent outfield instincts; provides
+#: reliable offensive production and above-average defense in right field
+#: for San Francisco.
+_SF_JHLEE = BatterStats(
+    name="Jung Hoo Lee",
+    avg=0.272,
+    obp=0.338,
+    slg=0.428,
+    hr_per_600_pa=14,
+    sb_per_season=18,
+    doubles_per_600_pa=28,
+    games_played=148,
+    power_rating=58,
+    bats="L",
+    pitches_per_pa=3.78,
+    rbi_per_season=58,
+    runs_per_season=70,
+)
+
+#: Jerar Encarnacion — DH, bats right; right-handed power hitter who
+#: provides consistent production as the Giants designated hitter; big
+#: raw power and improving plate discipline make him a reliable
+#: middle-of-the-order bat in the San Francisco lineup.
+_SF_ENCARNACION = BatterStats(
+    name="Jerar Encarnacion",
+    avg=0.255,
+    obp=0.315,
+    slg=0.462,
+    hr_per_600_pa=28,
+    sb_per_season=4,
+    doubles_per_600_pa=26,
+    games_played=135,
+    power_rating=76,
+    bats="R",
+    pitches_per_pa=3.78,
+    rbi_per_season=76,
+    runs_per_season=66,
+)
+
+#: 2026 Giants lineup (C, 1B, 2B, 3B, SS, LF, CF, RF, DH).
+GIANTS_LINEUP_2026: List[BatterStats] = [
+    _SF_BAILEY,
+    _SF_DEVERS,
+    _SF_ARRAEZ,
+    _SF_CHAPMAN,
+    _SF_ADAMES,
+    _SF_RAMOS,
+    _SF_BADER,
+    _SF_JHLEE,
+    _SF_ENCARNACION,
+]
+
+# -- Starting rotation -------------------------------------------------------
+
+#: Logan Webb — LHP ace; elite ground-ball pitcher with outstanding
+#: command, a devastating sinker-changeup combination, and the ability
+#: to pitch deep into games; the clear ace of the San Francisco rotation
+#: and one of the best starting pitchers in the National League.
+_SF_WEBB = PitcherStats(
+    name="Logan Webb",
+    era=3.20,
+    k_per_9=9.0,
+    innings_per_start=6.5,
+    whip=1.18,
+    arm_strength=76.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Robbie Ray — LHP second starter; hard-throwing left-hander with elite
+#: velocity and a swing-and-miss arsenal; provides a premium strikeout
+#: option in the number-two spot of the Giants rotation.
+_SF_RAY = PitcherStats(
+    name="Robbie Ray",
+    era=3.80,
+    k_per_9=9.5,
+    innings_per_start=5.5,
+    whip=1.26,
+    arm_strength=72.0,
+    throws="L",
+    pitches_per_pa=3.86,
+)
+
+#: Tyler Mahle — RHP third starter; quality right-hander with solid
+#: secondary pitches and good strikeout ability; provides reliable
+#: innings in the middle of the San Francisco rotation.
+_SF_MAHLE = PitcherStats(
+    name="Tyler Mahle",
+    era=3.60,
+    k_per_9=9.2,
+    innings_per_start=5.5,
+    whip=1.22,
+    arm_strength=72.0,
+    throws="R",
+    pitches_per_pa=3.84,
+)
+
+#: Adrian Houser — RHP fourth starter; sinker-ball right-hander who
+#: generates weak contact and ground balls; provides quality depth
+#: innings in the back half of the Giants starting rotation.
+_SF_HOUSER = PitcherStats(
+    name="Adrian Houser",
+    era=4.00,
+    k_per_9=7.8,
+    innings_per_start=5.2,
+    whip=1.30,
+    arm_strength=66.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Landen Roupp — RHP fifth starter; promising young right-hander with
+#: developing stuff and solid command; fills the back of the Giants
+#: rotation providing reliable depth innings.
+_SF_ROUPP = PitcherStats(
+    name="Landen Roupp",
+    era=4.20,
+    k_per_9=8.2,
+    innings_per_start=5.0,
+    whip=1.32,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: 2026 Giants starting rotation (ace first).
+GIANTS_ROTATION_2026: List[PitcherStats] = [
+    _SF_WEBB,
+    _SF_RAY,
+    _SF_MAHLE,
+    _SF_HOUSER,
+    _SF_ROUPP,
+]
+
+# -- Bullpen -----------------------------------------------------------------
+
+#: Joel Peguero — RHP middle reliever; hard-throwing right-hander with
+#: premium velocity and a high-spin slider; provides swing-and-miss
+#: depth in the middle innings of the San Francisco bullpen.
+_SF_PEGUERO = PitcherStats(
+    name="Joel Peguero",
+    era=3.20,
+    k_per_9=10.5,
+    innings_per_start=1.0,
+    whip=1.20,
+    arm_strength=74.0,
+    throws="R",
+    pitches_per_pa=3.86,
+)
+
+#: Erik Miller — LHP middle reliever; left-handed specialist with solid
+#: velocity and quality offspeed pitches; provides important left-handed
+#: depth and situational flexibility in the Giants bullpen.
+_SF_EMILLER = PitcherStats(
+    name="Erik Miller",
+    era=3.30,
+    k_per_9=10.0,
+    innings_per_start=1.0,
+    whip=1.22,
+    arm_strength=70.0,
+    throws="L",
+    pitches_per_pa=3.84,
+)
+
+#: Jose Butto — RHP setup reliever; hard-throwing right-hander with an
+#: electric fastball and solid secondary pitches; provides high-leverage
+#: relief depth in the San Francisco late-inning mix.
+_SF_BUTTO = PitcherStats(
+    name="Jose Butto",
+    era=3.50,
+    k_per_9=9.5,
+    innings_per_start=1.0,
+    whip=1.24,
+    arm_strength=68.0,
+    throws="R",
+    pitches_per_pa=3.82,
+)
+
+#: Spencer Bivens — RHP depth reliever; solid right-hander providing
+#: back-of-the-bullpen innings and multi-inning capability for the
+#: Giants pitching staff.
+_SF_BIVENS = PitcherStats(
+    name="Spencer Bivens",
+    era=3.80,
+    k_per_9=8.5,
+    innings_per_start=1.0,
+    whip=1.28,
+    arm_strength=64.0,
+    throws="R",
+    pitches_per_pa=3.80,
+)
+
+#: Sam Hentges — LHP depth reliever; left-handed arm with solid velocity
+#: and a deceptive delivery; provides back-of-the-bullpen depth and
+#: left-handed leverage options for the San Francisco staff.
+_SF_HENTGES = PitcherStats(
+    name="Sam Hentges",
+    era=3.60,
+    k_per_9=9.0,
+    innings_per_start=1.0,
+    whip=1.26,
+    arm_strength=66.0,
+    throws="L",
+    pitches_per_pa=3.82,
+)
+
+#: Ryan Walker — CL, RHP, elite closer; the best ERA in the San Francisco
+#: bullpen; explosive fastball and a sharp breaking ball make him nearly
+#: unhittable in save situations; the anchor of the Giants ninth inning
+#: and one of the most reliable closers in the National League.
+_SF_WALKER = PitcherStats(
+    name="Ryan Walker",
+    era=2.70,
+    k_per_9=11.5,
+    innings_per_start=1.0,
+    whip=1.10,
+    arm_strength=82.0,
+    throws="R",
+    pitches_per_pa=3.88,
+)
+
+#: 2026 Giants bullpen (setup arms + closer; closer is last entry, index 5 = Walker).
+GIANTS_BULLPEN_2026: List[PitcherStats] = [
+    _SF_PEGUERO,
+    _SF_EMILLER,
+    _SF_BUTTO,
+    _SF_BIVENS,
+    _SF_HENTGES,
+    _SF_WALKER,
+]
+
+
+@dataclass
+class GiantsRoster:
+    """
+    Bundle of San Francisco Giants projected 2026 depth-chart starters,
+    rotation, and bullpen.
+
+    Attributes
+    ----------
+    lineup : list of BatterStats
+        Nine position starters (C, 1B, 2B, 3B, SS, LF, CF, RF, DH) drawn from
+        the #1-depth-slot of each position on the 2026 depth chart.
+    rotation : list of PitcherStats
+        Five-man starting rotation (rotation-turn order 1–5).
+    bullpen : list of PitcherStats
+        Six relievers, closer last (index 5 = Ryan Walker).
+
+    Examples
+    --------
+    ::
+
+        roster = GiantsRoster.default()
+        print(roster.rotation[0].name)   # "Logan Webb"
+        print(roster.lineup[1].name)     # "Rafael Devers"
+        print(roster.bullpen[-1].name)   # "Ryan Walker"
+    """
+
+    lineup: List[BatterStats] = field(default_factory=list)
+    rotation: List[PitcherStats] = field(default_factory=list)
+    bullpen: List[PitcherStats] = field(default_factory=list)
+
+    @classmethod
+    def default(cls) -> "GiantsRoster":
+        """Return the projected 2026 depth-chart roster (shallow copies)."""
+        return cls(
+            lineup=list(GIANTS_LINEUP_2026),
+            rotation=list(GIANTS_ROTATION_2026),
+            bullpen=list(GIANTS_BULLPEN_2026),
+        )
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
