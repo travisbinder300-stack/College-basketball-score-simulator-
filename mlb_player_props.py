@@ -14789,25 +14789,25 @@ _LAD_YAMAMOTO = PitcherStats(
     pitches_per_pa=3.88,
 )
 
-#: Over/under line (outs recorded) used when evaluating Yamamoto H2H starts.
+#: Over/under line (outs recorded) used when evaluating Yamamoto vs Arizona starts.
 YAMAMOTO_H2H_OUTS_LINE: float = 17.5
 
-#: Over/under line (strikeouts) used when evaluating Yamamoto H2H starts.
+#: Over/under line (strikeouts) used when evaluating Yamamoto vs Arizona starts.
 YAMAMOTO_H2H_K_LINE: float = 6.0
 
-#: Support-cast innings pitched in each of Yamamoto's recent tracked starts
+#: Support-cast innings pitched in each of Yamamoto's recent starts vs Arizona
 #: (5 starts, listed in chronological order).
 YAMAMOTO_H2H_SUPPORT_INNINGS: List[float] = [6.1, 5.0, 7.0, 7.0, 6.0]
 
-#: Historical per-start records for Yoshinobu Yamamoto in head-to-head
-#: matchups, capturing outs recorded, strikeouts, pitch-count efficiency,
+#: Historical per-start records for Yoshinobu Yamamoto against the Arizona
+#: Diamondbacks, capturing outs recorded, strikeouts, pitch-count efficiency,
 #: CSW% and support-cast innings for prop analysis.
 #:
-#: H2H outs line: 17.5
+#: H2H outs line (vs Arizona): 17.5
 #:   05/08/25 — UNDER (15 outs), 05/20/25 — OVER (21 outs),
 #:   08/31/25 — OVER (21 outs), 09/25/25 — pending.
 #:
-#: H2H K line: 6
+#: H2H K line (vs Arizona): 6
 #:   05/08/25 — UNDER (4 Ks), 05/20/25 — OVER (9 Ks),
 #:   08/31/25 and 09/25/25 — pending.
 YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [

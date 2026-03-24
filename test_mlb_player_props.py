@@ -12730,7 +12730,7 @@ from mlb_player_props import (  # noqa: E402
 
 
 class TestYamamotoH2H(unittest.TestCase):
-    """Tests for Yoshinobu Yamamoto H2H start data and prop lines."""
+    """Tests for Yoshinobu Yamamoto H2H start data vs the Arizona Diamondbacks."""
 
     # ------------------------------------------------------------------
     # PitcherStartRecord dataclass — structural
@@ -12751,11 +12751,11 @@ class TestYamamotoH2H(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_outs_line_is_17_5(self):
-        """H2H outs-recorded line is 17.5."""
+        """H2H outs-recorded line vs Arizona is 17.5."""
         self.assertAlmostEqual(YAMAMOTO_H2H_OUTS_LINE, 17.5)
 
     def test_k_line_is_6(self):
-        """H2H strikeout line is 6."""
+        """H2H strikeout line vs Arizona is 6."""
         self.assertAlmostEqual(YAMAMOTO_H2H_K_LINE, 6.0)
 
     # ------------------------------------------------------------------
@@ -12899,7 +12899,7 @@ class TestYamamotoH2H(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_support_innings_has_five_entries(self):
-        """Support cast innings list covers 5 tracked starts."""
+        """Support cast innings list covers 5 tracked starts vs Arizona."""
         self.assertEqual(len(YAMAMOTO_H2H_SUPPORT_INNINGS), 5)
 
     def test_support_innings_all_positive(self):
