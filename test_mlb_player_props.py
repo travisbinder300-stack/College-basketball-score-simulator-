@@ -13036,6 +13036,181 @@ class TestYamamotoRegularSeason2025(unittest.TestCase):
         min_outs = min(r.outs_recorded for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS)
         self.assertEqual(min_outs, 2)
 
+    # ------------------------------------------------------------------
+    # Outlier stats — strikeouts
+    # ------------------------------------------------------------------
+
+    def test_all_starts_have_strikeouts_or_none(self):
+        """Every start has a strikeout count (int) or None for pending data."""
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertTrue(rec.strikeouts is None or isinstance(rec.strikeouts, int))
+
+    def test_most_starts_have_strikeout_data(self):
+        """At least 17 of 19 regular-season starts have a strikeout count."""
+        count = sum(1 for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS if r.strikeouts is not None)
+        self.assertGreaterEqual(count, 17)
+
+    def test_first_start_strikeouts(self):
+        """07/01/25 vs Chicago White Sox — 9 Ks."""
+        rec = YAMAMOTO_REGULAR_SEASON_2025_STARTS[0]
+        self.assertEqual(rec.strikeouts, 9)
+
+    def test_milwaukee_early_exit_zero_ks(self):
+        """07/07/25 vs Milwaukee (early exit) — 0 Ks."""
+        rec = YAMAMOTO_REGULAR_SEASON_2025_STARTS[1]
+        self.assertEqual(rec.strikeouts, 0)
+
+    def test_complete_games_eleven_ks(self):
+        """Both 9.0-IP complete games (10/14 MIL, 10/25 TOR) had 11 Ks."""
+        complete_game_starts = [
+            r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS if r.outs_recorded == 27
+        ]
+        self.assertEqual(len(complete_game_starts), 2)
+        for rec in complete_game_starts:
+            self.assertEqual(rec.strikeouts, 11)
+
+    def test_arizona_08_31_strikeouts_none(self):
+        """08/31/25 vs Arizona — K data not recorded (None)."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "08/31/25")
+        self.assertIsNone(rec.strikeouts)
+
+    def test_arizona_09_25_strikeouts_none(self):
+        """09/25/25 vs Arizona — K data not recorded (None)."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "09/25/25")
+        self.assertIsNone(rec.strikeouts)
+
+    # ------------------------------------------------------------------
+    # Outlier stats — pitches thrown
+    # ------------------------------------------------------------------
+
+    def test_all_starts_have_pitches_thrown(self):
+        """Every regular-season start has a pitches-thrown value."""
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.pitches_thrown)
+            self.assertGreater(rec.pitches_thrown, 0)
+
+    def test_complete_games_most_pitches(self):
+        """Complete games (27 outs) have the highest pitch counts."""
+        complete_game_pitches = [
+            r.pitches_thrown for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+            if r.outs_recorded == 27
+        ]
+        max_pitches = max(r.pitches_thrown for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS)
+        self.assertEqual(max(complete_game_pitches), max_pitches)
+
+    def test_early_exit_fewest_pitches(self):
+        """07/07/25 early exit (2 outs) has the fewest pitches thrown."""
+        min_pitches = min(r.pitches_thrown for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS)
+        rec = YAMAMOTO_REGULAR_SEASON_2025_STARTS[1]
+        self.assertEqual(rec.pitches_thrown, min_pitches)
+
+    def test_arizona_08_31_pitches(self):
+        """08/31/25 vs Arizona — 98 pitches (matches H2H record)."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "08/31/25")
+        self.assertEqual(rec.pitches_thrown, 98)
+
+    def test_arizona_09_25_pitches(self):
+        """09/25/25 vs Arizona — 94 pitches (matches H2H record)."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "09/25/25")
+        self.assertEqual(rec.pitches_thrown, 94)
+
+    # ------------------------------------------------------------------
+    # Outlier stats — CSW%
+    # ------------------------------------------------------------------
+
+    def test_all_starts_have_csw_pct(self):
+        """Every regular-season start has a CSW% value."""
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.csw_pct)
+            self.assertGreater(rec.csw_pct, 0.0)
+            self.assertLess(rec.csw_pct, 100.0)
+
+    def test_arizona_08_31_csw_pct(self):
+        """08/31/25 vs Arizona — 41.0% CSW (matches H2H record)."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "08/31/25")
+        self.assertAlmostEqual(rec.csw_pct, 41.0)
+
+    def test_arizona_09_25_csw_pct(self):
+        """09/25/25 vs Arizona — 34.0% CSW (matches H2H record)."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "09/25/25")
+        self.assertAlmostEqual(rec.csw_pct, 34.0)
+
+    def test_highest_csw_is_arizona_08_31(self):
+        """08/31/25 vs Arizona has the highest CSW% (41.0%) in the regular season."""
+        max_csw = max(r.csw_pct for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS)
+        self.assertAlmostEqual(max_csw, 41.0)
+
+    # ------------------------------------------------------------------
+    # Outlier stats — batters faced
+    # ------------------------------------------------------------------
+
+    def test_all_starts_have_batters_faced(self):
+        """Every regular-season start has a batters-faced value."""
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.batters_faced)
+            self.assertGreater(rec.batters_faced, 0)
+
+    def test_batters_faced_exceeds_outs_recorded(self):
+        """Batters faced is always greater than outs recorded (extra runners)."""
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertGreater(rec.batters_faced, rec.outs_recorded)
+
+    def test_complete_games_most_batters_faced(self):
+        """Complete games (27 outs) have the most batters faced (36)."""
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            if rec.outs_recorded == 27:
+                self.assertEqual(rec.batters_faced, 36)
+
+    def test_early_exit_fewest_batters_faced(self):
+        """07/07/25 early exit (2 outs) faced the fewest batters."""
+        min_bf = min(r.batters_faced for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS)
+        rec = YAMAMOTO_REGULAR_SEASON_2025_STARTS[1]
+        self.assertEqual(rec.batters_faced, min_bf)
+
+    def test_arizona_08_31_batters_faced(self):
+        """08/31/25 vs Arizona — 25 batters faced."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "08/31/25")
+        self.assertEqual(rec.batters_faced, 25)
+
+    def test_arizona_09_25_batters_faced(self):
+        """09/25/25 vs Arizona — 24 batters faced."""
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "09/25/25")
+        self.assertEqual(rec.batters_faced, 24)
+
+    # ------------------------------------------------------------------
+    # H2H batters_faced consistency
+    # ------------------------------------------------------------------
+
+    def test_h2h_records_have_batters_faced(self):
+        """All H2H records now carry a batters_faced value."""
+        for rec in YAMAMOTO_H2H_STARTS:
+            self.assertIsNotNone(rec.batters_faced)
+            self.assertGreater(rec.batters_faced, 0)
+
+    def test_h2h_start1_batters_faced(self):
+        """05/08/25 — 23 batters faced (88 pitches ÷ ~3.88 pitches/PA)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[0].batters_faced, 23)
+
+    def test_h2h_start2_batters_faced(self):
+        """05/20/25 — 28 batters faced (110 pitches ÷ ~3.88 pitches/PA)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[1].batters_faced, 28)
+
+    def test_h2h_start3_batters_faced(self):
+        """08/31/25 — 25 batters faced (98 pitches ÷ ~3.88 pitches/PA)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[2].batters_faced, 25)
+
+    def test_h2h_start4_batters_faced(self):
+        """09/25/25 — 24 batters faced (94 pitches ÷ ~3.88 pitches/PA)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].batters_faced, 24)
+
 
 from mlb_player_props import (  # noqa: E402
     GiantsRoster,

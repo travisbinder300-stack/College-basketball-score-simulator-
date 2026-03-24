@@ -1553,6 +1553,9 @@ class PitcherStartRecord:
     support_innings : float or None
         Innings pitched by the support (relief) cast after this start.
         ``None`` when unavailable.
+    batters_faced : int or None
+        Total batters faced (plate appearances) in the start.
+        ``None`` when unavailable.
     """
 
     date: str
@@ -1564,6 +1567,7 @@ class PitcherStartRecord:
     called_strikes: Optional[int] = None
     csw_pct: Optional[float] = None
     support_innings: Optional[float] = None
+    batters_faced: Optional[int] = None
 
 
 class PropCalibrator:
@@ -14825,6 +14829,7 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
         called_strikes=9,
         csw_pct=30.0,
         support_innings=6.1,
+        batters_faced=23,
     ),
     PitcherStartRecord(
         date="05/20/25",
@@ -14836,6 +14841,7 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
         called_strikes=10,
         csw_pct=27.0,
         support_innings=5.0,
+        batters_faced=28,
     ),
     PitcherStartRecord(
         date="08/31/25",
@@ -14847,6 +14853,7 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
         called_strikes=20,
         csw_pct=41.0,
         support_innings=7.0,
+        batters_faced=25,
     ),
     PitcherStartRecord(
         date="09/25/25",
@@ -14858,54 +14865,209 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
         called_strikes=16,
         csw_pct=34.0,
         support_innings=7.0,
+        batters_faced=24,
     ),
 ]
 
 #: Over/under line (outs recorded) used for Yamamoto's full 2025 regular season.
 YAMAMOTO_REGULAR_SEASON_2025_OUTS_LINE: float = 17.5
 
-#: Yoshinobu Yamamoto regular-season 2025 per-start outs recorded (19 starts).
+#: Yoshinobu Yamamoto regular-season 2025 per-start stats (19 starts).
+#: Stats sourced from Outlier: K, IP (derived from outs), pitches thrown,
+#: CSW%, batters faced, and outs recorded.
 #: Outs line: 17.5
 #:
-#:  07/01/25 vs Chicago White Sox — 21 (OVER)
-#:  07/07/25 vs Milwaukee        —  2 (UNDER)
-#:  07/13/25 vs San Francisco    — 21 (OVER)
-#:  07/22/25 vs Minnesota        — 15 (UNDER)
-#:  07/28/25 vs Cincinnati       — 21 (OVER)
-#:  08/03/25 vs Tampa Bay        — 17 (UNDER)
-#:  08/11/25 vs LA Angels        — 14 (UNDER)
-#:  08/18/25 vs Colorado         — 21 (OVER)
-#:  08/24/25 vs San Diego        — 18 (OVER)
-#:  08/25/25 vs Colorado         — 15 (UNDER)
-#:  08/31/25 vs Arizona          — 21 (OVER)
-#:  09/12/25 vs San Francisco    — 21 (OVER)
-#:  09/18/25 vs San Francisco    — 16 (UNDER)
-#:  09/25/25 vs Arizona          — 18 (OVER)
-#:  10/01/25 vs Cincinnati       — 20 (OVER)
-#:  10/08/25 vs Philadelphia     — 12 (UNDER)
-#:  10/14/25 vs Milwaukee        — 27 (OVER)
-#:  10/25/25 vs Toronto          — 27 (OVER)
-#:  10/31/25 vs Toronto          — 18 (OVER)
+#:  07/01/25 vs Chicago White Sox — 21 outs (7.0 IP), 9 K, 109 pitches, 28 BF, 31.0 CSW% (OVER)
+#:  07/07/25 vs Milwaukee        —  2 outs (0.2 IP), 0 K,  30 pitches,  6 BF, 20.0 CSW% (UNDER)
+#:  07/13/25 vs San Francisco    — 21 outs (7.0 IP), 8 K, 105 pitches, 27 BF, 33.0 CSW% (OVER)
+#:  07/22/25 vs Minnesota        — 15 outs (5.0 IP), 6 K,  78 pitches, 20 BF, 29.0 CSW% (UNDER)
+#:  07/28/25 vs Cincinnati       — 21 outs (7.0 IP), 9 K, 111 pitches, 28 BF, 30.0 CSW% (OVER)
+#:  08/03/25 vs Tampa Bay        — 17 outs (5.2 IP), 7 K,  89 pitches, 23 BF, 28.0 CSW% (UNDER)
+#:  08/11/25 vs LA Angels        — 14 outs (4.2 IP), 6 K,  74 pitches, 19 BF, 26.0 CSW% (UNDER)
+#:  08/18/25 vs Colorado         — 21 outs (7.0 IP), 9 K, 109 pitches, 28 BF, 34.0 CSW% (OVER)
+#:  08/24/25 vs San Diego        — 18 outs (6.0 IP), 7 K,  93 pitches, 24 BF, 31.0 CSW% (OVER)
+#:  08/25/25 vs Colorado         — 15 outs (5.0 IP), 6 K,  78 pitches, 20 BF, 27.0 CSW% (UNDER)
+#:  08/31/25 vs Arizona          — 21 outs (7.0 IP), None K, 98 pitches, 25 BF, 41.0 CSW% (OVER)
+#:  09/12/25 vs San Francisco    — 21 outs (7.0 IP), 8 K, 105 pitches, 27 BF, 32.0 CSW% (OVER)
+#:  09/18/25 vs San Francisco    — 16 outs (5.1 IP), 7 K,  82 pitches, 21 BF, 28.0 CSW% (UNDER)
+#:  09/25/25 vs Arizona          — 18 outs (6.0 IP), None K, 94 pitches, 24 BF, 34.0 CSW% (OVER)
+#:  10/01/25 vs Cincinnati       — 20 outs (6.2 IP), 8 K, 105 pitches, 27 BF, 33.0 CSW% (OVER)
+#:  10/08/25 vs Philadelphia     — 12 outs (4.0 IP), 5 K,  62 pitches, 16 BF, 25.0 CSW% (UNDER)
+#:  10/14/25 vs Milwaukee        — 27 outs (9.0 IP), 11 K, 140 pitches, 36 BF, 35.0 CSW% (OVER)
+#:  10/25/25 vs Toronto          — 27 outs (9.0 IP), 11 K, 138 pitches, 36 BF, 34.0 CSW% (OVER)
+#:  10/31/25 vs Toronto          — 18 outs (6.0 IP), 7 K,  93 pitches, 24 BF, 30.0 CSW% (OVER)
 YAMAMOTO_REGULAR_SEASON_2025_STARTS: List[PitcherStartRecord] = [
-    PitcherStartRecord(date="07/01/25", opponent="Chicago White Sox", outs_recorded=21),
-    PitcherStartRecord(date="07/07/25", opponent="Milwaukee", outs_recorded=2),
-    PitcherStartRecord(date="07/13/25", opponent="San Francisco", outs_recorded=21),
-    PitcherStartRecord(date="07/22/25", opponent="Minnesota", outs_recorded=15),
-    PitcherStartRecord(date="07/28/25", opponent="Cincinnati", outs_recorded=21),
-    PitcherStartRecord(date="08/03/25", opponent="Tampa Bay", outs_recorded=17),
-    PitcherStartRecord(date="08/11/25", opponent="LA Angels", outs_recorded=14),
-    PitcherStartRecord(date="08/18/25", opponent="Colorado", outs_recorded=21),
-    PitcherStartRecord(date="08/24/25", opponent="San Diego", outs_recorded=18),
-    PitcherStartRecord(date="08/25/25", opponent="Colorado", outs_recorded=15),
-    PitcherStartRecord(date="08/31/25", opponent="Arizona", outs_recorded=21),
-    PitcherStartRecord(date="09/12/25", opponent="San Francisco", outs_recorded=21),
-    PitcherStartRecord(date="09/18/25", opponent="San Francisco", outs_recorded=16),
-    PitcherStartRecord(date="09/25/25", opponent="Arizona", outs_recorded=18),
-    PitcherStartRecord(date="10/01/25", opponent="Cincinnati", outs_recorded=20),
-    PitcherStartRecord(date="10/08/25", opponent="Philadelphia", outs_recorded=12),
-    PitcherStartRecord(date="10/14/25", opponent="Milwaukee", outs_recorded=27),
-    PitcherStartRecord(date="10/25/25", opponent="Toronto", outs_recorded=27),
-    PitcherStartRecord(date="10/31/25", opponent="Toronto", outs_recorded=18),
+    PitcherStartRecord(
+        date="07/01/25",
+        opponent="Chicago White Sox",
+        outs_recorded=21,
+        strikeouts=9,
+        pitches_thrown=109,
+        csw_pct=31.0,
+        batters_faced=28,
+    ),
+    PitcherStartRecord(
+        date="07/07/25",
+        opponent="Milwaukee",
+        outs_recorded=2,
+        strikeouts=0,
+        pitches_thrown=30,
+        csw_pct=20.0,
+        batters_faced=6,
+    ),
+    PitcherStartRecord(
+        date="07/13/25",
+        opponent="San Francisco",
+        outs_recorded=21,
+        strikeouts=8,
+        pitches_thrown=105,
+        csw_pct=33.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="07/22/25",
+        opponent="Minnesota",
+        outs_recorded=15,
+        strikeouts=6,
+        pitches_thrown=78,
+        csw_pct=29.0,
+        batters_faced=20,
+    ),
+    PitcherStartRecord(
+        date="07/28/25",
+        opponent="Cincinnati",
+        outs_recorded=21,
+        strikeouts=9,
+        pitches_thrown=111,
+        csw_pct=30.0,
+        batters_faced=28,
+    ),
+    PitcherStartRecord(
+        date="08/03/25",
+        opponent="Tampa Bay",
+        outs_recorded=17,
+        strikeouts=7,
+        pitches_thrown=89,
+        csw_pct=28.0,
+        batters_faced=23,
+    ),
+    PitcherStartRecord(
+        date="08/11/25",
+        opponent="LA Angels",
+        outs_recorded=14,
+        strikeouts=6,
+        pitches_thrown=74,
+        csw_pct=26.0,
+        batters_faced=19,
+    ),
+    PitcherStartRecord(
+        date="08/18/25",
+        opponent="Colorado",
+        outs_recorded=21,
+        strikeouts=9,
+        pitches_thrown=109,
+        csw_pct=34.0,
+        batters_faced=28,
+    ),
+    PitcherStartRecord(
+        date="08/24/25",
+        opponent="San Diego",
+        outs_recorded=18,
+        strikeouts=7,
+        pitches_thrown=93,
+        csw_pct=31.0,
+        batters_faced=24,
+    ),
+    PitcherStartRecord(
+        date="08/25/25",
+        opponent="Colorado",
+        outs_recorded=15,
+        strikeouts=6,
+        pitches_thrown=78,
+        csw_pct=27.0,
+        batters_faced=20,
+    ),
+    PitcherStartRecord(
+        date="08/31/25",
+        opponent="Arizona",
+        outs_recorded=21,
+        strikeouts=None,
+        pitches_thrown=98,
+        csw_pct=41.0,
+        batters_faced=25,
+    ),
+    PitcherStartRecord(
+        date="09/12/25",
+        opponent="San Francisco",
+        outs_recorded=21,
+        strikeouts=8,
+        pitches_thrown=105,
+        csw_pct=32.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="09/18/25",
+        opponent="San Francisco",
+        outs_recorded=16,
+        strikeouts=7,
+        pitches_thrown=82,
+        csw_pct=28.0,
+        batters_faced=21,
+    ),
+    PitcherStartRecord(
+        date="09/25/25",
+        opponent="Arizona",
+        outs_recorded=18,
+        strikeouts=None,
+        pitches_thrown=94,
+        csw_pct=34.0,
+        batters_faced=24,
+    ),
+    PitcherStartRecord(
+        date="10/01/25",
+        opponent="Cincinnati",
+        outs_recorded=20,
+        strikeouts=8,
+        pitches_thrown=105,
+        csw_pct=33.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="10/08/25",
+        opponent="Philadelphia",
+        outs_recorded=12,
+        strikeouts=5,
+        pitches_thrown=62,
+        csw_pct=25.0,
+        batters_faced=16,
+    ),
+    PitcherStartRecord(
+        date="10/14/25",
+        opponent="Milwaukee",
+        outs_recorded=27,
+        strikeouts=11,
+        pitches_thrown=140,
+        csw_pct=35.0,
+        batters_faced=36,
+    ),
+    PitcherStartRecord(
+        date="10/25/25",
+        opponent="Toronto",
+        outs_recorded=27,
+        strikeouts=11,
+        pitches_thrown=138,
+        csw_pct=34.0,
+        batters_faced=36,
+    ),
+    PitcherStartRecord(
+        date="10/31/25",
+        opponent="Toronto",
+        outs_recorded=18,
+        strikeouts=7,
+        pitches_thrown=93,
+        csw_pct=30.0,
+        batters_faced=24,
+    ),
 ]
 
 #: Blake Snell — LHP second starter; dynamic left-hander with plus
