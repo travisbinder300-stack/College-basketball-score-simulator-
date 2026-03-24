@@ -12721,6 +12721,244 @@ class TestDodgersRoster(unittest.TestCase):
 
 
 from mlb_player_props import (  # noqa: E402
+    PitcherStartRecord,
+    YAMAMOTO_H2H_OUTS_LINE,
+    YAMAMOTO_H2H_K_LINE,
+    YAMAMOTO_H2H_SUPPORT_INNINGS,
+    YAMAMOTO_H2H_STARTS,
+)
+
+
+class TestYamamotoH2H(unittest.TestCase):
+    """Tests for Yoshinobu Yamamoto H2H start data and prop lines."""
+
+    # ------------------------------------------------------------------
+    # PitcherStartRecord dataclass — structural
+    # ------------------------------------------------------------------
+
+    def test_pitcher_start_record_has_date(self):
+        rec = YAMAMOTO_H2H_STARTS[0]
+        self.assertEqual(rec.date, "05/08/25")
+
+    def test_pitcher_start_record_optional_fields_none(self):
+        """Pending starts have None for outs and strikeouts."""
+        rec = YAMAMOTO_H2H_STARTS[3]
+        self.assertIsNone(rec.outs_recorded)
+        self.assertIsNone(rec.strikeouts)
+
+    # ------------------------------------------------------------------
+    # Prop lines
+    # ------------------------------------------------------------------
+
+    def test_outs_line_is_17_5(self):
+        """H2H outs-recorded line is 17.5."""
+        self.assertAlmostEqual(YAMAMOTO_H2H_OUTS_LINE, 17.5)
+
+    def test_k_line_is_6(self):
+        """H2H strikeout line is 6."""
+        self.assertAlmostEqual(YAMAMOTO_H2H_K_LINE, 6.0)
+
+    # ------------------------------------------------------------------
+    # YAMAMOTO_H2H_STARTS — count and types
+    # ------------------------------------------------------------------
+
+    def test_h2h_starts_has_four_records(self):
+        self.assertEqual(len(YAMAMOTO_H2H_STARTS), 4)
+
+    def test_all_records_are_pitcher_start_record(self):
+        for rec in YAMAMOTO_H2H_STARTS:
+            self.assertIsInstance(rec, PitcherStartRecord)
+
+    # ------------------------------------------------------------------
+    # Start 1 — 05/08/25
+    # ------------------------------------------------------------------
+
+    def test_start1_date(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[0].date, "05/08/25")
+
+    def test_start1_outs_recorded_under_line(self):
+        """05/08/25 — Yamamoto recorded 15 outs (UNDER 17.5 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[0].outs_recorded, 15)
+        self.assertLess(YAMAMOTO_H2H_STARTS[0].outs_recorded, YAMAMOTO_H2H_OUTS_LINE)
+
+    def test_start1_strikeouts_under_line(self):
+        """05/08/25 — Yamamoto recorded 4 Ks (UNDER 6 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[0].strikeouts, 4)
+        self.assertLess(YAMAMOTO_H2H_STARTS[0].strikeouts, YAMAMOTO_H2H_K_LINE)
+
+    def test_start1_pitches_thrown(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[0].pitches_thrown, 88)
+
+    def test_start1_swinging_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[0].swinging_strikes, 17)
+
+    def test_start1_called_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[0].called_strikes, 9)
+
+    def test_start1_csw_pct(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[0].csw_pct, 30.0)
+
+    def test_start1_support_innings(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[0].support_innings, 6.1)
+
+    # ------------------------------------------------------------------
+    # Start 2 — 05/20/25
+    # ------------------------------------------------------------------
+
+    def test_start2_date(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[1].date, "05/20/25")
+
+    def test_start2_outs_recorded_over_line(self):
+        """05/20/25 — Yamamoto recorded 21 outs (OVER 17.5 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[1].outs_recorded, 21)
+        self.assertGreater(YAMAMOTO_H2H_STARTS[1].outs_recorded, YAMAMOTO_H2H_OUTS_LINE)
+
+    def test_start2_strikeouts_over_line(self):
+        """05/20/25 — Yamamoto recorded 9 Ks (OVER 6 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[1].strikeouts, 9)
+        self.assertGreater(YAMAMOTO_H2H_STARTS[1].strikeouts, YAMAMOTO_H2H_K_LINE)
+
+    def test_start2_pitches_thrown(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[1].pitches_thrown, 110)
+
+    def test_start2_swinging_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[1].swinging_strikes, 20)
+
+    def test_start2_called_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[1].called_strikes, 10)
+
+    def test_start2_csw_pct(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[1].csw_pct, 27.0)
+
+    def test_start2_support_innings(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[1].support_innings, 5.0)
+
+    # ------------------------------------------------------------------
+    # Start 3 — 08/31/25
+    # ------------------------------------------------------------------
+
+    def test_start3_date(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[2].date, "08/31/25")
+
+    def test_start3_outs_recorded_over_line(self):
+        """08/31/25 — Yamamoto recorded 21 outs (OVER 17.5 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[2].outs_recorded, 21)
+        self.assertGreater(YAMAMOTO_H2H_STARTS[2].outs_recorded, YAMAMOTO_H2H_OUTS_LINE)
+
+    def test_start3_strikeouts_pending(self):
+        """08/31/25 K value is not recorded (None)."""
+        self.assertIsNone(YAMAMOTO_H2H_STARTS[2].strikeouts)
+
+    def test_start3_pitches_thrown(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[2].pitches_thrown, 98)
+
+    def test_start3_swinging_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[2].swinging_strikes, 20)
+
+    def test_start3_called_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[2].called_strikes, 20)
+
+    def test_start3_csw_pct(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[2].csw_pct, 41.0)
+
+    def test_start3_support_innings(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[2].support_innings, 7.0)
+
+    # ------------------------------------------------------------------
+    # Start 4 — 09/25/25
+    # ------------------------------------------------------------------
+
+    def test_start4_date(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].date, "09/25/25")
+
+    def test_start4_outs_recorded_pending(self):
+        """09/25/25 outs value is not yet recorded (None)."""
+        self.assertIsNone(YAMAMOTO_H2H_STARTS[3].outs_recorded)
+
+    def test_start4_strikeouts_pending(self):
+        """09/25/25 K value is not yet recorded (None)."""
+        self.assertIsNone(YAMAMOTO_H2H_STARTS[3].strikeouts)
+
+    def test_start4_pitches_thrown(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].pitches_thrown, 94)
+
+    def test_start4_swinging_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].swinging_strikes, 16)
+
+    def test_start4_called_strikes(self):
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].called_strikes, 16)
+
+    def test_start4_csw_pct(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[3].csw_pct, 34.0)
+
+    def test_start4_support_innings(self):
+        self.assertAlmostEqual(YAMAMOTO_H2H_STARTS[3].support_innings, 7.0)
+
+    # ------------------------------------------------------------------
+    # YAMAMOTO_H2H_SUPPORT_INNINGS
+    # ------------------------------------------------------------------
+
+    def test_support_innings_has_five_entries(self):
+        """Support cast innings list covers 5 tracked starts."""
+        self.assertEqual(len(YAMAMOTO_H2H_SUPPORT_INNINGS), 5)
+
+    def test_support_innings_all_positive(self):
+        for ip in YAMAMOTO_H2H_SUPPORT_INNINGS:
+            self.assertGreater(ip, 0.0)
+
+    def test_support_innings_values(self):
+        self.assertEqual(YAMAMOTO_H2H_SUPPORT_INNINGS, [6.1, 5.0, 7.0, 7.0, 6.0])
+
+    # ------------------------------------------------------------------
+    # CSW% sanity checks
+    # ------------------------------------------------------------------
+
+    def test_all_starts_have_csw_pct(self):
+        for rec in YAMAMOTO_H2H_STARTS:
+            self.assertIsNotNone(rec.csw_pct)
+
+    def test_csw_pct_between_0_and_100(self):
+        for rec in YAMAMOTO_H2H_STARTS:
+            self.assertGreater(rec.csw_pct, 0.0)
+            self.assertLess(rec.csw_pct, 100.0)
+
+    def test_highest_csw_is_start3(self):
+        """Start 3 (08/31/25) has the highest CSW% at 41%."""
+        csw_values = [rec.csw_pct for rec in YAMAMOTO_H2H_STARTS]
+        self.assertEqual(max(csw_values), YAMAMOTO_H2H_STARTS[2].csw_pct)
+
+    def test_lowest_csw_is_start2(self):
+        """Start 2 (05/20/25) has the lowest CSW% at 27%."""
+        csw_values = [rec.csw_pct for rec in YAMAMOTO_H2H_STARTS]
+        self.assertEqual(min(csw_values), YAMAMOTO_H2H_STARTS[1].csw_pct)
+
+    # ------------------------------------------------------------------
+    # CSW% consistency: (swinging + called) / pitches ≈ csw_pct / 100
+    # ------------------------------------------------------------------
+
+    def test_start1_csw_consistency(self):
+        """CSW% ≈ (swinging_strikes + called_strikes) / pitches_thrown."""
+        rec = YAMAMOTO_H2H_STARTS[0]
+        computed = (rec.swinging_strikes + rec.called_strikes) / rec.pitches_thrown * 100
+        self.assertAlmostEqual(computed, rec.csw_pct, delta=1.0)
+
+    def test_start2_csw_consistency(self):
+        rec = YAMAMOTO_H2H_STARTS[1]
+        computed = (rec.swinging_strikes + rec.called_strikes) / rec.pitches_thrown * 100
+        self.assertAlmostEqual(computed, rec.csw_pct, delta=1.0)
+
+    def test_start3_csw_consistency(self):
+        rec = YAMAMOTO_H2H_STARTS[2]
+        computed = (rec.swinging_strikes + rec.called_strikes) / rec.pitches_thrown * 100
+        self.assertAlmostEqual(computed, rec.csw_pct, delta=1.0)
+
+    def test_start4_csw_consistency(self):
+        rec = YAMAMOTO_H2H_STARTS[3]
+        computed = (rec.swinging_strikes + rec.called_strikes) / rec.pitches_thrown * 100
+        self.assertAlmostEqual(computed, rec.csw_pct, delta=1.0)
+
+
+from mlb_player_props import (  # noqa: E402
     GiantsRoster,
     GIANTS_LINEUP_2026,
     GIANTS_ROTATION_2026,

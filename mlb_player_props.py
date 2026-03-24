@@ -1522,6 +1522,46 @@ class GameLogRecord:
     player_name: str = ""
 
 
+@dataclass
+class PitcherStartRecord:
+    """
+    Historical per-start record for a starting pitcher, tracking prop-relevant
+    metrics for head-to-head (H2H) analysis.
+
+    Parameters
+    ----------
+    date : str
+        Game date string, e.g. ``"05/08/25"``.
+    outs_recorded : int or None
+        Total outs recorded in the start (3 × complete innings + partial-inning
+        outs).  ``None`` when the start has not yet occurred or data is
+        unavailable.
+    strikeouts : int or None
+        Strikeouts recorded in the start.  ``None`` when unavailable.
+    pitches_thrown : int or None
+        Total pitches thrown in the start.  ``None`` when unavailable.
+    swinging_strikes : int or None
+        Swinging-strike (whiff) count for the start.  ``None`` when unavailable.
+    called_strikes : int or None
+        Called-strike count for the start.  ``None`` when unavailable.
+    csw_pct : float or None
+        Called Strikes + Whiffs percentage (CSW%) for the start, expressed as a
+        value between 0 and 100.  ``None`` when unavailable.
+    support_innings : float or None
+        Innings pitched by the support (relief) cast after this start.
+        ``None`` when unavailable.
+    """
+
+    date: str
+    outs_recorded: Optional[int] = None
+    strikeouts: Optional[int] = None
+    pitches_thrown: Optional[int] = None
+    swinging_strikes: Optional[int] = None
+    called_strikes: Optional[int] = None
+    csw_pct: Optional[float] = None
+    support_innings: Optional[float] = None
+
+
 class PropCalibrator:
     """
     Pure-Python Ridge Regression calibrator for prop simulation outputs.
@@ -14748,6 +14788,70 @@ _LAD_YAMAMOTO = PitcherStats(
     throws="R",
     pitches_per_pa=3.88,
 )
+
+#: Over/under line (outs recorded) used when evaluating Yamamoto H2H starts.
+YAMAMOTO_H2H_OUTS_LINE: float = 17.5
+
+#: Over/under line (strikeouts) used when evaluating Yamamoto H2H starts.
+YAMAMOTO_H2H_K_LINE: float = 6.0
+
+#: Support-cast innings pitched in each of Yamamoto's recent tracked starts
+#: (5 starts, listed in chronological order).
+YAMAMOTO_H2H_SUPPORT_INNINGS: List[float] = [6.1, 5.0, 7.0, 7.0, 6.0]
+
+#: Historical per-start records for Yoshinobu Yamamoto in head-to-head
+#: matchups, capturing outs recorded, strikeouts, pitch-count efficiency,
+#: CSW% and support-cast innings for prop analysis.
+#:
+#: H2H outs line: 17.5
+#:   05/08/25 — UNDER (15 outs), 05/20/25 — OVER (21 outs),
+#:   08/31/25 — OVER (21 outs), 09/25/25 — pending.
+#:
+#: H2H K line: 6
+#:   05/08/25 — UNDER (4 Ks), 05/20/25 — OVER (9 Ks),
+#:   08/31/25 and 09/25/25 — pending.
+YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
+    PitcherStartRecord(
+        date="05/08/25",
+        outs_recorded=15,
+        strikeouts=4,
+        pitches_thrown=88,
+        swinging_strikes=17,
+        called_strikes=9,
+        csw_pct=30.0,
+        support_innings=6.1,
+    ),
+    PitcherStartRecord(
+        date="05/20/25",
+        outs_recorded=21,
+        strikeouts=9,
+        pitches_thrown=110,
+        swinging_strikes=20,
+        called_strikes=10,
+        csw_pct=27.0,
+        support_innings=5.0,
+    ),
+    PitcherStartRecord(
+        date="08/31/25",
+        outs_recorded=21,
+        strikeouts=None,
+        pitches_thrown=98,
+        swinging_strikes=20,
+        called_strikes=20,
+        csw_pct=41.0,
+        support_innings=7.0,
+    ),
+    PitcherStartRecord(
+        date="09/25/25",
+        outs_recorded=None,
+        strikeouts=None,
+        pitches_thrown=94,
+        swinging_strikes=16,
+        called_strikes=16,
+        csw_pct=34.0,
+        support_innings=7.0,
+    ),
+]
 
 #: Blake Snell — LHP second starter; dynamic left-hander with plus
 #: fastball-slider combination and devastating swing-and-miss stuff;
