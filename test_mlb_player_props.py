@@ -12728,6 +12728,10 @@ from mlb_player_props import (  # noqa: E402
     YAMAMOTO_H2H_STARTS,
     YAMAMOTO_REGULAR_SEASON_2025_OUTS_LINE,
     YAMAMOTO_REGULAR_SEASON_2025_STARTS,
+    YAMAMOTO_VS_AZ_DODGER_WIND_SPEED_MPH,
+    YAMAMOTO_VS_AZ_DODGER_WIND_DIRECTION,
+    YAMAMOTO_VS_AZ_POOR_PITCHING_FORM,
+    YAMAMOTO_VS_AZ_POOR_PITCHING_OUTS_THRESHOLD,
 )
 
 
@@ -12743,8 +12747,8 @@ class TestYamamotoH2H(unittest.TestCase):
         self.assertEqual(rec.date, "05/08/25")
 
     def test_pitcher_start_record_optional_fields_none(self):
-        """Pending starts have None for strikeouts when not yet recorded."""
-        rec = YAMAMOTO_H2H_STARTS[2]
+        """PitcherStartRecord accepts None for optional fields not recorded."""
+        rec = PitcherStartRecord(date="01/01/25")
         self.assertIsNone(rec.strikeouts)
 
     # ------------------------------------------------------------------
@@ -12846,9 +12850,10 @@ class TestYamamotoH2H(unittest.TestCase):
         self.assertEqual(YAMAMOTO_H2H_STARTS[2].outs_recorded, 21)
         self.assertGreater(YAMAMOTO_H2H_STARTS[2].outs_recorded, YAMAMOTO_H2H_OUTS_LINE)
 
-    def test_start3_strikeouts_pending(self):
-        """08/31/25 K value is not recorded (None)."""
-        self.assertIsNone(YAMAMOTO_H2H_STARTS[2].strikeouts)
+    def test_start3_strikeouts_from_outlier(self):
+        """08/31/25 — 7 Ks sourced from Outlier (OVER 6 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[2].strikeouts, 7)
+        self.assertGreater(YAMAMOTO_H2H_STARTS[2].strikeouts, YAMAMOTO_H2H_K_LINE)
 
     def test_start3_pitches_thrown(self):
         self.assertEqual(YAMAMOTO_H2H_STARTS[2].pitches_thrown, 98)
@@ -12877,9 +12882,10 @@ class TestYamamotoH2H(unittest.TestCase):
         self.assertEqual(YAMAMOTO_H2H_STARTS[3].outs_recorded, 18)
         self.assertGreater(YAMAMOTO_H2H_STARTS[3].outs_recorded, YAMAMOTO_H2H_OUTS_LINE)
 
-    def test_start4_strikeouts_pending(self):
-        """09/25/25 K value is not yet recorded (None)."""
-        self.assertIsNone(YAMAMOTO_H2H_STARTS[3].strikeouts)
+    def test_start4_strikeouts_from_outlier(self):
+        """09/25/25 — 6 Ks sourced from Outlier (PUSH on 6 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].strikeouts, 6)
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].strikeouts, int(YAMAMOTO_H2H_K_LINE))
 
     def test_start4_pitches_thrown(self):
         self.assertEqual(YAMAMOTO_H2H_STARTS[3].pitches_thrown, 94)
@@ -13041,7 +13047,7 @@ class TestYamamotoRegularSeason2025(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_all_starts_have_strikeouts_or_none(self):
-        """Every start has a strikeout count (int) or None for pending data."""
+        """Every start has a strikeout count (int) or None; all 2025 starts now have data."""
         for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
             self.assertTrue(rec.strikeouts is None or isinstance(rec.strikeouts, int))
 
@@ -13069,17 +13075,17 @@ class TestYamamotoRegularSeason2025(unittest.TestCase):
         for rec in complete_game_starts:
             self.assertEqual(rec.strikeouts, 11)
 
-    def test_arizona_08_31_strikeouts_none(self):
-        """08/31/25 vs Arizona — K data not recorded (None)."""
+    def test_arizona_08_31_strikeouts_from_outlier(self):
+        """08/31/25 vs Arizona — 7 Ks sourced from Outlier (OVER 6 line)."""
         rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
                    if r.opponent == "Arizona" and r.date == "08/31/25")
-        self.assertIsNone(rec.strikeouts)
+        self.assertEqual(rec.strikeouts, 7)
 
-    def test_arizona_09_25_strikeouts_none(self):
-        """09/25/25 vs Arizona — K data not recorded (None)."""
+    def test_arizona_09_25_strikeouts_from_outlier(self):
+        """09/25/25 vs Arizona — 6 Ks sourced from Outlier (PUSH on 6 line)."""
         rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
                    if r.opponent == "Arizona" and r.date == "09/25/25")
-        self.assertIsNone(rec.strikeouts)
+        self.assertEqual(rec.strikeouts, 6)
 
     # ------------------------------------------------------------------
     # Outlier stats — pitches thrown
@@ -13210,6 +13216,107 @@ class TestYamamotoRegularSeason2025(unittest.TestCase):
     def test_h2h_start4_batters_faced(self):
         """09/25/25 — 24 batters faced (94 pitches ÷ ~3.88 pitches/PA)."""
         self.assertEqual(YAMAMOTO_H2H_STARTS[3].batters_faced, 24)
+
+
+class TestYamamotoVsArizonaDodgerStadiumScenario(unittest.TestCase):
+    """Test constants for the Yamamoto vs Arizona scenario at Dodger Stadium:
+    8.1 mph out wind and poor pitching form."""
+
+    # ------------------------------------------------------------------
+    # Wind constants
+    # ------------------------------------------------------------------
+
+    def test_wind_speed_mph(self):
+        """Scenario wind speed is 8.1 mph."""
+        self.assertAlmostEqual(YAMAMOTO_VS_AZ_DODGER_WIND_SPEED_MPH, 8.1)
+
+    def test_wind_direction_is_out(self):
+        """Scenario wind direction blows out to center field."""
+        self.assertEqual(YAMAMOTO_VS_AZ_DODGER_WIND_DIRECTION, "out_to_center")
+
+    def test_wind_raises_hr_multiplier(self):
+        """8.1 mph out wind at Dodger Stadium produces an HR multiplier > 1."""
+        wind = WindConditions(
+            speed_mph=YAMAMOTO_VS_AZ_DODGER_WIND_SPEED_MPH,
+            direction=YAMAMOTO_VS_AZ_DODGER_WIND_DIRECTION,
+        )
+        self.assertGreater(wind.hr_multiplier(), 1.0)
+
+    def test_wind_raises_runs_multiplier(self):
+        """8.1 mph out wind produces a runs multiplier > 1 (hitter-friendly)."""
+        wind = WindConditions(
+            speed_mph=YAMAMOTO_VS_AZ_DODGER_WIND_SPEED_MPH,
+            direction=YAMAMOTO_VS_AZ_DODGER_WIND_DIRECTION,
+        )
+        self.assertGreater(wind.runs_multiplier(), 1.0)
+
+    def test_wind_k_multiplier_above_1(self):
+        """Out wind still yields a k_multiplier >= 1 (distraction for batters)."""
+        wind = WindConditions(
+            speed_mph=YAMAMOTO_VS_AZ_DODGER_WIND_SPEED_MPH,
+            direction=YAMAMOTO_VS_AZ_DODGER_WIND_DIRECTION,
+        )
+        self.assertGreaterEqual(wind.k_multiplier(), 1.0)
+
+    # ------------------------------------------------------------------
+    # Dodger Stadium park factors
+    # ------------------------------------------------------------------
+
+    def test_dodger_stadium_hr_factor_below_1(self):
+        """Dodger Stadium suppresses home runs (hr_factor < 1.0)."""
+        stadium = Stadium.from_name("Dodger Stadium")
+        self.assertLess(stadium.hr_factor, 1.0)
+
+    def test_dodger_stadium_k_factor_above_1(self):
+        """Dodger Stadium boosts strikeout rate (k_factor > 1.0)."""
+        stadium = Stadium.from_name("Dodger Stadium")
+        self.assertGreater(stadium.k_factor, 1.0)
+
+    def test_out_wind_partially_counters_dodger_hr_suppression(self):
+        """8.1 mph out wind HR multiplier > 1 while park HR factor < 1 — net is mixed."""
+        wind = WindConditions(
+            speed_mph=YAMAMOTO_VS_AZ_DODGER_WIND_SPEED_MPH,
+            direction=YAMAMOTO_VS_AZ_DODGER_WIND_DIRECTION,
+        )
+        stadium = Stadium.from_name("Dodger Stadium")
+        self.assertGreater(wind.hr_multiplier(), 1.0)
+        self.assertLess(stadium.hr_factor, 1.0)
+
+    # ------------------------------------------------------------------
+    # Poor-pitching form constants
+    # ------------------------------------------------------------------
+
+    def test_poor_pitching_form_label(self):
+        """Poor-pitching form label is 'poor'."""
+        self.assertEqual(YAMAMOTO_VS_AZ_POOR_PITCHING_FORM, "poor")
+
+    def test_poor_pitching_outs_threshold(self):
+        """Poor-pitching threshold is set to 17 outs (< 5.2 IP)."""
+        self.assertEqual(YAMAMOTO_VS_AZ_POOR_PITCHING_OUTS_THRESHOLD, 17)
+
+    def test_poor_pitching_threshold_is_under_outs_line(self):
+        """The poor-pitching outs threshold falls below the 17.5 H2H outs line."""
+        self.assertLess(
+            YAMAMOTO_VS_AZ_POOR_PITCHING_OUTS_THRESHOLD,
+            YAMAMOTO_H2H_OUTS_LINE,
+        )
+
+    def test_poor_form_start_identified_from_h2h(self):
+        """The only H2H UNDER (05/08/25, 15 outs) qualifies as a poor-pitching start."""
+        poor_starts = [
+            r for r in YAMAMOTO_H2H_STARTS
+            if r.outs_recorded < YAMAMOTO_VS_AZ_POOR_PITCHING_OUTS_THRESHOLD
+        ]
+        self.assertEqual(len(poor_starts), 1)
+        self.assertEqual(poor_starts[0].date, "05/08/25")
+
+    def test_poor_form_start_ks_under_k_line(self):
+        """In the poor-pitching H2H start (05/08/25) Ks were also below the 6 line."""
+        poor_start = next(
+            r for r in YAMAMOTO_H2H_STARTS
+            if r.outs_recorded < YAMAMOTO_VS_AZ_POOR_PITCHING_OUTS_THRESHOLD
+        )
+        self.assertLess(poor_start.strikeouts, YAMAMOTO_H2H_K_LINE)
 
 
 from mlb_player_props import (  # noqa: E402

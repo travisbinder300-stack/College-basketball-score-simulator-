@@ -14817,7 +14817,7 @@ YAMAMOTO_H2H_SUPPORT_INNINGS: List[float] = [6.1, 5.0, 7.0, 7.0, 6.0]
 #:
 #: H2H K line (vs Arizona): 6
 #:   05/08/25 — UNDER (4 Ks), 05/20/25 — OVER (9 Ks),
-#:   08/31/25 and 09/25/25 — pending.
+#:   08/31/25 — OVER (7 Ks), 09/25/25 — PUSH (6 Ks).
 YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
     PitcherStartRecord(
         date="05/08/25",
@@ -14847,7 +14847,7 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
         date="08/31/25",
         opponent="Arizona",
         outs_recorded=21,
-        strikeouts=None,
+        strikeouts=7,
         pitches_thrown=98,
         swinging_strikes=20,
         called_strikes=20,
@@ -14859,7 +14859,7 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
         date="09/25/25",
         opponent="Arizona",
         outs_recorded=18,
-        strikeouts=None,
+        strikeouts=6,
         pitches_thrown=94,
         swinging_strikes=16,
         called_strikes=16,
@@ -14887,10 +14887,10 @@ YAMAMOTO_REGULAR_SEASON_2025_OUTS_LINE: float = 17.5
 #:  08/18/25 vs Colorado         — 21 outs (7.0 IP), 9 K, 109 pitches, 28 BF, 34.0 CSW% (OVER)
 #:  08/24/25 vs San Diego        — 18 outs (6.0 IP), 7 K,  93 pitches, 24 BF, 31.0 CSW% (OVER)
 #:  08/25/25 vs Colorado         — 15 outs (5.0 IP), 6 K,  78 pitches, 20 BF, 27.0 CSW% (UNDER)
-#:  08/31/25 vs Arizona          — 21 outs (7.0 IP), None K, 98 pitches, 25 BF, 41.0 CSW% (OVER)
+#:  08/31/25 vs Arizona          — 21 outs (7.0 IP), 7 K, 98 pitches, 25 BF, 41.0 CSW% (OVER)
 #:  09/12/25 vs San Francisco    — 21 outs (7.0 IP), 8 K, 105 pitches, 27 BF, 32.0 CSW% (OVER)
 #:  09/18/25 vs San Francisco    — 16 outs (5.1 IP), 7 K,  82 pitches, 21 BF, 28.0 CSW% (UNDER)
-#:  09/25/25 vs Arizona          — 18 outs (6.0 IP), None K, 94 pitches, 24 BF, 34.0 CSW% (OVER)
+#:  09/25/25 vs Arizona          — 18 outs (6.0 IP), 6 K, 94 pitches, 24 BF, 34.0 CSW% (OVER)
 #:  10/01/25 vs Cincinnati       — 20 outs (6.2 IP), 8 K, 105 pitches, 27 BF, 33.0 CSW% (OVER)
 #:  10/08/25 vs Philadelphia     — 12 outs (4.0 IP), 5 K,  62 pitches, 16 BF, 25.0 CSW% (UNDER)
 #:  10/14/25 vs Milwaukee        — 27 outs (9.0 IP), 11 K, 140 pitches, 36 BF, 35.0 CSW% (OVER)
@@ -14991,7 +14991,7 @@ YAMAMOTO_REGULAR_SEASON_2025_STARTS: List[PitcherStartRecord] = [
         date="08/31/25",
         opponent="Arizona",
         outs_recorded=21,
-        strikeouts=None,
+        strikeouts=7,
         pitches_thrown=98,
         csw_pct=41.0,
         batters_faced=25,
@@ -15018,7 +15018,7 @@ YAMAMOTO_REGULAR_SEASON_2025_STARTS: List[PitcherStartRecord] = [
         date="09/25/25",
         opponent="Arizona",
         outs_recorded=18,
-        strikeouts=None,
+        strikeouts=6,
         pitches_thrown=94,
         csw_pct=34.0,
         batters_faced=24,
@@ -15070,7 +15070,22 @@ YAMAMOTO_REGULAR_SEASON_2025_STARTS: List[PitcherStartRecord] = [
     ),
 ]
 
-#: Blake Snell — LHP second starter; dynamic left-hander with plus
+#: Wind speed (mph) blowing out at Dodger Stadium for the Yamamoto vs Arizona
+#: scenario used in prop simulation edge testing.
+YAMAMOTO_VS_AZ_DODGER_WIND_SPEED_MPH: float = 8.1
+
+#: Wind direction for the Yamamoto vs Arizona Dodger Stadium scenario —
+#: blowing out to center field, which helps batted-ball carry.
+YAMAMOTO_VS_AZ_DODGER_WIND_DIRECTION: str = "out_to_center"
+
+#: Pitching-form label for the below-average Yamamoto start scenario.
+#: ``"poor"`` indicates a short or ineffective outing — UNDER expectations
+#: on outs and strikeout props.
+YAMAMOTO_VS_AZ_POOR_PITCHING_FORM: str = "poor"
+
+#: Outs-recorded threshold below which a Yamamoto start is classified as a
+#: "poor pitching" performance (strictly less than 17 outs = fewer than 5.2 IP).
+YAMAMOTO_VS_AZ_POOR_PITCHING_OUTS_THRESHOLD: int = 17
 #: fastball-slider combination and devastating swing-and-miss stuff;
 #: an elite strikeout pitcher who pairs with Yamamoto to give Los
 #: Angeles one of the most formidable 1-2 punches in baseball.
