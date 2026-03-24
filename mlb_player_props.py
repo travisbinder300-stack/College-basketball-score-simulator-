@@ -1532,6 +1532,9 @@ class PitcherStartRecord:
     ----------
     date : str
         Game date string, e.g. ``"05/08/25"``.
+    opponent : str or None
+        Name of the opposing team, e.g. ``"Arizona"``.  ``None`` when not
+        specified.
     outs_recorded : int or None
         Total outs recorded in the start (3 × complete innings + partial-inning
         outs).  ``None`` when the start has not yet occurred or data is
@@ -1553,6 +1556,7 @@ class PitcherStartRecord:
     """
 
     date: str
+    opponent: Optional[str] = None
     outs_recorded: Optional[int] = None
     strikeouts: Optional[int] = None
     pitches_thrown: Optional[int] = None
@@ -14805,7 +14809,7 @@ YAMAMOTO_H2H_SUPPORT_INNINGS: List[float] = [6.1, 5.0, 7.0, 7.0, 6.0]
 #:
 #: H2H outs line (vs Arizona): 17.5
 #:   05/08/25 — UNDER (15 outs), 05/20/25 — OVER (21 outs),
-#:   08/31/25 — OVER (21 outs), 09/25/25 — pending.
+#:   08/31/25 — OVER (21 outs), 09/25/25 — OVER (18 outs).
 #:
 #: H2H K line (vs Arizona): 6
 #:   05/08/25 — UNDER (4 Ks), 05/20/25 — OVER (9 Ks),
@@ -14813,6 +14817,7 @@ YAMAMOTO_H2H_SUPPORT_INNINGS: List[float] = [6.1, 5.0, 7.0, 7.0, 6.0]
 YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
     PitcherStartRecord(
         date="05/08/25",
+        opponent="Arizona",
         outs_recorded=15,
         strikeouts=4,
         pitches_thrown=88,
@@ -14823,6 +14828,7 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
     ),
     PitcherStartRecord(
         date="05/20/25",
+        opponent="Arizona",
         outs_recorded=21,
         strikeouts=9,
         pitches_thrown=110,
@@ -14833,6 +14839,7 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
     ),
     PitcherStartRecord(
         date="08/31/25",
+        opponent="Arizona",
         outs_recorded=21,
         strikeouts=None,
         pitches_thrown=98,
@@ -14843,7 +14850,8 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
     ),
     PitcherStartRecord(
         date="09/25/25",
-        outs_recorded=None,
+        opponent="Arizona",
+        outs_recorded=18,
         strikeouts=None,
         pitches_thrown=94,
         swinging_strikes=16,
@@ -14851,6 +14859,53 @@ YAMAMOTO_H2H_STARTS: List[PitcherStartRecord] = [
         csw_pct=34.0,
         support_innings=7.0,
     ),
+]
+
+#: Over/under line (outs recorded) used for Yamamoto's full 2025 regular season.
+YAMAMOTO_REGULAR_SEASON_2025_OUTS_LINE: float = 17.5
+
+#: Yoshinobu Yamamoto regular-season 2025 per-start outs recorded (19 starts).
+#: Outs line: 17.5
+#:
+#:  07/01/25 vs Chicago White Sox — 21 (OVER)
+#:  07/07/25 vs Milwaukee        —  2 (UNDER)
+#:  07/13/25 vs San Francisco    — 21 (OVER)
+#:  07/22/25 vs Minnesota        — 15 (UNDER)
+#:  07/28/25 vs Cincinnati       — 21 (OVER)
+#:  08/03/25 vs Tampa Bay        — 17 (UNDER)
+#:  08/11/25 vs LA Angels        — 14 (UNDER)
+#:  08/18/25 vs Colorado         — 21 (OVER)
+#:  08/24/25 vs San Diego        — 18 (OVER)
+#:  08/25/25 vs Colorado         — 15 (UNDER)
+#:  08/31/25 vs Arizona          — 21 (OVER)
+#:  09/12/25 vs San Francisco    — 21 (OVER)
+#:  09/18/25 vs San Francisco    — 16 (UNDER)
+#:  09/25/25 vs Arizona          — 18 (OVER)
+#:  10/01/25 vs Cincinnati       — 20 (OVER)
+#:  10/08/25 vs Philadelphia     — 12 (UNDER)
+#:  10/14/25 vs Milwaukee        — 27 (OVER)
+#:  10/25/25 vs Toronto          — 27 (OVER)
+#:  10/31/25 vs Toronto          — 18 (OVER)
+YAMAMOTO_REGULAR_SEASON_2025_STARTS: List[PitcherStartRecord] = [
+    PitcherStartRecord(date="07/01/25", opponent="Chicago White Sox", outs_recorded=21),
+    PitcherStartRecord(date="07/07/25", opponent="Milwaukee", outs_recorded=2),
+    PitcherStartRecord(date="07/13/25", opponent="San Francisco", outs_recorded=21),
+    PitcherStartRecord(date="07/22/25", opponent="Minnesota", outs_recorded=15),
+    PitcherStartRecord(date="07/28/25", opponent="Cincinnati", outs_recorded=21),
+    PitcherStartRecord(date="08/03/25", opponent="Tampa Bay", outs_recorded=17),
+    PitcherStartRecord(date="08/11/25", opponent="LA Angels", outs_recorded=14),
+    PitcherStartRecord(date="08/18/25", opponent="Colorado", outs_recorded=21),
+    PitcherStartRecord(date="08/24/25", opponent="San Diego", outs_recorded=18),
+    PitcherStartRecord(date="08/25/25", opponent="Colorado", outs_recorded=15),
+    PitcherStartRecord(date="08/31/25", opponent="Arizona", outs_recorded=21),
+    PitcherStartRecord(date="09/12/25", opponent="San Francisco", outs_recorded=21),
+    PitcherStartRecord(date="09/18/25", opponent="San Francisco", outs_recorded=16),
+    PitcherStartRecord(date="09/25/25", opponent="Arizona", outs_recorded=18),
+    PitcherStartRecord(date="10/01/25", opponent="Cincinnati", outs_recorded=20),
+    PitcherStartRecord(date="10/08/25", opponent="Philadelphia", outs_recorded=12),
+    PitcherStartRecord(date="10/14/25", opponent="Milwaukee", outs_recorded=27),
+    PitcherStartRecord(date="10/25/25", opponent="Toronto", outs_recorded=27),
+    PitcherStartRecord(date="10/31/25", opponent="Toronto", outs_recorded=18),
 ]
 
 #: Blake Snell — LHP second starter; dynamic left-hander with plus

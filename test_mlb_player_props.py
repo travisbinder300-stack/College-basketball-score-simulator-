@@ -12726,6 +12726,8 @@ from mlb_player_props import (  # noqa: E402
     YAMAMOTO_H2H_K_LINE,
     YAMAMOTO_H2H_SUPPORT_INNINGS,
     YAMAMOTO_H2H_STARTS,
+    YAMAMOTO_REGULAR_SEASON_2025_OUTS_LINE,
+    YAMAMOTO_REGULAR_SEASON_2025_STARTS,
 )
 
 
@@ -12741,9 +12743,8 @@ class TestYamamotoH2H(unittest.TestCase):
         self.assertEqual(rec.date, "05/08/25")
 
     def test_pitcher_start_record_optional_fields_none(self):
-        """Pending starts have None for outs and strikeouts."""
-        rec = YAMAMOTO_H2H_STARTS[3]
-        self.assertIsNone(rec.outs_recorded)
+        """Pending starts have None for strikeouts when not yet recorded."""
+        rec = YAMAMOTO_H2H_STARTS[2]
         self.assertIsNone(rec.strikeouts)
 
     # ------------------------------------------------------------------
@@ -12871,9 +12872,10 @@ class TestYamamotoH2H(unittest.TestCase):
     def test_start4_date(self):
         self.assertEqual(YAMAMOTO_H2H_STARTS[3].date, "09/25/25")
 
-    def test_start4_outs_recorded_pending(self):
-        """09/25/25 outs value is not yet recorded (None)."""
-        self.assertIsNone(YAMAMOTO_H2H_STARTS[3].outs_recorded)
+    def test_start4_outs_recorded(self):
+        """09/25/25 — Yamamoto recorded 18 outs vs Arizona (OVER 17.5 line)."""
+        self.assertEqual(YAMAMOTO_H2H_STARTS[3].outs_recorded, 18)
+        self.assertGreater(YAMAMOTO_H2H_STARTS[3].outs_recorded, YAMAMOTO_H2H_OUTS_LINE)
 
     def test_start4_strikeouts_pending(self):
         """09/25/25 K value is not yet recorded (None)."""
@@ -12956,6 +12958,83 @@ class TestYamamotoH2H(unittest.TestCase):
         rec = YAMAMOTO_H2H_STARTS[3]
         computed = (rec.swinging_strikes + rec.called_strikes) / rec.pitches_thrown * 100
         self.assertAlmostEqual(computed, rec.csw_pct, delta=1.0)
+
+
+class TestYamamotoRegularSeason2025(unittest.TestCase):
+    """Tests for Yoshinobu Yamamoto's full 2025 regular-season outs data (19 starts)."""
+
+    def test_regular_season_outs_line(self):
+        """Regular-season outs line is 17.5."""
+        self.assertAlmostEqual(YAMAMOTO_REGULAR_SEASON_2025_OUTS_LINE, 17.5)
+
+    def test_regular_season_has_nineteen_starts(self):
+        self.assertEqual(len(YAMAMOTO_REGULAR_SEASON_2025_STARTS), 19)
+
+    def test_all_starts_have_date(self):
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertIsInstance(rec.date, str)
+            self.assertTrue(len(rec.date) > 0)
+
+    def test_all_starts_have_opponent(self):
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.opponent)
+
+    def test_all_starts_have_outs_recorded(self):
+        for rec in YAMAMOTO_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.outs_recorded)
+            self.assertGreaterEqual(rec.outs_recorded, 0)
+
+    def test_first_start_chicago_white_sox(self):
+        rec = YAMAMOTO_REGULAR_SEASON_2025_STARTS[0]
+        self.assertEqual(rec.date, "07/01/25")
+        self.assertEqual(rec.opponent, "Chicago White Sox")
+        self.assertEqual(rec.outs_recorded, 21)
+
+    def test_milwaukee_early_exit(self):
+        """07/07/25 vs Milwaukee — only 2 outs (early exit)."""
+        rec = YAMAMOTO_REGULAR_SEASON_2025_STARTS[1]
+        self.assertEqual(rec.date, "07/07/25")
+        self.assertEqual(rec.opponent, "Milwaukee")
+        self.assertEqual(rec.outs_recorded, 2)
+
+    def test_arizona_h2h_starts_match_regular_season(self):
+        """Arizona starts in regular season (08/31 and 09/25) match H2H records."""
+        az_starts = [r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS if r.opponent == "Arizona"]
+        self.assertEqual(len(az_starts), 2)
+        dates = {r.date for r in az_starts}
+        self.assertIn("08/31/25", dates)
+        self.assertIn("09/25/25", dates)
+
+    def test_arizona_08_31_outs(self):
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "08/31/25")
+        self.assertEqual(rec.outs_recorded, 21)
+
+    def test_arizona_09_25_outs(self):
+        rec = next(r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                   if r.opponent == "Arizona" and r.date == "09/25/25")
+        self.assertEqual(rec.outs_recorded, 18)
+
+    def test_overs_vs_outs_line(self):
+        """Count of starts where Yamamoto went OVER the 17.5 outs line."""
+        overs = [r for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS
+                 if r.outs_recorded > YAMAMOTO_REGULAR_SEASON_2025_OUTS_LINE]
+        # 21, 21, 21, 21, 21, 21, 18, 18, 20, 27, 27, 18 → 12 overs
+        self.assertEqual(len(overs), 12)
+
+    def test_last_start_toronto(self):
+        rec = YAMAMOTO_REGULAR_SEASON_2025_STARTS[-1]
+        self.assertEqual(rec.date, "10/31/25")
+        self.assertEqual(rec.opponent, "Toronto")
+        self.assertEqual(rec.outs_recorded, 18)
+
+    def test_max_outs_is_27(self):
+        max_outs = max(r.outs_recorded for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS)
+        self.assertEqual(max_outs, 27)
+
+    def test_min_outs_is_2(self):
+        min_outs = min(r.outs_recorded for r in YAMAMOTO_REGULAR_SEASON_2025_STARTS)
+        self.assertEqual(min_outs, 2)
 
 
 from mlb_player_props import (  # noqa: E402
