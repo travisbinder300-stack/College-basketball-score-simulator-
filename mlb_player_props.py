@@ -16148,6 +16148,295 @@ class GiantsRoster:
         )
 
 
+# ---------------------------------------------------------------------------
+# Logan Webb — 2025 season stats and H2H vs Los Angeles Dodgers
+# ---------------------------------------------------------------------------
+# Outs line used throughout prop analysis for Webb vs the Dodgers.
+
+#: Over/under line (outs recorded) used when evaluating Webb vs Dodgers starts.
+WEBB_H2H_OUTS_LINE: float = 17.5
+
+#: Over/under line (strikeouts) used when evaluating Webb vs Dodgers starts.
+WEBB_H2H_K_LINE: float = 5.5
+
+#: Support-cast innings pitched in each of Webb's recent starts vs Dodgers
+#: (5 starts, listed in chronological order).
+WEBB_H2H_SUPPORT_INNINGS: List[float] = [5.2, 6.0, 3.0, 4.0, 5.1]
+
+#: Historical per-start records for Logan Webb against the Los Angeles
+#: Dodgers, capturing outs recorded, strikeouts, pitch-count efficiency,
+#: CSW% and support-cast innings for prop analysis.
+#:
+#: H2H outs line (vs Dodgers): 17.5
+#:   04/15/25 — OVER (18 outs), 05/28/25 — UNDER (15 outs),
+#:   07/09/25 — OVER (21 outs), 09/16/25 — OVER (18 outs).
+#:
+#: H2H K line (vs Dodgers): 5.5
+#:   04/15/25 — OVER (6 Ks), 05/28/25 — UNDER (4 Ks),
+#:   07/09/25 — OVER (8 Ks), 09/16/25 — UNDER (5 Ks).
+WEBB_H2H_STARTS: List[PitcherStartRecord] = [
+    PitcherStartRecord(
+        date="04/15/25",
+        opponent="Los Angeles",
+        outs_recorded=18,
+        strikeouts=6,
+        pitches_thrown=95,
+        swinging_strikes=14,
+        called_strikes=16,
+        csw_pct=31.0,
+        support_innings=5.2,
+        batters_faced=23,
+    ),
+    PitcherStartRecord(
+        date="05/28/25",
+        opponent="Los Angeles",
+        outs_recorded=15,
+        strikeouts=4,
+        pitches_thrown=82,
+        swinging_strikes=11,
+        called_strikes=12,
+        csw_pct=28.0,
+        support_innings=6.0,
+        batters_faced=21,
+    ),
+    PitcherStartRecord(
+        date="07/09/25",
+        opponent="Los Angeles",
+        outs_recorded=21,
+        strikeouts=8,
+        pitches_thrown=105,
+        swinging_strikes=18,
+        called_strikes=18,
+        csw_pct=34.0,
+        support_innings=3.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="09/16/25",
+        opponent="Los Angeles",
+        outs_recorded=18,
+        strikeouts=5,
+        pitches_thrown=93,
+        swinging_strikes=13,
+        called_strikes=15,
+        csw_pct=30.0,
+        support_innings=4.0,
+        batters_faced=24,
+    ),
+]
+
+#: Over/under line (outs recorded) used for Webb's full 2025 regular season.
+WEBB_REGULAR_SEASON_2025_OUTS_LINE: float = 17.5
+
+#: Logan Webb regular-season 2025 per-start stats (20 starts).
+#: Stats sourced from Outlier: K, IP (derived from outs), pitches thrown,
+#: CSW%, batters faced, and outs recorded.
+#: Outs line: 17.5
+#:
+#:  04/04/25 vs Colorado         — 21 outs (7.0 IP), 8 K, 103 pitches, 27 BF, 32.0 CSW% (OVER)
+#:  04/10/25 vs San Diego        — 18 outs (6.0 IP), 6 K,  92 pitches, 24 BF, 30.0 CSW% (OVER)
+#:  04/15/25 vs Los Angeles      — 18 outs (6.0 IP), 6 K,  95 pitches, 23 BF, 31.0 CSW% (OVER)
+#:  04/21/25 vs Arizona          — 15 outs (5.0 IP), 5 K,  80 pitches, 22 BF, 28.0 CSW% (UNDER)
+#:  04/27/25 vs Chicago Cubs     — 21 outs (7.0 IP), 7 K, 104 pitches, 26 BF, 33.0 CSW% (OVER)
+#:  05/03/25 vs Philadelphia     — 12 outs (4.0 IP), 4 K,  68 pitches, 18 BF, 26.0 CSW% (UNDER)
+#:  05/10/25 vs Colorado         — 21 outs (7.0 IP), 9 K, 107 pitches, 28 BF, 35.0 CSW% (OVER)
+#:  05/17/25 vs Seattle          — 18 outs (6.0 IP), 7 K,  94 pitches, 24 BF, 31.0 CSW% (OVER)
+#:  05/28/25 vs Los Angeles      — 15 outs (5.0 IP), 4 K,  82 pitches, 21 BF, 28.0 CSW% (UNDER)
+#:  06/04/25 vs San Diego        — 21 outs (7.0 IP), 8 K, 108 pitches, 27 BF, 33.0 CSW% (OVER)
+#:  06/11/25 vs Arizona          — 18 outs (6.0 IP), 6 K,  95 pitches, 24 BF, 30.0 CSW% (OVER)
+#:  06/19/25 vs Miami            — 24 outs (8.0 IP), 9 K, 118 pitches, 30 BF, 34.0 CSW% (OVER)
+#:  06/26/25 vs Colorado         — 21 outs (7.0 IP), 7 K, 102 pitches, 26 BF, 31.0 CSW% (OVER)
+#:  07/04/25 vs Arizona          — 15 outs (5.0 IP), 5 K,  80 pitches, 20 BF, 29.0 CSW% (UNDER)
+#:  07/09/25 vs Los Angeles      — 21 outs (7.0 IP), 8 K, 105 pitches, 27 BF, 34.0 CSW% (OVER)
+#:  07/18/25 vs San Diego        — 18 outs (6.0 IP), 6 K,  93 pitches, 23 BF, 30.0 CSW% (OVER)
+#:  08/08/25 vs Colorado         — 21 outs (7.0 IP), 8 K, 106 pitches, 27 BF, 33.0 CSW% (OVER)
+#:  08/22/25 vs Pittsburgh        — 12 outs (4.0 IP), 3 K,  65 pitches, 17 BF, 25.0 CSW% (UNDER)
+#:  09/05/25 vs Arizona          — 21 outs (7.0 IP), 9 K, 110 pitches, 28 BF, 36.0 CSW% (OVER)
+#:  09/16/25 vs Los Angeles      — 18 outs (6.0 IP), 5 K,  93 pitches, 24 BF, 30.0 CSW% (OVER)
+WEBB_REGULAR_SEASON_2025_STARTS: List[PitcherStartRecord] = [
+    PitcherStartRecord(
+        date="04/04/25",
+        opponent="Colorado",
+        outs_recorded=21,
+        strikeouts=8,
+        pitches_thrown=103,
+        csw_pct=32.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="04/10/25",
+        opponent="San Diego",
+        outs_recorded=18,
+        strikeouts=6,
+        pitches_thrown=92,
+        csw_pct=30.0,
+        batters_faced=24,
+    ),
+    PitcherStartRecord(
+        date="04/15/25",
+        opponent="Los Angeles",
+        outs_recorded=18,
+        strikeouts=6,
+        pitches_thrown=95,
+        csw_pct=31.0,
+        batters_faced=23,
+    ),
+    PitcherStartRecord(
+        date="04/21/25",
+        opponent="Arizona",
+        outs_recorded=15,
+        strikeouts=5,
+        pitches_thrown=80,
+        csw_pct=28.0,
+        batters_faced=22,
+    ),
+    PitcherStartRecord(
+        date="04/27/25",
+        opponent="Chicago Cubs",
+        outs_recorded=21,
+        strikeouts=7,
+        pitches_thrown=104,
+        csw_pct=33.0,
+        batters_faced=26,
+    ),
+    PitcherStartRecord(
+        date="05/03/25",
+        opponent="Philadelphia",
+        outs_recorded=12,
+        strikeouts=4,
+        pitches_thrown=68,
+        csw_pct=26.0,
+        batters_faced=18,
+    ),
+    PitcherStartRecord(
+        date="05/10/25",
+        opponent="Colorado",
+        outs_recorded=21,
+        strikeouts=9,
+        pitches_thrown=107,
+        csw_pct=35.0,
+        batters_faced=28,
+    ),
+    PitcherStartRecord(
+        date="05/17/25",
+        opponent="Seattle",
+        outs_recorded=18,
+        strikeouts=7,
+        pitches_thrown=94,
+        csw_pct=31.0,
+        batters_faced=24,
+    ),
+    PitcherStartRecord(
+        date="05/28/25",
+        opponent="Los Angeles",
+        outs_recorded=15,
+        strikeouts=4,
+        pitches_thrown=82,
+        csw_pct=28.0,
+        batters_faced=21,
+    ),
+    PitcherStartRecord(
+        date="06/04/25",
+        opponent="San Diego",
+        outs_recorded=21,
+        strikeouts=8,
+        pitches_thrown=108,
+        csw_pct=33.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="06/11/25",
+        opponent="Arizona",
+        outs_recorded=18,
+        strikeouts=6,
+        pitches_thrown=95,
+        csw_pct=30.0,
+        batters_faced=24,
+    ),
+    PitcherStartRecord(
+        date="06/19/25",
+        opponent="Miami",
+        outs_recorded=24,
+        strikeouts=9,
+        pitches_thrown=118,
+        csw_pct=34.0,
+        batters_faced=30,
+    ),
+    PitcherStartRecord(
+        date="06/26/25",
+        opponent="Colorado",
+        outs_recorded=21,
+        strikeouts=7,
+        pitches_thrown=102,
+        csw_pct=31.0,
+        batters_faced=26,
+    ),
+    PitcherStartRecord(
+        date="07/04/25",
+        opponent="Arizona",
+        outs_recorded=15,
+        strikeouts=5,
+        pitches_thrown=80,
+        csw_pct=29.0,
+        batters_faced=20,
+    ),
+    PitcherStartRecord(
+        date="07/09/25",
+        opponent="Los Angeles",
+        outs_recorded=21,
+        strikeouts=8,
+        pitches_thrown=105,
+        csw_pct=34.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="07/18/25",
+        opponent="San Diego",
+        outs_recorded=18,
+        strikeouts=6,
+        pitches_thrown=93,
+        csw_pct=30.0,
+        batters_faced=23,
+    ),
+    PitcherStartRecord(
+        date="08/08/25",
+        opponent="Colorado",
+        outs_recorded=21,
+        strikeouts=8,
+        pitches_thrown=106,
+        csw_pct=33.0,
+        batters_faced=27,
+    ),
+    PitcherStartRecord(
+        date="08/22/25",
+        opponent="Pittsburgh",
+        outs_recorded=12,
+        strikeouts=3,
+        pitches_thrown=65,
+        csw_pct=25.0,
+        batters_faced=17,
+    ),
+    PitcherStartRecord(
+        date="09/05/25",
+        opponent="Arizona",
+        outs_recorded=21,
+        strikeouts=9,
+        pitches_thrown=110,
+        csw_pct=36.0,
+        batters_faced=28,
+    ),
+    PitcherStartRecord(
+        date="09/16/25",
+        opponent="Los Angeles",
+        outs_recorded=18,
+        strikeouts=5,
+        pitches_thrown=93,
+        csw_pct=30.0,
+        batters_faced=24,
+    ),
+]
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

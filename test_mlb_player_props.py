@@ -13521,5 +13521,327 @@ class TestGiantsRoster(unittest.TestCase):
         self.assertEqual(len(r2.bullpen), 6)
 
 
+from mlb_player_props import (  # noqa: E402
+    WEBB_H2H_OUTS_LINE,
+    WEBB_H2H_K_LINE,
+    WEBB_H2H_SUPPORT_INNINGS,
+    WEBB_H2H_STARTS,
+    WEBB_REGULAR_SEASON_2025_OUTS_LINE,
+    WEBB_REGULAR_SEASON_2025_STARTS,
+)
+
+
+class TestWebbH2H(unittest.TestCase):
+    """Tests for Logan Webb H2H start data vs the Los Angeles Dodgers."""
+
+    # ------------------------------------------------------------------
+    # Prop lines
+    # ------------------------------------------------------------------
+
+    def test_outs_line_is_17_5(self):
+        """H2H outs-recorded line vs Dodgers is 17.5."""
+        self.assertAlmostEqual(WEBB_H2H_OUTS_LINE, 17.5)
+
+    def test_k_line_is_5_5(self):
+        """H2H strikeout line vs Dodgers is 5.5."""
+        self.assertAlmostEqual(WEBB_H2H_K_LINE, 5.5)
+
+    # ------------------------------------------------------------------
+    # WEBB_H2H_STARTS — count and types
+    # ------------------------------------------------------------------
+
+    def test_h2h_starts_count(self):
+        """There are exactly 4 H2H start records vs Dodgers."""
+        self.assertEqual(len(WEBB_H2H_STARTS), 4)
+
+    def test_h2h_starts_are_pitcher_start_records(self):
+        for rec in WEBB_H2H_STARTS:
+            self.assertIsInstance(rec, PitcherStartRecord)
+
+    # ------------------------------------------------------------------
+    # Individual start — 04/15/25
+    # ------------------------------------------------------------------
+
+    def test_first_start_date(self):
+        self.assertEqual(WEBB_H2H_STARTS[0].date, "04/15/25")
+
+    def test_first_start_outs_over(self):
+        """04/15/25 — Webb recorded 18 outs (OVER 17.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[0].outs_recorded, 18)
+        self.assertGreater(WEBB_H2H_STARTS[0].outs_recorded, WEBB_H2H_OUTS_LINE)
+
+    def test_first_start_ks_over(self):
+        """04/15/25 — Webb recorded 6 Ks (OVER 5.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[0].strikeouts, 6)
+        self.assertGreater(WEBB_H2H_STARTS[0].strikeouts, WEBB_H2H_K_LINE)
+
+    def test_first_start_pitches(self):
+        self.assertEqual(WEBB_H2H_STARTS[0].pitches_thrown, 95)
+
+    def test_first_start_csw(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[0].csw_pct, 31.0)
+
+    def test_first_start_support_innings(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[0].support_innings, 5.2)
+
+    # ------------------------------------------------------------------
+    # Individual start — 05/28/25
+    # ------------------------------------------------------------------
+
+    def test_second_start_date(self):
+        self.assertEqual(WEBB_H2H_STARTS[1].date, "05/28/25")
+
+    def test_second_start_outs_under(self):
+        """05/28/25 — Webb recorded 15 outs (UNDER 17.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[1].outs_recorded, 15)
+        self.assertLess(WEBB_H2H_STARTS[1].outs_recorded, WEBB_H2H_OUTS_LINE)
+
+    def test_second_start_ks_under(self):
+        """05/28/25 — Webb recorded 4 Ks (UNDER 5.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[1].strikeouts, 4)
+        self.assertLess(WEBB_H2H_STARTS[1].strikeouts, WEBB_H2H_K_LINE)
+
+    def test_second_start_pitches(self):
+        self.assertEqual(WEBB_H2H_STARTS[1].pitches_thrown, 82)
+
+    def test_second_start_csw(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[1].csw_pct, 28.0)
+
+    def test_second_start_support_innings(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[1].support_innings, 6.0)
+
+    # ------------------------------------------------------------------
+    # Individual start — 07/09/25
+    # ------------------------------------------------------------------
+
+    def test_third_start_date(self):
+        self.assertEqual(WEBB_H2H_STARTS[2].date, "07/09/25")
+
+    def test_third_start_outs_over(self):
+        """07/09/25 — Webb recorded 21 outs (OVER 17.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[2].outs_recorded, 21)
+        self.assertGreater(WEBB_H2H_STARTS[2].outs_recorded, WEBB_H2H_OUTS_LINE)
+
+    def test_third_start_ks_over(self):
+        """07/09/25 — Webb recorded 8 Ks (OVER 5.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[2].strikeouts, 8)
+        self.assertGreater(WEBB_H2H_STARTS[2].strikeouts, WEBB_H2H_K_LINE)
+
+    def test_third_start_pitches(self):
+        self.assertEqual(WEBB_H2H_STARTS[2].pitches_thrown, 105)
+
+    def test_third_start_csw(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[2].csw_pct, 34.0)
+
+    def test_third_start_support_innings(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[2].support_innings, 3.0)
+
+    # ------------------------------------------------------------------
+    # Individual start — 09/16/25
+    # ------------------------------------------------------------------
+
+    def test_fourth_start_date(self):
+        self.assertEqual(WEBB_H2H_STARTS[3].date, "09/16/25")
+
+    def test_fourth_start_outs_over(self):
+        """09/16/25 — Webb recorded 18 outs (OVER 17.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[3].outs_recorded, 18)
+        self.assertGreater(WEBB_H2H_STARTS[3].outs_recorded, WEBB_H2H_OUTS_LINE)
+
+    def test_fourth_start_ks_under(self):
+        """09/16/25 — Webb recorded 5 Ks (UNDER 5.5 line)."""
+        self.assertEqual(WEBB_H2H_STARTS[3].strikeouts, 5)
+        self.assertLess(WEBB_H2H_STARTS[3].strikeouts, WEBB_H2H_K_LINE)
+
+    def test_fourth_start_pitches(self):
+        self.assertEqual(WEBB_H2H_STARTS[3].pitches_thrown, 93)
+
+    def test_fourth_start_csw(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[3].csw_pct, 30.0)
+
+    def test_fourth_start_support_innings(self):
+        self.assertAlmostEqual(WEBB_H2H_STARTS[3].support_innings, 4.0)
+
+    # ------------------------------------------------------------------
+    # WEBB_H2H_SUPPORT_INNINGS
+    # ------------------------------------------------------------------
+
+    def test_support_innings_count(self):
+        self.assertEqual(len(WEBB_H2H_SUPPORT_INNINGS), 5)
+
+    def test_support_innings_are_floats(self):
+        for ip in WEBB_H2H_SUPPORT_INNINGS:
+            self.assertIsInstance(ip, float)
+
+    def test_support_innings_values(self):
+        self.assertEqual(WEBB_H2H_SUPPORT_INNINGS, [5.2, 6.0, 3.0, 4.0, 5.1])
+
+    # ------------------------------------------------------------------
+    # Aggregate / analytical checks
+    # ------------------------------------------------------------------
+
+    def test_all_outs_nonneg(self):
+        for rec in WEBB_H2H_STARTS:
+            self.assertGreaterEqual(rec.outs_recorded, 0)
+
+    def test_all_ks_nonneg(self):
+        for rec in WEBB_H2H_STARTS:
+            self.assertGreaterEqual(rec.strikeouts, 0)
+
+    def test_h2h_overs_outs(self):
+        """3 of 4 H2H starts are OVER the 17.5 outs line."""
+        overs = [r for r in WEBB_H2H_STARTS if r.outs_recorded > WEBB_H2H_OUTS_LINE]
+        self.assertEqual(len(overs), 3)
+
+    def test_h2h_under_outs_date(self):
+        """The single UNDER (05/28/25) is correctly identified."""
+        unders = [r for r in WEBB_H2H_STARTS if r.outs_recorded < WEBB_H2H_OUTS_LINE]
+        self.assertEqual(len(unders), 1)
+        self.assertEqual(unders[0].date, "05/28/25")
+
+    def test_h2h_overs_ks(self):
+        """2 of 4 H2H starts are OVER the 5.5 K line."""
+        overs = [r for r in WEBB_H2H_STARTS if r.strikeouts > WEBB_H2H_K_LINE]
+        self.assertEqual(len(overs), 2)
+
+    def test_h2h_under_ks_dates(self):
+        """2 of 4 H2H starts are UNDER the 5.5 K line."""
+        unders = [r for r in WEBB_H2H_STARTS if r.strikeouts < WEBB_H2H_K_LINE]
+        self.assertEqual(len(unders), 2)
+
+    def test_batters_faced_positive(self):
+        for rec in WEBB_H2H_STARTS:
+            self.assertGreater(rec.batters_faced, 0)
+
+    def test_max_csw_is_third_start(self):
+        """07/09/25 has the highest CSW% of the H2H starts (34.0%)."""
+        csw_values = [rec.csw_pct for rec in WEBB_H2H_STARTS]
+        self.assertEqual(max(csw_values), WEBB_H2H_STARTS[2].csw_pct)
+
+    def test_min_csw_is_second_start(self):
+        """05/28/25 has the lowest CSW% of the H2H starts (28.0%)."""
+        csw_values = [rec.csw_pct for rec in WEBB_H2H_STARTS]
+        self.assertEqual(min(csw_values), WEBB_H2H_STARTS[1].csw_pct)
+
+    def test_outs_and_ks_correlated(self):
+        """The shortest outing (15 outs) also has fewest Ks (4) — consistent."""
+        min_outs_rec = min(WEBB_H2H_STARTS, key=lambda r: r.outs_recorded)
+        min_ks_rec = min(WEBB_H2H_STARTS, key=lambda r: r.strikeouts)
+        self.assertEqual(min_outs_rec.date, min_ks_rec.date)
+
+
+class TestWebbRegularSeason2025(unittest.TestCase):
+    """Tests for Logan Webb's full 2025 regular-season outs data (20 starts)."""
+
+    def test_outs_line_is_17_5(self):
+        self.assertAlmostEqual(WEBB_REGULAR_SEASON_2025_OUTS_LINE, 17.5)
+
+    def test_starts_count(self):
+        self.assertEqual(len(WEBB_REGULAR_SEASON_2025_STARTS), 20)
+
+    def test_all_starts_are_pitcher_start_records(self):
+        for rec in WEBB_REGULAR_SEASON_2025_STARTS:
+            self.assertIsInstance(rec, PitcherStartRecord)
+
+    def test_all_outs_nonneg(self):
+        for rec in WEBB_REGULAR_SEASON_2025_STARTS:
+            self.assertGreaterEqual(rec.outs_recorded, 0)
+
+    def test_all_ks_nonneg(self):
+        for rec in WEBB_REGULAR_SEASON_2025_STARTS:
+            self.assertGreaterEqual(rec.strikeouts, 0)
+
+    def test_first_start_date(self):
+        rec = WEBB_REGULAR_SEASON_2025_STARTS[0]
+        self.assertEqual(rec.date, "04/04/25")
+
+    def test_first_start_opponent(self):
+        rec = WEBB_REGULAR_SEASON_2025_STARTS[0]
+        self.assertEqual(rec.opponent, "Colorado")
+
+    def test_second_start_date(self):
+        rec = WEBB_REGULAR_SEASON_2025_STARTS[1]
+        self.assertEqual(rec.date, "04/10/25")
+
+    def test_la_starts_present(self):
+        """4 starts against the Dodgers appear in the 2025 season data."""
+        la_starts = [r for r in WEBB_REGULAR_SEASON_2025_STARTS
+                     if r.opponent == "Los Angeles"]
+        self.assertEqual(len(la_starts), 4)
+
+    def test_overs_count_outs(self):
+        """Count of starts where Webb went OVER the 17.5 outs line."""
+        overs = [r for r in WEBB_REGULAR_SEASON_2025_STARTS
+                 if r.outs_recorded > WEBB_REGULAR_SEASON_2025_OUTS_LINE]
+        self.assertGreaterEqual(len(overs), 13)
+
+    def test_last_start_date(self):
+        rec = WEBB_REGULAR_SEASON_2025_STARTS[-1]
+        self.assertEqual(rec.date, "09/16/25")
+
+    def test_max_outs(self):
+        """Best start is 8.0 IP = 24 outs (06/19/25 vs Miami)."""
+        max_outs = max(r.outs_recorded for r in WEBB_REGULAR_SEASON_2025_STARTS)
+        self.assertEqual(max_outs, 24)
+
+    def test_min_outs(self):
+        """Worst start is 4.0 IP = 12 outs."""
+        min_outs = min(r.outs_recorded for r in WEBB_REGULAR_SEASON_2025_STARTS)
+        self.assertEqual(min_outs, 12)
+
+    def test_min_outs_start_count(self):
+        """Exactly 2 starts recorded 12 outs (05/03/25 vs Philadelphia and 08/22/25 vs Pittsburgh)."""
+        short_starts = [r for r in WEBB_REGULAR_SEASON_2025_STARTS
+                        if r.outs_recorded == 12]
+        self.assertEqual(len(short_starts), 2)
+
+    def test_strikeouts_present(self):
+        count = sum(1 for r in WEBB_REGULAR_SEASON_2025_STARTS if r.strikeouts is not None)
+        self.assertEqual(count, len(WEBB_REGULAR_SEASON_2025_STARTS))
+
+    def test_pitches_thrown_present(self):
+        for rec in WEBB_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.pitches_thrown)
+            self.assertGreater(rec.pitches_thrown, 0)
+
+    def test_max_pitches(self):
+        """Best stamina outing is 118 pitches (06/19/25 vs Miami)."""
+        max_pitches = max(r.pitches_thrown for r in WEBB_REGULAR_SEASON_2025_STARTS)
+        self.assertEqual(max_pitches, 118)
+
+    def test_min_pitches(self):
+        min_pitches = min(r.pitches_thrown for r in WEBB_REGULAR_SEASON_2025_STARTS)
+        rec = WEBB_REGULAR_SEASON_2025_STARTS[17]
+        self.assertEqual(rec.pitches_thrown, min_pitches)
+
+    def test_csw_pct_present(self):
+        for rec in WEBB_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.csw_pct)
+
+    def test_max_csw(self):
+        """Highest CSW% in 2025 is 36.0% (09/05/25 vs Arizona)."""
+        max_csw = max(r.csw_pct for r in WEBB_REGULAR_SEASON_2025_STARTS)
+        self.assertAlmostEqual(max_csw, 36.0)
+
+    def test_batters_faced_present(self):
+        for rec in WEBB_REGULAR_SEASON_2025_STARTS:
+            self.assertIsNotNone(rec.batters_faced)
+
+    def test_batters_faced_positive(self):
+        for rec in WEBB_REGULAR_SEASON_2025_STARTS:
+            self.assertGreater(rec.batters_faced, 0)
+
+    def test_min_batters_faced(self):
+        min_bf = min(r.batters_faced for r in WEBB_REGULAR_SEASON_2025_STARTS)
+        rec = WEBB_REGULAR_SEASON_2025_STARTS[17]
+        self.assertEqual(rec.batters_faced, min_bf)
+
+    def test_h2h_starts_in_regular_season(self):
+        """All 4 H2H vs Dodgers dates appear in the regular season data."""
+        h2h_dates = {r.date for r in WEBB_H2H_STARTS}
+        season_dates = {r.date for r in WEBB_REGULAR_SEASON_2025_STARTS}
+        self.assertTrue(h2h_dates.issubset(season_dates))
+
+
 if __name__ == "__main__":
     unittest.main()
