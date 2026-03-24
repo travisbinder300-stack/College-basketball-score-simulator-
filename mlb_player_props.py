@@ -15930,18 +15930,19 @@ GIANTS_LINEUP_2026: List[BatterStats] = [
 
 # -- Starting rotation -------------------------------------------------------
 
-#: Logan Webb — LHP ace; elite ground-ball pitcher with outstanding
+#: Logan Webb — RHP ace; elite ground-ball pitcher with outstanding
 #: command, a devastating sinker-changeup combination, and the ability
 #: to pitch deep into games; the clear ace of the San Francisco rotation
 #: and one of the best starting pitchers in the National League.
+#: 2025 season: 9.5 K/9, ~6.1 IP/start (130 Ks in 123 IP across 20 starts).
 _SF_WEBB = PitcherStats(
     name="Logan Webb",
     era=3.20,
-    k_per_9=9.0,
-    innings_per_start=6.5,
+    k_per_9=9.5,
+    innings_per_start=6.1,
     whip=1.18,
     arm_strength=76.0,
-    throws="L",
+    throws="R",
     pitches_per_pa=3.82,
 )
 

@@ -13449,6 +13449,10 @@ class TestGiantsRoster(unittest.TestCase):
     # Module-level constants — statistical leaders
     # ------------------------------------------------------------------
 
+    def test_webb_throws_right(self):
+        """Logan Webb is a right-handed pitcher."""
+        self.assertEqual(GIANTS_ROTATION_2026[0].throws, "R")
+
     def test_webb_has_best_rotation_era(self):
         """Logan Webb (ace) has the best ERA in the rotation."""
         min_era = min(p.era for p in GIANTS_ROTATION_2026)
