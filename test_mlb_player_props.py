@@ -12635,6 +12635,28 @@ class TestDodgersRoster(unittest.TestCase):
         min_era = min(p.era for p in DODGERS_ROTATION_2026)
         self.assertAlmostEqual(DODGERS_ROTATION_2026[0].era, min_era)
 
+    def test_yamamoto_elite_strikeout_rate(self):
+        """Yamamoto k_per_9 reflects his elite strikeout rate (~11+ per 9 IP)."""
+        yamamoto = DODGERS_ROTATION_2026[0]
+        self.assertGreaterEqual(yamamoto.k_per_9, 11.0)
+
+    def test_yamamoto_innings_per_start(self):
+        """Yamamoto innings_per_start reflects a deep-game ace (≥6.3 IP/start)."""
+        yamamoto = DODGERS_ROTATION_2026[0]
+        self.assertGreaterEqual(yamamoto.innings_per_start, 6.3)
+
+    def test_yamamoto_expected_strikeouts_per_start(self):
+        """Yamamoto expected K per start (k_per_9 × ip / 9) is 7 or more."""
+        yamamoto = DODGERS_ROTATION_2026[0]
+        expected_k = yamamoto.k_per_9 * yamamoto.innings_per_start / 9.0
+        self.assertGreaterEqual(expected_k, 7.0)
+
+    def test_yamamoto_expected_outs_per_start(self):
+        """Yamamoto expected outs recorded per start (ip × 3) is 19 or more."""
+        yamamoto = DODGERS_ROTATION_2026[0]
+        expected_outs = yamamoto.innings_per_start * 3
+        self.assertGreaterEqual(expected_outs, 19.0)
+
     def test_diaz_has_best_bullpen_era(self):
         """Edwin Diaz (closer) has the best ERA in the bullpen."""
         min_era = min(p.era for p in DODGERS_BULLPEN_2026)

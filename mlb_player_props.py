@@ -14732,11 +14732,17 @@ DODGERS_LINEUP_2026: List[BatterStats] = [
 #: splitter-fastball combination, elite command, and the ability to
 #: dominate any lineup; the clear rotation ace and one of the best
 #: pitchers in baseball for the Los Angeles Dodgers.
+#:
+#: Per-start player prop benchmarks (2025 season, first full MLB year):
+#:   Strikeouts:    k_per_9 × innings_per_start / 9 ≈ **7.9 K per start**
+#:                 (11.2 K/9 × 6.35 IP / 9)
+#:   Outs recorded: innings_per_start × 3            ≈ **19.1 outs per start**
+#:                 (6.35 IP × 3 outs/inning)
 _LAD_YAMAMOTO = PitcherStats(
     name="Yoshinobu Yamamoto",
     era=2.80,
-    k_per_9=11.5,
-    innings_per_start=6.2,
+    k_per_9=11.2,
+    innings_per_start=6.35,
     whip=1.02,
     arm_strength=88.0,
     throws="R",
