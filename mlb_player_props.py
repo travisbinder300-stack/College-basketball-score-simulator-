@@ -1333,6 +1333,44 @@ class Stadium:
             if not (0.5 <= v <= 2.0):
                 raise ValueError(f"Stadium factor '{attr}' = {v} is outside the valid range [0.5, 2.0]")
 
+    def pitcher_friendliness_score(self) -> float:
+        """Composite pitcher-friendliness score (higher = better for pitchers).
+
+        Weights:
+          * runs_factor suppression  40 % — fewest runs allowed matters most
+          * hr_factor suppression    30 % — home-run suppression is the next biggest lever
+          * hits_factor suppression  20 % — fewer baserunners overall
+          * k_factor boost           10 % — park-induced strikeout boost
+
+        A neutral park scores 0.0; positive values favour pitchers,
+        negative values favour hitters.
+        """
+        return (
+            (1.0 - self.runs_factor)  * 0.40
+            + (1.0 - self.hr_factor)  * 0.30
+            + (1.0 - self.hits_factor) * 0.20
+            + (self.k_factor - 1.0)   * 0.10
+        )
+
+    @classmethod
+    def best_stadiums_for_pitching(cls, *, include_neutral: bool = False) -> List["Stadium"]:
+        """Return all catalogue stadiums ranked best-to-worst for pitching.
+
+        Args:
+            include_neutral: When ``True``, the ``"Neutral"`` benchmark park
+                is included in the ranking (it always scores exactly 0.0).
+
+        Returns:
+            List of :class:`Stadium` objects sorted by
+            :meth:`pitcher_friendliness_score` descending (most pitcher-friendly
+            first).
+        """
+        names = list(cls._STADIUMS.keys())
+        if not include_neutral:
+            names = [n for n in names if n != "Neutral"]
+        stadiums = [cls.from_name(n) for n in names]
+        return sorted(stadiums, key=lambda s: s.pitcher_friendliness_score(), reverse=True)
+
 
 @dataclass
 class PitcherStats:
@@ -16486,6 +16524,18 @@ def _demo() -> None:  # pragma: no cover
             for gt in ("night", "day", "dome")
         ]
         print(f"  {label:<35}  {fn(vals[0]):>8.3f}  {fn(vals[1]):>8.3f}  {fn(vals[2]):>8.3f}")
+
+    # ----------------------------------------------------------------
+    # Best stadiums for pitching
+    # ----------------------------------------------------------------
+    print("\nBest stadiums for pitching (ranked by pitcher-friendliness score):")
+    print(f"  {'Rank':<5}  {'Stadium':<30}  {'Score':>7}  {'HR':>6}  {'Hits':>6}  {'K':>6}  {'Runs':>6}")
+    print(f"  {'-'*5}  {'-'*30}  {'-'*7}  {'-'*6}  {'-'*6}  {'-'*6}  {'-'*6}")
+    for rank, s in enumerate(Stadium.best_stadiums_for_pitching(), start=1):
+        print(
+            f"  {rank:<5}  {s.name:<30}  {s.pitcher_friendliness_score():>+7.4f}"
+            f"  {s.hr_factor:>6.2f}  {s.hits_factor:>6.2f}  {s.k_factor:>6.2f}  {s.runs_factor:>6.2f}"
+        )
 
     # ----------------------------------------------------------------
     # Air density comparison

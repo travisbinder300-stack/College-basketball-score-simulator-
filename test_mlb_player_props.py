@@ -156,6 +156,57 @@ class TestStadium(unittest.TestCase):
             s = Stadium.from_name(name)
             self.assertIsInstance(s, Stadium)
 
+    def test_pitcher_friendliness_score_neutral_is_zero(self):
+        s = Stadium.from_name("Neutral")
+        self.assertAlmostEqual(s.pitcher_friendliness_score(), 0.0, places=6)
+
+    def test_pitcher_friendliness_score_pitcher_park_positive(self):
+        # Petco Park and Oracle Park are well-known pitcher-friendly parks
+        for name in ("Petco Park", "Oracle Park"):
+            s = Stadium.from_name(name)
+            self.assertGreater(s.pitcher_friendliness_score(), 0.0,
+                               msg=f"{name} should have a positive pitcher score")
+
+    def test_pitcher_friendliness_score_hitter_park_negative(self):
+        # Coors Field is the strongest hitter-friendly park in the catalogue
+        s = Stadium.from_name("Coors Field")
+        self.assertLess(s.pitcher_friendliness_score(), 0.0)
+
+    def test_best_stadiums_for_pitching_returns_all_non_neutral(self):
+        ranked = Stadium.best_stadiums_for_pitching()
+        catalogue_names = {n for n in Stadium._STADIUMS if n != "Neutral"}
+        ranked_names = {s.name for s in ranked}
+        self.assertEqual(ranked_names, catalogue_names)
+
+    def test_best_stadiums_for_pitching_descending_order(self):
+        ranked = Stadium.best_stadiums_for_pitching()
+        scores = [s.pitcher_friendliness_score() for s in ranked]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+
+    def test_best_stadiums_for_pitching_top_is_pitcher_friendly(self):
+        best = Stadium.best_stadiums_for_pitching()[0]
+        self.assertGreater(best.pitcher_friendliness_score(), 0.0,
+                           msg="Top-ranked stadium must be pitcher-friendly (score > 0)")
+
+    def test_best_stadiums_for_pitching_bottom_is_hitter_friendly(self):
+        worst = Stadium.best_stadiums_for_pitching()[-1]
+        self.assertLess(worst.pitcher_friendliness_score(), 0.0,
+                        msg="Bottom-ranked stadium must be hitter-friendly (score < 0)")
+
+    def test_best_stadiums_for_pitching_include_neutral(self):
+        with_neutral = Stadium.best_stadiums_for_pitching(include_neutral=True)
+        without_neutral = Stadium.best_stadiums_for_pitching(include_neutral=False)
+        self.assertEqual(len(with_neutral), len(without_neutral) + 1)
+        neutral_scores = [s.pitcher_friendliness_score() for s in with_neutral
+                          if s.name == "Neutral"]
+        self.assertEqual(len(neutral_scores), 1)
+        self.assertAlmostEqual(neutral_scores[0], 0.0, places=6)
+
+    def test_coors_field_is_worst_for_pitching(self):
+        ranked = Stadium.best_stadiums_for_pitching()
+        self.assertEqual(ranked[-1].name, "Coors Field",
+                         msg="Coors Field should rank last (worst for pitchers)")
+
 
 # ---------------------------------------------------------------------------
 # WeatherConditions tests
