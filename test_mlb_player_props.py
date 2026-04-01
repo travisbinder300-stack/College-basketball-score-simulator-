@@ -14260,3 +14260,136 @@ class TestTeamWobaRanking(unittest.TestCase):
         """All rank values are unique."""
         ranks = [t.rank for t in TEAM_WOBA_RANKINGS_2026]
         self.assertEqual(len(ranks), len(set(ranks)))
+
+
+# ---------------------------------------------------------------------------
+# TeamFieldingRanking tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    TeamFieldingRanking,
+    TEAM_FIELDING_RANKINGS_2026,
+)
+
+
+class TestTeamFieldingRanking(unittest.TestCase):
+    """Tests for TeamFieldingRanking dataclass and TEAM_FIELDING_RANKINGS_2026."""
+
+    def test_list_length(self):
+        """There are 30 teams in the dataset."""
+        self.assertEqual(len(TEAM_FIELDING_RANKINGS_2026), 30)
+
+    def test_first_entry_is_royals(self):
+        """Royals (rank 1, perfect FP) is the first entry."""
+        self.assertEqual(TEAM_FIELDING_RANKINGS_2026[0].team, 'Royals')
+        self.assertEqual(TEAM_FIELDING_RANKINGS_2026[0].rank, 1)
+
+    def test_last_entry_is_nationals(self):
+        """Nationals (rank 30, lowest FP) is the last entry."""
+        self.assertEqual(TEAM_FIELDING_RANKINGS_2026[-1].team, 'Nationals')
+        self.assertEqual(TEAM_FIELDING_RANKINGS_2026[-1].rank, 30)
+
+    def test_fp_color_green_perfect(self):
+        """FP = 1.000 returns green."""
+        entry = TeamFieldingRanking(1, 'Test', 4, 0, 1.000, 136, 103, 33)
+        self.assertEqual(entry.fp_color, 'green')
+
+    def test_fp_color_green_boundary(self):
+        """FP = 0.993 returns green (boundary)."""
+        entry = TeamFieldingRanking(7, 'Test', 4, 1, 0.993, 152, 108, 43)
+        self.assertEqual(entry.fp_color, 'green')
+
+    def test_fp_color_yellow_boundary(self):
+        """FP = 0.980 returns yellow (lower boundary)."""
+        entry = TeamFieldingRanking(24, 'Test', 4, 3, 0.980, 148, 108, 37)
+        self.assertEqual(entry.fp_color, 'yellow')
+
+    def test_fp_color_yellow_mid(self):
+        """FP = 0.985 returns yellow."""
+        entry = TeamFieldingRanking(18, 'Test', 4, 2, 0.985, 135, 99, 34)
+        self.assertEqual(entry.fp_color, 'yellow')
+
+    def test_fp_color_red_low(self):
+        """FP < 0.980 returns red."""
+        entry = TeamFieldingRanking(30, 'Test', 4, 6, 0.957, 141, 105, 30)
+        self.assertEqual(entry.fp_color, 'red')
+
+    def test_royals_perfect_fielding(self):
+        """Royals have FP=1.000 and 0 errors."""
+        royals = TEAM_FIELDING_RANKINGS_2026[0]
+        self.assertAlmostEqual(royals.fp, 1.000)
+        self.assertEqual(royals.errors, 0)
+        self.assertEqual(royals.fp_color, 'green')
+
+    def test_nationals_worst_fielding(self):
+        """Nationals have the lowest FP and most errors."""
+        nats = TEAM_FIELDING_RANKINGS_2026[-1]
+        self.assertAlmostEqual(nats.fp, 0.957)
+        self.assertEqual(nats.errors, 6)
+        self.assertEqual(nats.fp_color, 'red')
+
+    def test_all_entries_have_valid_colors(self):
+        """Every team returns a valid color."""
+        valid = {'green', 'yellow', 'red'}
+        for t in TEAM_FIELDING_RANKINGS_2026:
+            self.assertIn(t.fp_color, valid, msg=f"{t.team} has invalid color")
+
+    def test_fp_values_descending(self):
+        """Fielding percentages are ordered from highest to lowest."""
+        fps = [t.fp for t in TEAM_FIELDING_RANKINGS_2026]
+        self.assertEqual(fps, sorted(fps, reverse=True))
+
+    def test_five_teams_with_rank_1(self):
+        """Five teams share rank 1 (perfect fielding)."""
+        count = sum(1 for t in TEAM_FIELDING_RANKINGS_2026 if t.rank == 1)
+        self.assertEqual(count, 5)
+
+    def test_green_teams_count(self):
+        """Teams with FP >= 0.993 are green (excellent fielding)."""
+        count = sum(1 for t in TEAM_FIELDING_RANKINGS_2026 if t.fp_color == 'green')
+        self.assertGreater(count, 0)
+
+    def test_red_teams_count(self):
+        """Teams with FP < 0.980 are red (poor fielding)."""
+        count = sum(1 for t in TEAM_FIELDING_RANKINGS_2026 if t.fp_color == 'red')
+        self.assertGreater(count, 0)
+
+    def test_str_contains_team_name(self):
+        """__str__ output includes the team name."""
+        entry = TEAM_FIELDING_RANKINGS_2026[0]
+        self.assertIn('Royals', str(entry))
+
+    def test_str_contains_fp(self):
+        """__str__ output includes the fielding percentage."""
+        entry = TEAM_FIELDING_RANKINGS_2026[0]
+        self.assertIn('1.000', str(entry))
+
+    def test_str_contains_color(self):
+        """__str__ output includes the color in brackets."""
+        entry = TEAM_FIELDING_RANKINGS_2026[0]
+        self.assertIn('[green]', str(entry))
+
+    def test_str_contains_errors(self):
+        """__str__ output includes the error count."""
+        entry = TEAM_FIELDING_RANKINGS_2026[-1]
+        self.assertIn('E=6', str(entry))
+
+    def test_lookup_by_team_name(self):
+        """Can look up a team by name."""
+        mets = next(t for t in TEAM_FIELDING_RANKINGS_2026 if t.team == 'Mets')
+        self.assertEqual(mets.rank, 13)
+        self.assertEqual(mets.errors, 2)
+        self.assertAlmostEqual(mets.fp, 0.988)
+
+    def test_all_gp_values_positive(self):
+        """All games played values are positive integers."""
+        for t in TEAM_FIELDING_RANKINGS_2026:
+            self.assertGreater(t.gp, 0)
+
+    def test_tc_equals_po_plus_assists_plus_errors(self):
+        """TC = PO + A + E for every entry."""
+        for t in TEAM_FIELDING_RANKINGS_2026:
+            self.assertEqual(
+                t.tc, t.po + t.assists + t.errors,
+                msg=f"{t.team}: TC={t.tc} != PO({t.po})+A({t.assists})+E({t.errors})",
+            )

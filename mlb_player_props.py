@@ -18472,6 +18472,112 @@ TEAM_WOBA_RANKINGS_2026: List[TeamWobaRanking] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Team fielding rankings for potential pitching out props
+# ---------------------------------------------------------------------------
+
+@dataclass
+class TeamFieldingRanking:
+    """A team fielding ranking entry.
+
+    Used to assess how well each team's defense supports pitchers in recording
+    outs — better fielding means fewer errors and more clean outs for K/outs
+    props.
+
+    Color highlights (fp_color property):
+        green  - excellent fielding (FP >= 0.993)
+        yellow - average fielding   (0.980 <= FP < 0.993)
+        red    - poor fielding      (FP < 0.980)
+
+    Attributes
+    ----------
+    rank : int
+        Fielding rank (1 = best; ties share the same rank).
+    team : str
+        MLB team name.
+    gp : int
+        Games played.
+    errors : int
+        Total errors committed (E).
+    fp : float
+        Fielding percentage (FP).
+    tc : int
+        Total chances (TC).
+    po : int
+        Put outs (PO).
+    assists : int
+        Assists (A).
+    """
+
+    rank: int
+    team: str
+    gp: int
+    errors: int
+    fp: float
+    tc: int
+    po: int
+    assists: int
+
+    @property
+    def fp_color(self) -> str:
+        """Return color rating based on fielding percentage: green/yellow/red.
+
+        Returns
+        -------
+        str
+            ``"green"``  (FP >= 0.993, excellent fielding),
+            ``"yellow"`` (0.980 <= FP < 0.993, average fielding), or
+            ``"red"``    (FP < 0.980, poor fielding).
+        """
+        if self.fp >= 0.993:
+            return "green"
+        if self.fp >= 0.980:
+            return "yellow"
+        return "red"
+
+    def __str__(self) -> str:
+        return (
+            f"#{self.rank:<3d}  {self.team:20s}  fp={self.fp:.3f}  "
+            f"E={self.errors}  GP={self.gp}  [{self.fp_color}]"
+        )
+
+
+#: 2026 MLB team fielding rankings ordered by rank (best fielding first).
+#: Higher FP = better defensive support for pitcher out props.
+TEAM_FIELDING_RANKINGS_2026: List[TeamFieldingRanking] = [
+    TeamFieldingRanking(1,  'Royals',        4, 0, 1.000, 136, 103, 33),
+    TeamFieldingRanking(1,  'Brewers',       4, 0, 1.000, 140, 108, 32),
+    TeamFieldingRanking(1,  'Reds',          4, 0, 1.000, 151, 114, 37),
+    TeamFieldingRanking(1,  'Astros',        5, 0, 1.000, 174, 135, 39),
+    TeamFieldingRanking(1,  'Dodgers',       4, 0, 1.000, 139, 108, 31),
+    TeamFieldingRanking(6,  'Guardians',     5, 1, 0.994, 166, 132, 33),
+    TeamFieldingRanking(7,  'Cubs',          4, 1, 0.993, 152, 108, 43),
+    TeamFieldingRanking(7,  'Giants',        4, 1, 0.993, 148, 108, 39),
+    TeamFieldingRanking(7,  'Athletics',     4, 1, 0.993, 143, 105, 37),
+    TeamFieldingRanking(7,  'Padres',        4, 1, 0.993, 141, 108, 32),
+    TeamFieldingRanking(7,  'Rockies',       4, 1, 0.993, 137, 101, 35),
+    TeamFieldingRanking(12, 'Twins',         4, 1, 0.992, 121,  99, 21),
+    TeamFieldingRanking(13, 'Mets',          4, 2, 0.988, 162, 117, 43),
+    TeamFieldingRanking(14, 'Cardinals',     4, 2, 0.987, 149, 111, 36),
+    TeamFieldingRanking(15, 'Yankees',       4, 2, 0.986, 146, 106, 38),
+    TeamFieldingRanking(15, 'Blue Jays',     4, 2, 0.986, 144, 114, 28),
+    TeamFieldingRanking(15, 'Rangers',       4, 2, 0.986, 138, 108, 28),
+    TeamFieldingRanking(18, 'Red Sox',       4, 2, 0.985, 136, 106, 28),
+    TeamFieldingRanking(18, 'White Sox',     4, 2, 0.985, 135,  99, 34),
+    TeamFieldingRanking(18, 'Pirates',       4, 2, 0.985, 134, 108, 24),
+    TeamFieldingRanking(18, 'Diamondbacks',  4, 2, 0.985, 131,  99, 30),
+    TeamFieldingRanking(22, 'Mariners',      5, 3, 0.983, 181, 138, 40),
+    TeamFieldingRanking(23, 'Phillies',      4, 3, 0.981, 155, 111, 41),
+    TeamFieldingRanking(24, 'Braves',        4, 3, 0.980, 148, 108, 37),
+    TeamFieldingRanking(25, 'Marlins',       4, 4, 0.971, 138, 108, 26),
+    TeamFieldingRanking(26, 'Angels',        5, 6, 0.966, 174, 126, 42),
+    TeamFieldingRanking(26, 'Rays',          4, 5, 0.966, 145, 106, 34),
+    TeamFieldingRanking(28, 'Orioles',       4, 5, 0.965, 141, 108, 28),
+    TeamFieldingRanking(29, 'Tigers',        4, 5, 0.963, 136, 102, 29),
+    TeamFieldingRanking(30, 'Nationals',     4, 6, 0.957, 141, 105, 30),
+]
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")
