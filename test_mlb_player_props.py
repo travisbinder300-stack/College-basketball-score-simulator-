@@ -14708,6 +14708,37 @@ class TestMonteCarloOddsEvaluator(unittest.TestCase):
             )
 
     # ------------------------------------------------------------------
+    # Aaron Civale strikeout prop — Athletics at Atlanta (Truist Park)
+    # ------------------------------------------------------------------
+
+    def test_civale_strikeout_prop_35_vs_atlanta_at_truist_park(self):
+        """Civale K prop 3.5: Athletics at Atlanta (away start, Truist Park)."""
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Truist Park"),
+            weather=WeatherConditions(temp_f=72, precipitation="none", humidity=0.50),
+            wind=WindConditions(speed_mph=0, direction="calm"),
+            num_simulations=5_000,
+            random_seed=42,
+        )
+        evaluator = MonteCarloOddsEvaluator(sim)
+        civale = ATHLETICS_ROTATION_2026[2]
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=civale,
+            prop_name="Strikeouts",
+            line=3.5,
+            over_odds=-115,
+            under_odds=-105,
+            is_home=False,
+        )
+        self.assertIsInstance(result, PropOddsResult)
+        self.assertEqual(result.player_name, "Aaron Civale")
+        self.assertAlmostEqual(result.no_vig_over_prob + result.no_vig_under_prob, 1.0, places=10)
+        self.assertAlmostEqual(result.sim_over_prob + result.sim_under_prob, 1.0, places=10)
+        # Civale averages ~8.6 K/9 over ~5.4 IP → ~5.2 projected Ks; should clear 3.5
+        self.assertGreater(result.proj_mean, 3.5)
+        self.assertAlmostEqual(result.line, 3.5)
+
+    # ------------------------------------------------------------------
     # PropOddsResult properties
     # ------------------------------------------------------------------
 
