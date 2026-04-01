@@ -18383,6 +18383,95 @@ UMPIRE_TENDENCIES_2026: List[UmpireTendency] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Team wOBA offensive rankings vs pitching strikeout props
+# ---------------------------------------------------------------------------
+
+@dataclass
+class TeamWobaRanking:
+    """A team offensive ranking entry based on weighted on-base average (wOBA).
+
+    Used to assess how tough each team's lineup is for strikeout props against
+    starting pitchers — a higher wOBA lineup is harder to strike out.
+
+    Color highlights (woba_color property):
+        green  - tough offense for K props (wOBA >= 0.320)
+        yellow - average offense           (0.310 <= wOBA < 0.320)
+        red    - favorable for K props     (wOBA < 0.310)
+
+    Attributes
+    ----------
+    rank : int
+        Offensive rank (1 = best offense).
+    team : str
+        MLB team name.
+    woba : float
+        Weighted on-base average.
+    """
+
+    rank: int
+    team: str
+    woba: float
+
+    @property
+    def woba_color(self) -> str:
+        """Return color rating based on wOBA: green/yellow/red.
+
+        Returns
+        -------
+        str
+            ``"green"``  (wOBA >= 0.320, tough lineup for K props),
+            ``"yellow"`` (0.310 <= wOBA < 0.320, average lineup), or
+            ``"red"``    (wOBA < 0.310, favorable lineup for K props).
+        """
+        if self.woba >= 0.320:
+            return "green"
+        if self.woba >= 0.310:
+            return "yellow"
+        return "red"
+
+    def __str__(self) -> str:
+        return (
+            f"#{self.rank:<3d}  {self.team:15s}  woba={self.woba:.3f}  [{self.woba_color}]"
+        )
+
+
+#: 2026 MLB team offensive wOBA rankings ordered by rank (best offense first).
+#: Higher wOBA = tougher lineup for pitcher strikeout props.
+TEAM_WOBA_RANKINGS_2026: List[TeamWobaRanking] = [
+    TeamWobaRanking(1,  'Dodgers',       0.333),
+    TeamWobaRanking(2,  'Mariners',      0.324),
+    TeamWobaRanking(3,  'Mets',          0.324),
+    TeamWobaRanking(4,  'Yankees',       0.323),
+    TeamWobaRanking(5,  'Cubs',          0.322),
+    TeamWobaRanking(6,  'Phillies',      0.321),
+    TeamWobaRanking(7,  'Orioles',       0.321),
+    TeamWobaRanking(8,  'Astros',        0.319),
+    TeamWobaRanking(9,  'Blue Jays',     0.316),
+    TeamWobaRanking(10, 'Rangers',       0.316),
+    TeamWobaRanking(11, 'Braves',        0.316),
+    TeamWobaRanking(12, 'Athletics',     0.315),
+    TeamWobaRanking(13, 'Giants',        0.314),
+    TeamWobaRanking(14, 'Padres',        0.313),
+    TeamWobaRanking(15, 'Pirates',       0.312),
+    TeamWobaRanking(16, 'Diamondbacks',  0.311),
+    TeamWobaRanking(17, 'Twins',         0.310),
+    TeamWobaRanking(18, 'Tigers',        0.310),
+    TeamWobaRanking(19, 'Royals',        0.309),
+    TeamWobaRanking(20, 'Brewers',       0.309),
+    TeamWobaRanking(21, 'Red Sox',       0.308),
+    TeamWobaRanking(22, 'Angels',        0.308),
+    TeamWobaRanking(23, 'Reds',          0.306),
+    TeamWobaRanking(24, 'Guardians',     0.304),
+    TeamWobaRanking(25, 'Rays',          0.303),
+    TeamWobaRanking(26, 'White Sox',     0.303),
+    TeamWobaRanking(27, 'Marlins',       0.303),
+    TeamWobaRanking(28, 'Cardinals',     0.300),
+    TeamWobaRanking(29, 'Nationals',     0.299),
+    TeamWobaRanking(30, 'Rockies',       0.294),
+]
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

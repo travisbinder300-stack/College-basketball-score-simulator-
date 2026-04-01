@@ -14138,3 +14138,125 @@ class TestUmpireTendency(unittest.TestCase):
         for u in UMPIRE_TENDENCIES_2026:
             if u.tendency_color == 'red':
                 self.assertGreaterEqual(u.era, 4.08, msg=f"{u.name} ERA too low for red")
+
+
+# ---------------------------------------------------------------------------
+# TeamWobaRanking tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    TeamWobaRanking,
+    TEAM_WOBA_RANKINGS_2026,
+)
+
+
+class TestTeamWobaRanking(unittest.TestCase):
+    """Tests for TeamWobaRanking dataclass and TEAM_WOBA_RANKINGS_2026."""
+
+    def test_list_length(self):
+        """There are 30 teams in the dataset."""
+        self.assertEqual(len(TEAM_WOBA_RANKINGS_2026), 30)
+
+    def test_first_entry_is_dodgers(self):
+        """Dodgers (rank 1, highest wOBA) is the first entry."""
+        self.assertEqual(TEAM_WOBA_RANKINGS_2026[0].team, 'Dodgers')
+        self.assertEqual(TEAM_WOBA_RANKINGS_2026[0].rank, 1)
+
+    def test_last_entry_is_rockies(self):
+        """Rockies (rank 30, lowest wOBA) is the last entry."""
+        self.assertEqual(TEAM_WOBA_RANKINGS_2026[-1].team, 'Rockies')
+        self.assertEqual(TEAM_WOBA_RANKINGS_2026[-1].rank, 30)
+
+    def test_sorted_by_rank_ascending(self):
+        """Entries are ordered from rank 1 to rank 30."""
+        ranks = [t.rank for t in TEAM_WOBA_RANKINGS_2026]
+        self.assertEqual(ranks, list(range(1, 31)))
+
+    def test_woba_color_green_high_woba(self):
+        """wOBA >= 0.320 returns green (tough lineup)."""
+        entry = TeamWobaRanking(1, 'Test', 0.333)
+        self.assertEqual(entry.woba_color, 'green')
+
+    def test_woba_color_yellow_average_woba(self):
+        """0.310 <= wOBA < 0.320 returns yellow."""
+        entry = TeamWobaRanking(10, 'Test', 0.315)
+        self.assertEqual(entry.woba_color, 'yellow')
+
+    def test_woba_color_red_low_woba(self):
+        """wOBA < 0.310 returns red (favorable for K props)."""
+        entry = TeamWobaRanking(30, 'Test', 0.299)
+        self.assertEqual(entry.woba_color, 'red')
+
+    def test_woba_color_boundary_green(self):
+        """Exactly 0.320 returns green."""
+        entry = TeamWobaRanking(5, 'Test', 0.320)
+        self.assertEqual(entry.woba_color, 'green')
+
+    def test_woba_color_boundary_yellow(self):
+        """Exactly 0.310 returns yellow."""
+        entry = TeamWobaRanking(17, 'Test', 0.310)
+        self.assertEqual(entry.woba_color, 'yellow')
+
+    def test_dodgers_woba(self):
+        """Dodgers have the highest wOBA at 0.333."""
+        dodgers = TEAM_WOBA_RANKINGS_2026[0]
+        self.assertAlmostEqual(dodgers.woba, 0.333)
+        self.assertEqual(dodgers.woba_color, 'green')
+
+    def test_rockies_woba(self):
+        """Rockies have the lowest wOBA at 0.294."""
+        rockies = TEAM_WOBA_RANKINGS_2026[-1]
+        self.assertAlmostEqual(rockies.woba, 0.294)
+        self.assertEqual(rockies.woba_color, 'red')
+
+    def test_all_entries_have_valid_colors(self):
+        """Every team returns a valid color."""
+        valid = {'green', 'yellow', 'red'}
+        for t in TEAM_WOBA_RANKINGS_2026:
+            self.assertIn(t.woba_color, valid, msg=f"{t.team} has invalid color")
+
+    def test_sorted_by_woba_descending(self):
+        """Entries are ordered from highest to lowest wOBA."""
+        wobas = [t.woba for t in TEAM_WOBA_RANKINGS_2026]
+        self.assertEqual(wobas, sorted(wobas, reverse=True))
+
+    def test_green_teams_count(self):
+        """There are 7 green (wOBA >= 0.320) teams."""
+        count = sum(1 for t in TEAM_WOBA_RANKINGS_2026 if t.woba_color == 'green')
+        self.assertEqual(count, 7)
+
+    def test_red_teams_count(self):
+        """There are 12 red (wOBA < 0.310) teams."""
+        count = sum(1 for t in TEAM_WOBA_RANKINGS_2026 if t.woba_color == 'red')
+        self.assertEqual(count, 12)
+
+    def test_str_contains_team_name(self):
+        """__str__ output includes the team name."""
+        entry = TEAM_WOBA_RANKINGS_2026[0]
+        self.assertIn('Dodgers', str(entry))
+
+    def test_str_contains_woba(self):
+        """__str__ output includes the wOBA value."""
+        entry = TEAM_WOBA_RANKINGS_2026[0]
+        self.assertIn('0.333', str(entry))
+
+    def test_str_contains_color(self):
+        """__str__ output includes the color in brackets."""
+        entry = TEAM_WOBA_RANKINGS_2026[0]
+        self.assertIn('[green]', str(entry))
+
+    def test_str_contains_rank(self):
+        """__str__ output includes the rank."""
+        entry = TEAM_WOBA_RANKINGS_2026[0]
+        self.assertIn('#1', str(entry))
+
+    def test_lookup_by_team_name(self):
+        """Can look up a team by name."""
+        mets = next(t for t in TEAM_WOBA_RANKINGS_2026 if t.team == 'Mets')
+        self.assertEqual(mets.rank, 3)
+        self.assertAlmostEqual(mets.woba, 0.324)
+
+    def test_all_ranks_unique(self):
+        """All rank values are unique."""
+        ranks = [t.rank for t in TEAM_WOBA_RANKINGS_2026]
+        self.assertEqual(len(ranks), len(set(ranks)))
