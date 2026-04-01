@@ -18230,6 +18230,159 @@ STATCAST_PARK_FACTORS_2026: List[StatcastParkFactor] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# 2026 MLB Umpire Tendencies
+# ---------------------------------------------------------------------------
+
+@dataclass
+class UmpireTendency:
+    """An umpire tendency entry for 2026 based on average ERA allowed.
+
+    Color highlights (tendency_color property):
+        green  - pitcher-friendly umpire (Extreme Pitchers or Pitchers)
+        yellow - neutral umpire
+        red    - hitter-friendly umpire  (Hitters or Extreme Hitters)
+
+    Attributes
+    ----------
+    name : str
+        Umpire full name.
+    era : float
+        Average ERA when this umpire works home plate.
+    rating : str
+        Tendency category: ``"Extreme Pitchers"``, ``"Pitchers"``,
+        ``"Neutral"``, ``"Hitters"``, or ``"Extreme Hitters"``.
+    """
+
+    name: str
+    era: float
+    rating: str
+
+    @property
+    def tendency_color(self) -> str:
+        """Return color rating based on tendency category: green/yellow/red.
+
+        Returns
+        -------
+        str
+            ``"green"``  (rating is ``"Extreme Pitchers"`` or ``"Pitchers"``),
+            ``"yellow"`` (rating is ``"Neutral"``), or
+            ``"red"``    (rating is ``"Hitters"`` or ``"Extreme Hitters"``).
+        """
+        if self.rating in ("Extreme Pitchers", "Pitchers"):
+            return "green"
+        if self.rating == "Neutral":
+            return "yellow"
+        return "red"
+
+    def __str__(self) -> str:
+        return (
+            f"{self.name:30s}  era={self.era:.2f}  "
+            f"rating={self.rating}  [{self.tendency_color}]"
+        )
+
+
+#: 2026 MLB umpire tendencies ordered by ascending ERA (most pitcher-friendly first).
+UMPIRE_TENDENCIES_2026: List[UmpireTendency] = [
+    UmpireTendency('Mike Estabrook',       3.91, 'Extreme Pitchers'),
+    UmpireTendency('Phil Cuzzi',           3.93, 'Extreme Pitchers'),
+    UmpireTendency('Doug Eddings',         3.94, 'Extreme Pitchers'),
+    UmpireTendency('Ron Kulpa',            3.94, 'Extreme Pitchers'),
+    UmpireTendency('Bill Miller',          3.94, 'Extreme Pitchers'),
+    UmpireTendency('Ryan Blakney',         3.97, 'Extreme Pitchers'),
+    UmpireTendency('Alex MacKay',          3.97, 'Extreme Pitchers'),
+    UmpireTendency('Nestor Ceja',          3.98, 'Extreme Pitchers'),
+    UmpireTendency('CB Bucknor',           3.98, 'Extreme Pitchers'),
+    UmpireTendency('Brennan Miller',       3.99, 'Pitchers'),
+    UmpireTendency('Vic Carapazza',        3.99, 'Pitchers'),
+    UmpireTendency('Adam Hamari',          3.99, 'Pitchers'),
+    UmpireTendency('Jeremie Rehak',        3.99, 'Pitchers'),
+    UmpireTendency('Cory Blaser',          4.00, 'Pitchers'),
+    UmpireTendency('Dexter Kelley',        4.00, 'Pitchers'),
+    UmpireTendency('Dan Merzel',           4.00, 'Pitchers'),
+    UmpireTendency('Edwin Jimenez',        4.00, 'Pitchers'),
+    UmpireTendency('Gabe Morales',         4.00, 'Pitchers'),
+    UmpireTendency('Emil Jimenez',         4.00, 'Pitchers'),
+    UmpireTendency('Paul Clemons',         4.00, 'Pitchers'),
+    UmpireTendency('Nick Mahrley',         4.01, 'Pitchers'),
+    UmpireTendency('Tom Hanahan',          4.01, 'Pitchers'),
+    UmpireTendency('Jim Wolf',             4.02, 'Pitchers'),
+    UmpireTendency('Austin Jones',         4.02, 'Pitchers'),
+    UmpireTendency('Junior Valentine',     4.02, 'Pitchers'),
+    UmpireTendency('David Rackley',        4.02, 'Pitchers'),
+    UmpireTendency('Tony Randazzo',        4.02, 'Pitchers'),
+    UmpireTendency('Rob Drake',            4.02, 'Pitchers'),
+    UmpireTendency('Chris Conroy',         4.02, 'Pitchers'),
+    UmpireTendency('Chris Segal',          4.03, 'Pitchers'),
+    UmpireTendency('Roberto Ortiz',        4.03, 'Pitchers'),
+    UmpireTendency('Steven Jaschinski',    4.03, 'Pitchers'),
+    UmpireTendency('Lance Barrett',        4.03, 'Pitchers'),
+    UmpireTendency('Adam Beck',            4.03, 'Pitchers'),
+    UmpireTendency('Laz Diaz',             4.04, 'Neutral'),
+    UmpireTendency('John Tumpane',         4.04, 'Neutral'),
+    UmpireTendency('Brian Walsh',          4.04, 'Neutral'),
+    UmpireTendency('Jeremy Riggs',         4.04, 'Neutral'),
+    UmpireTendency('Nate Tomlinson',       4.04, 'Neutral'),
+    UmpireTendency('Brian O\'Nora',        4.04, 'Neutral'),
+    UmpireTendency('Jacob Metz',           4.05, 'Neutral'),
+    UmpireTendency('D.J. Reyburn',         4.05, 'Neutral'),
+    UmpireTendency('Brock Ballou',         4.05, 'Neutral'),
+    UmpireTendency('Will Little',          4.05, 'Neutral'),
+    UmpireTendency('Malachi Moore',        4.06, 'Neutral'),
+    UmpireTendency('Chad Whitson',         4.06, 'Neutral'),
+    UmpireTendency('Willie Traynor',       4.06, 'Neutral'),
+    UmpireTendency('John Bacon',           4.06, 'Neutral'),
+    UmpireTendency('Ryan Additon',         4.06, 'Neutral'),
+    UmpireTendency('Alex Tosi',            4.06, 'Neutral'),
+    UmpireTendency('Mike Muchlinski',      4.07, 'Neutral'),
+    UmpireTendency('Chris Guccione',       4.07, 'Neutral'),
+    UmpireTendency('Tripp Gibson',         4.07, 'Neutral'),
+    UmpireTendency('Tyler Jones',          4.07, 'Neutral'),
+    UmpireTendency('Erich Bacchus',        4.07, 'Neutral'),
+    UmpireTendency('Bruce Dreckman',       4.07, 'Neutral'),
+    UmpireTendency('Marvin Hudson',        4.07, 'Neutral'),
+    UmpireTendency('Mark Ripperger',       4.08, 'Hitters'),
+    UmpireTendency('Ryan Wills',           4.08, 'Hitters'),
+    UmpireTendency('Sean Barber',          4.08, 'Hitters'),
+    UmpireTendency('Larry Vanover',        4.08, 'Hitters'),
+    UmpireTendency('Jordan Baker',         4.08, 'Hitters'),
+    UmpireTendency('David Arrieta',        4.08, 'Hitters'),
+    UmpireTendency('Andy Fletcher',        4.08, 'Hitters'),
+    UmpireTendency('Charlie Ramos',        4.08, 'Hitters'),
+    UmpireTendency('Dan Bellino',          4.08, 'Hitters'),
+    UmpireTendency('John Libka',           4.09, 'Hitters'),
+    UmpireTendency('Jonathan Parra',       4.09, 'Hitters'),
+    UmpireTendency('Derek Thomas',         4.09, 'Hitters'),
+    UmpireTendency('Angel Hernandez',      4.09, 'Hitters'),
+    UmpireTendency('Chad Fairchild',       4.09, 'Hitters'),
+    UmpireTendency('Quinn Wolcott',        4.09, 'Hitters'),
+    UmpireTendency('Manny Gonzalez',       4.10, 'Hitters'),
+    UmpireTendency('Hunter Wendelstedt',   4.10, 'Hitters'),
+    UmpireTendency('Ben May',              4.10, 'Hitters'),
+    UmpireTendency('Jen Pawol',            4.10, 'Hitters'),
+    UmpireTendency('Alan Porter',          4.10, 'Hitters'),
+    UmpireTendency('Jansen Visconti',      4.10, 'Hitters'),
+    UmpireTendency('Adrian Johnson',       4.11, 'Hitters'),
+    UmpireTendency('James Hoye',           4.11, 'Hitters'),
+    UmpireTendency('Stu Scheurwater',      4.11, 'Hitters'),
+    UmpireTendency('Dan Iassogna',         4.11, 'Hitters'),
+    UmpireTendency('Brian Knight',         4.11, 'Hitters'),
+    UmpireTendency('Todd Tichenor',        4.12, 'Extreme Hitters'),
+    UmpireTendency('Ramon De Jesus',       4.13, 'Extreme Hitters'),
+    UmpireTendency('James Jean',           4.13, 'Extreme Hitters'),
+    UmpireTendency('Mark Wegner',          4.14, 'Extreme Hitters'),
+    UmpireTendency('Mark Carlson',         4.14, 'Extreme Hitters'),
+    UmpireTendency('Lance Barksdale',      4.14, 'Extreme Hitters'),
+    UmpireTendency('Clint Vondrak',        4.14, 'Extreme Hitters'),
+    UmpireTendency('Edwin Moscoso',        4.14, 'Extreme Hitters'),
+    UmpireTendency('Shane Livensparger',   4.15, 'Extreme Hitters'),
+    UmpireTendency('Nic Lentz',            4.16, 'Extreme Hitters'),
+    UmpireTendency('Carlos Torres',        4.16, 'Extreme Hitters'),
+    UmpireTendency('Alfonso Marquez',      4.17, 'Extreme Hitters'),
+    UmpireTendency('Scott Barry',          4.19, 'Extreme Hitters'),
+]
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

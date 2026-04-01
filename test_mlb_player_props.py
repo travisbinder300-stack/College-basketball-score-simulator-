@@ -14010,3 +14010,131 @@ class TestStatcastParkFactor(unittest.TestCase):
         """At least 3 parks are pitcher-friendly (red)."""
         red = [p for p in STATCAST_PARK_FACTORS_2026 if p.park_color == 'red']
         self.assertGreaterEqual(len(red), 3)
+
+
+# ---------------------------------------------------------------------------
+# UmpireTendency tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    UmpireTendency,
+    UMPIRE_TENDENCIES_2026,
+)
+
+
+class TestUmpireTendency(unittest.TestCase):
+    """Tests for UmpireTendency dataclass and UMPIRE_TENDENCIES_2026."""
+
+    def test_list_length(self):
+        """There are 96 umpires in the dataset."""
+        self.assertEqual(len(UMPIRE_TENDENCIES_2026), 96)
+
+    def test_first_entry_is_most_pitcher_friendly(self):
+        """Mike Estabrook (lowest ERA) is the first entry."""
+        self.assertEqual(UMPIRE_TENDENCIES_2026[0].name, 'Mike Estabrook')
+
+    def test_last_entry_is_most_hitter_friendly(self):
+        """Scott Barry (highest ERA) is the last entry."""
+        self.assertEqual(UMPIRE_TENDENCIES_2026[-1].name, 'Scott Barry')
+
+    def test_sorted_by_era_ascending(self):
+        """Entries are ordered from lowest to highest ERA."""
+        era_values = [u.era for u in UMPIRE_TENDENCIES_2026]
+        self.assertEqual(era_values, sorted(era_values))
+
+    def test_tendency_color_green_extreme_pitchers(self):
+        """Extreme Pitchers rating returns green."""
+        entry = UmpireTendency('Test', 3.91, 'Extreme Pitchers')
+        self.assertEqual(entry.tendency_color, 'green')
+
+    def test_tendency_color_green_pitchers(self):
+        """Pitchers rating returns green."""
+        entry = UmpireTendency('Test', 4.00, 'Pitchers')
+        self.assertEqual(entry.tendency_color, 'green')
+
+    def test_tendency_color_yellow_neutral(self):
+        """Neutral rating returns yellow."""
+        entry = UmpireTendency('Test', 4.05, 'Neutral')
+        self.assertEqual(entry.tendency_color, 'yellow')
+
+    def test_tendency_color_red_hitters(self):
+        """Hitters rating returns red."""
+        entry = UmpireTendency('Test', 4.08, 'Hitters')
+        self.assertEqual(entry.tendency_color, 'red')
+
+    def test_tendency_color_red_extreme_hitters(self):
+        """Extreme Hitters rating returns red."""
+        entry = UmpireTendency('Test', 4.19, 'Extreme Hitters')
+        self.assertEqual(entry.tendency_color, 'red')
+
+    def test_estabrook_rating(self):
+        """Mike Estabrook has Extreme Pitchers rating."""
+        estabrook = UMPIRE_TENDENCIES_2026[0]
+        self.assertEqual(estabrook.rating, 'Extreme Pitchers')
+        self.assertAlmostEqual(estabrook.era, 3.91)
+
+    def test_scott_barry_rating(self):
+        """Scott Barry has Extreme Hitters rating."""
+        barry = UMPIRE_TENDENCIES_2026[-1]
+        self.assertEqual(barry.rating, 'Extreme Hitters')
+        self.assertAlmostEqual(barry.era, 4.19)
+
+    def test_laz_diaz_is_neutral(self):
+        """Laz Diaz has Neutral tendency."""
+        laz = next(u for u in UMPIRE_TENDENCIES_2026 if u.name == 'Laz Diaz')
+        self.assertEqual(laz.rating, 'Neutral')
+        self.assertEqual(laz.tendency_color, 'yellow')
+
+    def test_all_entries_have_valid_colors(self):
+        """Every umpire returns a valid color."""
+        valid = {'green', 'yellow', 'red'}
+        for u in UMPIRE_TENDENCIES_2026:
+            self.assertIn(u.tendency_color, valid, msg=f"{u.name} has invalid color")
+
+    def test_all_entries_have_valid_ratings(self):
+        """Every umpire has a valid rating string."""
+        valid = {'Extreme Pitchers', 'Pitchers', 'Neutral', 'Hitters', 'Extreme Hitters'}
+        for u in UMPIRE_TENDENCIES_2026:
+            self.assertIn(u.rating, valid, msg=f"{u.name} has invalid rating")
+
+    def test_extreme_pitchers_count(self):
+        """There are 9 Extreme Pitchers."""
+        count = sum(1 for u in UMPIRE_TENDENCIES_2026 if u.rating == 'Extreme Pitchers')
+        self.assertEqual(count, 9)
+
+    def test_extreme_hitters_count(self):
+        """There are 13 Extreme Hitters."""
+        count = sum(1 for u in UMPIRE_TENDENCIES_2026 if u.rating == 'Extreme Hitters')
+        self.assertEqual(count, 13)
+
+    def test_neutral_count(self):
+        """There are 23 Neutral umpires."""
+        count = sum(1 for u in UMPIRE_TENDENCIES_2026 if u.rating == 'Neutral')
+        self.assertEqual(count, 23)
+
+    def test_str_contains_name(self):
+        """__str__ output includes the umpire name."""
+        entry = UMPIRE_TENDENCIES_2026[0]
+        self.assertIn('Mike Estabrook', str(entry))
+
+    def test_str_contains_color(self):
+        """__str__ output includes the color in brackets."""
+        entry = UMPIRE_TENDENCIES_2026[0]
+        self.assertIn('[green]', str(entry))
+
+    def test_str_contains_era(self):
+        """__str__ output includes the ERA value."""
+        entry = UMPIRE_TENDENCIES_2026[0]
+        self.assertIn('3.91', str(entry))
+
+    def test_green_umpires_have_lower_era(self):
+        """All green umpires have ERA <= 4.03."""
+        for u in UMPIRE_TENDENCIES_2026:
+            if u.tendency_color == 'green':
+                self.assertLessEqual(u.era, 4.03, msg=f"{u.name} ERA too high for green")
+
+    def test_red_umpires_have_higher_era(self):
+        """All red umpires have ERA >= 4.08."""
+        for u in UMPIRE_TENDENCIES_2026:
+            if u.tendency_color == 'red':
+                self.assertGreaterEqual(u.era, 4.08, msg=f"{u.name} ERA too low for red")
