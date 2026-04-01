@@ -2666,6 +2666,334 @@ def implied_prob_to_american_odds(prob: float) -> float:
     return (1.0 - prob) * 100.0 / prob
 
 
+def no_vig_probabilities(
+    over_odds: float,
+    under_odds: float,
+) -> Tuple[float, float]:
+    """
+    Remove the sportsbook's vig from a two-sided prop market and return
+    fair (no-vig) probabilities for the over and under.
+
+    The function works by computing the raw implied probability for each side
+    using :func:`odds_to_implied_prob`, summing them to find the total implied
+    probability (i.e. 1 + vig%), then normalising each side so the two
+    probabilities sum to exactly 1.
+
+    Parameters
+    ----------
+    over_odds : float
+        American odds for the over side (e.g. ``-115``).
+    under_odds : float
+        American odds for the under side (e.g. ``-105``).
+
+    Returns
+    -------
+    tuple[float, float]
+        ``(no_vig_over_prob, no_vig_under_prob)`` – both in the range (0, 1)
+        and summing to exactly 1.0.
+
+    Examples
+    --------
+    >>> over, under = no_vig_probabilities(-110, -110)
+    >>> round(over, 4), round(under, 4)
+    (0.5, 0.5)
+    >>> over2, under2 = no_vig_probabilities(-115, -105)
+    >>> round(over2 + under2, 10)
+    1.0
+    """
+    raw_over = odds_to_implied_prob(over_odds)
+    raw_under = odds_to_implied_prob(under_odds)
+    total = raw_over + raw_under
+    return raw_over / total, raw_under / total
+
+
+# ---------------------------------------------------------------------------
+# Monte Carlo odds evaluator (no-vig prop coverage calculator)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class PropOddsResult:
+    """
+    Result of a Monte Carlo evaluation of a single prop line with market odds.
+
+    Attributes
+    ----------
+    player_name : str
+        Display name of the player.
+    prop_name : str
+        Name of the prop (e.g. ``"Strikeouts"``).
+    line : float
+        The over/under line value (e.g. ``6.5``).
+    over_odds : float
+        American odds offered for the over side.
+    under_odds : float
+        American odds offered for the under side.
+    sim_over_prob : float
+        Simulator's probability that the player goes *over* the line (0–1).
+    sim_under_prob : float
+        Simulator's probability that the player goes *under* or exactly hits
+        the line (0–1).  Equal to ``1 − sim_over_prob``.
+    no_vig_over_prob : float
+        Fair (no-vig) implied probability for the over derived from the market
+        odds.
+    no_vig_under_prob : float
+        Fair (no-vig) implied probability for the under derived from the market
+        odds.
+    over_edge : float
+        ``sim_over_prob − no_vig_over_prob``.  Positive means model favours
+        the over relative to the fair market price.
+    under_edge : float
+        ``sim_under_prob − no_vig_under_prob``.  Positive means model favours
+        the under relative to the fair market price.
+    proj_mean : float
+        Simulated mean value for the stat.
+    """
+
+    player_name: str
+    prop_name: str
+    line: float
+    over_odds: float
+    under_odds: float
+    sim_over_prob: float
+    sim_under_prob: float
+    no_vig_over_prob: float
+    no_vig_under_prob: float
+    over_edge: float
+    under_edge: float
+    proj_mean: float
+
+    # ------------------------------------------------------------------
+    # Derived helpers
+    # ------------------------------------------------------------------
+
+    @property
+    def best_side(self) -> str:
+        """Return ``"over"`` or ``"under"`` based on which has more positive edge."""
+        return "over" if self.over_edge >= self.under_edge else "under"
+
+    @property
+    def best_edge(self) -> float:
+        """Absolute edge for the recommended side."""
+        return max(self.over_edge, self.under_edge)
+
+    def __str__(self) -> str:  # pragma: no cover
+        over_sign = "+" if self.over_odds >= 0 else ""
+        under_sign = "+" if self.under_odds >= 0 else ""
+        rec = self.best_side.upper()
+        return (
+            f"\n{'─'*54}\n"
+            f"  {self.player_name} | {self.prop_name} O/U {self.line:.1f}\n"
+            f"{'─'*54}\n"
+            f"  Projection (mean): {self.proj_mean:.2f}\n"
+            f"\n"
+            f"  Market odds   : Over {over_sign}{self.over_odds:.0f}  |  Under {under_sign}{self.under_odds:.0f}\n"
+            f"  No-vig fair % : Over {self.no_vig_over_prob*100:.1f}%  |  Under {self.no_vig_under_prob*100:.1f}%\n"
+            f"\n"
+            f"  Sim cover %   : Over {self.sim_over_prob*100:.1f}%  |  Under {self.sim_under_prob*100:.1f}%\n"
+            f"\n"
+            f"  Edge vs fair  : Over {self.over_edge*100:+.1f} pp  |  Under {self.under_edge*100:+.1f} pp\n"
+            f"  Recommendation: ★ {rec} ({self.best_edge*100:+.1f} pp edge)\n"
+        )
+
+
+class MonteCarloOddsEvaluator:
+    """
+    Tie a :class:`MLBPlayerPropsSimulator` to market odds to produce a
+    no-vig prop coverage analysis for any player prop line.
+
+    The evaluator runs the Monte Carlo simulation (using the underlying
+    simulator), looks up the simulated over-probability for the requested
+    line, strips the sportsbook's vig from the market odds via
+    :func:`no_vig_probabilities`, and returns a :class:`PropOddsResult`
+    showing both sides' cover percentages and the model's edge.
+
+    Parameters
+    ----------
+    simulator : MLBPlayerPropsSimulator
+        A fully-configured simulator instance.
+
+    Examples
+    --------
+    >>> sim = MLBPlayerPropsSimulator(
+    ...     stadium=Stadium.from_name("Neutral"),
+    ...     weather=WeatherConditions(temp_f=72, precipitation="none", humidity=0.50),
+    ...     wind=WindConditions(speed_mph=0, direction="calm"),
+    ...     num_simulations=10_000,
+    ...     random_seed=42,
+    ... )
+    >>> evaluator = MonteCarloOddsEvaluator(sim)
+    >>> pitcher = PitcherStats(
+    ...     name="Example SP",
+    ...     era=3.50, k_per_9=9.0, innings_per_start=6.0, whip=1.15,
+    ...     throws="R",
+    ... )
+    >>> result = evaluator.evaluate_pitcher_prop(
+    ...     pitcher=pitcher,
+    ...     prop_name="Strikeouts",
+    ...     line=5.5,
+    ...     over_odds=-115,
+    ...     under_odds=-105,
+    ...     opponent_bats="R",
+    ...     is_home=True,
+    ... )
+    >>> 0.0 < result.sim_over_prob < 1.0
+    True
+    >>> round(result.no_vig_over_prob + result.no_vig_under_prob, 10)
+    1.0
+    """
+
+    def __init__(self, simulator: "MLBPlayerPropsSimulator") -> None:
+        self.simulator = simulator
+
+    # ------------------------------------------------------------------
+    # Public evaluation methods
+    # ------------------------------------------------------------------
+
+    def evaluate_pitcher_prop(
+        self,
+        pitcher: "PitcherStats",
+        prop_name: str,
+        line: float,
+        over_odds: float,
+        under_odds: float,
+        opponent_bats: str = "R",
+        is_home: Optional[bool] = None,
+    ) -> PropOddsResult:
+        """
+        Evaluate a single pitcher prop line against market odds.
+
+        Parameters
+        ----------
+        pitcher : PitcherStats
+        prop_name : str
+            Must match one of the simulated prop names exactly, e.g.
+            ``"Strikeouts"``, ``"Outs Recorded"``, ``"Runs Allowed"``,
+            ``"Pitches Thrown"``.
+        line : float
+            The over/under line (e.g. ``5.5``).
+        over_odds : float
+            American odds for the over (e.g. ``-115``).
+        under_odds : float
+            American odds for the under (e.g. ``-105``).
+        opponent_bats : str
+            Representative batting-hand for the opposing lineup (``"R"``,
+            ``"L"``, or ``"S"``).  Defaults to ``"R"``.
+        is_home : bool | None
+            ``True`` if pitcher is at home, ``False`` away, ``None`` for no
+            home/away adjustment.
+
+        Returns
+        -------
+        PropOddsResult
+        """
+        report: "PlayerPropsReport" = self.simulator.simulate_pitcher(
+            pitcher, opponent_bats=opponent_bats, is_home=is_home
+        )
+        return self._build_result(
+            report, pitcher.name, prop_name, line, over_odds, under_odds
+        )
+
+    def evaluate_batter_prop(
+        self,
+        batter: "BatterStats",
+        prop_name: str,
+        line: float,
+        over_odds: float,
+        under_odds: float,
+        opponent_throws: str = "R",
+        is_home: Optional[bool] = None,
+    ) -> PropOddsResult:
+        """
+        Evaluate a single batter prop line against market odds.
+
+        Parameters
+        ----------
+        batter : BatterStats
+        prop_name : str
+            Must match one of the simulated prop names exactly, e.g.
+            ``"Hits"``, ``"Home Runs"``, ``"Total Bases"``,
+            ``"Stolen Bases"``, ``"RBI"``, ``"Runs Scored"``.
+        line : float
+            The over/under line (e.g. ``1.5``).
+        over_odds : float
+            American odds for the over.
+        under_odds : float
+            American odds for the under.
+        opponent_throws : str
+            Throwing hand of the opposing pitcher (``"R"`` or ``"L"``).
+        is_home : bool | None
+            ``True`` if batter is at home, ``False`` away, ``None`` for no
+            home/away adjustment.
+
+        Returns
+        -------
+        PropOddsResult
+        """
+        report: "PlayerPropsReport" = self.simulator.simulate_batter(
+            batter, opponent_throws=opponent_throws, is_home=is_home
+        )
+        return self._build_result(
+            report, batter.name, prop_name, line, over_odds, under_odds
+        )
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _build_result(
+        self,
+        report: "PlayerPropsReport",
+        player_name: str,
+        prop_name: str,
+        line: float,
+        over_odds: float,
+        under_odds: float,
+    ) -> PropOddsResult:
+        """Build a :class:`PropOddsResult` from a simulation report."""
+        # Locate the matching PropResult
+        pr = next(
+            (p for p in report.props if p.prop_name == prop_name),
+            None,
+        )
+        if pr is None:
+            available = [p.prop_name for p in report.props]
+            raise ValueError(
+                f"Prop '{prop_name}' not found for {player_name}. "
+                f"Available props: {available}"
+            )
+
+        # Simulated over-probability at the requested line
+        sim_over = pr.over_probabilities.get(line)
+        if sim_over is None:
+            # Fall back: compute from raw distribution if line not pre-computed
+            # (this path is hit when the caller requests a custom line)
+            available_lines = sorted(pr.over_probabilities.keys())
+            raise ValueError(
+                f"Line {line} not pre-computed for prop '{prop_name}'. "
+                f"Available lines: {available_lines}"
+            )
+        sim_under = 1.0 - sim_over
+
+        # No-vig market probabilities
+        nv_over, nv_under = no_vig_probabilities(over_odds, under_odds)
+
+        return PropOddsResult(
+            player_name=player_name,
+            prop_name=prop_name,
+            line=line,
+            over_odds=over_odds,
+            under_odds=under_odds,
+            sim_over_prob=sim_over,
+            sim_under_prob=sim_under,
+            no_vig_over_prob=nv_over,
+            no_vig_under_prob=nv_under,
+            over_edge=sim_over - nv_over,
+            under_edge=sim_under - nv_under,
+            proj_mean=pr.mean,
+        )
+
+
 # ---------------------------------------------------------------------------
 # Unabated edge-screening
 # ---------------------------------------------------------------------------

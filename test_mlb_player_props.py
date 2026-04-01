@@ -14393,3 +14393,346 @@ class TestTeamFieldingRanking(unittest.TestCase):
                 t.tc, t.po + t.assists + t.errors,
                 msg=f"{t.team}: TC={t.tc} != PO({t.po})+A({t.assists})+E({t.errors})",
             )
+
+
+# ---------------------------------------------------------------------------
+# no_vig_probabilities tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    no_vig_probabilities,
+    MonteCarloOddsEvaluator,
+    PropOddsResult,
+)
+
+
+class TestNoVigProbabilities(unittest.TestCase):
+    """Tests for no_vig_probabilities()."""
+
+    def test_symmetric_juice_returns_50_50(self):
+        """When both sides are -110, no-vig probs should be exactly 50/50."""
+        over, under = no_vig_probabilities(-110, -110)
+        self.assertAlmostEqual(over, 0.5, places=10)
+        self.assertAlmostEqual(under, 0.5, places=10)
+
+    def test_probs_sum_to_one(self):
+        """No-vig probabilities always sum to exactly 1."""
+        pairs = [(-115, -105), (-130, +110), (+100, -120), (-150, +130)]
+        for ov, un in pairs:
+            over, under = no_vig_probabilities(ov, un)
+            self.assertAlmostEqual(over + under, 1.0, places=10,
+                                   msg=f"Failed for odds ({ov}, {un})")
+
+    def test_heavier_juice_side_gets_lower_no_vig_prob(self):
+        """The side with heavier negative juice has lower no-vig probability."""
+        over, under = no_vig_probabilities(-130, +110)
+        # -130 over means raw implied prob is higher for over so raw_over > raw_under
+        # But -130 (heavy favorite side) → higher raw → higher no-vig prob
+        self.assertGreater(over, under)
+
+    def test_even_money_both_sides(self):
+        """Even money (+100/+100) yields 50/50 after no-vig normalisation."""
+        over, under = no_vig_probabilities(+100, +100)
+        self.assertAlmostEqual(over, 0.5, places=10)
+        self.assertAlmostEqual(under, 0.5, places=10)
+
+    def test_output_range(self):
+        """Both probabilities are strictly between 0 and 1."""
+        over, under = no_vig_probabilities(-115, -105)
+        self.assertGreater(over, 0.0)
+        self.assertLess(over, 1.0)
+        self.assertGreater(under, 0.0)
+        self.assertLess(under, 1.0)
+
+    def test_asymmetric_juice(self):
+        """Asymmetric juice (-115 / -105) favours the over slightly after vig removal."""
+        over, under = no_vig_probabilities(-115, -105)
+        # -115 has higher raw implied probability than -105
+        self.assertGreater(over, under)
+
+    def test_returns_tuple_of_two_floats(self):
+        """Return value is a 2-tuple of floats."""
+        result = no_vig_probabilities(-110, -110)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], float)
+        self.assertIsInstance(result[1], float)
+
+
+class TestMonteCarloOddsEvaluator(unittest.TestCase):
+    """Tests for MonteCarloOddsEvaluator."""
+
+    def _make_evaluator(self) -> MonteCarloOddsEvaluator:
+        sim = MLBPlayerPropsSimulator(
+            stadium=Stadium.from_name("Neutral"),
+            weather=WeatherConditions(temp_f=72, precipitation="none", humidity=0.50),
+            wind=WindConditions(speed_mph=0, direction="calm"),
+            num_simulations=3_000,
+            random_seed=7,
+        )
+        return MonteCarloOddsEvaluator(sim)
+
+    def _make_pitcher(self) -> PitcherStats:
+        return PitcherStats(
+            name="Eval SP",
+            era=3.50,
+            k_per_9=9.0,
+            innings_per_start=6.0,
+            whip=1.15,
+            throws="R",
+        )
+
+    def _make_batter(self) -> BatterStats:
+        return BatterStats(
+            name="Eval Batter",
+            avg=0.270,
+            obp=0.345,
+            slg=0.470,
+            hr_per_600_pa=25,
+            sb_per_season=10,
+            doubles_per_600_pa=28,
+            games_played=162,
+            power_rating=70,
+            bats="R",
+        )
+
+    # ------------------------------------------------------------------
+    # evaluate_pitcher_prop
+    # ------------------------------------------------------------------
+
+    def test_pitcher_result_is_prop_odds_result(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=self._make_pitcher(),
+            prop_name="Strikeouts",
+            line=5.5,
+            over_odds=-115,
+            under_odds=-105,
+        )
+        self.assertIsInstance(result, PropOddsResult)
+
+    def test_pitcher_no_vig_probs_sum_to_one(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=self._make_pitcher(),
+            prop_name="Strikeouts",
+            line=5.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertAlmostEqual(result.no_vig_over_prob + result.no_vig_under_prob, 1.0, places=10)
+
+    def test_pitcher_sim_probs_sum_to_one(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=self._make_pitcher(),
+            prop_name="Strikeouts",
+            line=5.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertAlmostEqual(result.sim_over_prob + result.sim_under_prob, 1.0, places=10)
+
+    def test_pitcher_edge_consistency(self):
+        """over_edge + under_edge should equal 0 (they are mirror images)."""
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=self._make_pitcher(),
+            prop_name="Strikeouts",
+            line=5.5,
+            over_odds=-115,
+            under_odds=-105,
+        )
+        self.assertAlmostEqual(result.over_edge + result.under_edge, 0.0, places=10)
+
+    def test_pitcher_best_side_is_over_or_under(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=self._make_pitcher(),
+            prop_name="Strikeouts",
+            line=5.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertIn(result.best_side, ("over", "under"))
+
+    def test_pitcher_proj_mean_positive(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=self._make_pitcher(),
+            prop_name="Strikeouts",
+            line=5.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertGreater(result.proj_mean, 0.0)
+
+    def test_pitcher_invalid_prop_raises(self):
+        evaluator = self._make_evaluator()
+        with self.assertRaises(ValueError):
+            evaluator.evaluate_pitcher_prop(
+                pitcher=self._make_pitcher(),
+                prop_name="NonExistentStat",
+                line=5.5,
+                over_odds=-110,
+                under_odds=-110,
+            )
+
+    def test_pitcher_invalid_line_raises(self):
+        """Requesting a line not pre-computed should raise ValueError."""
+        evaluator = self._make_evaluator()
+        with self.assertRaises(ValueError):
+            evaluator.evaluate_pitcher_prop(
+                pitcher=self._make_pitcher(),
+                prop_name="Strikeouts",
+                line=99.5,  # not a standard pre-computed line
+                over_odds=-110,
+                under_odds=-110,
+            )
+
+    def test_pitcher_with_home_flag(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_pitcher_prop(
+            pitcher=self._make_pitcher(),
+            prop_name="Strikeouts",
+            line=5.5,
+            over_odds=-110,
+            under_odds=-110,
+            is_home=True,
+        )
+        self.assertIsInstance(result, PropOddsResult)
+
+    # ------------------------------------------------------------------
+    # evaluate_batter_prop
+    # ------------------------------------------------------------------
+
+    def test_batter_result_is_prop_odds_result(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_batter_prop(
+            batter=self._make_batter(),
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-150,
+            under_odds=+125,
+        )
+        self.assertIsInstance(result, PropOddsResult)
+
+    def test_batter_no_vig_probs_sum_to_one(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_batter_prop(
+            batter=self._make_batter(),
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-150,
+            under_odds=+125,
+        )
+        self.assertAlmostEqual(result.no_vig_over_prob + result.no_vig_under_prob, 1.0, places=10)
+
+    def test_batter_sim_probs_sum_to_one(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_batter_prop(
+            batter=self._make_batter(),
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertAlmostEqual(result.sim_over_prob + result.sim_under_prob, 1.0, places=10)
+
+    def test_batter_edge_consistency(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_batter_prop(
+            batter=self._make_batter(),
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertAlmostEqual(result.over_edge + result.under_edge, 0.0, places=10)
+
+    def test_batter_player_name_propagated(self):
+        evaluator = self._make_evaluator()
+        batter = self._make_batter()
+        result = evaluator.evaluate_batter_prop(
+            batter=batter,
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertEqual(result.player_name, batter.name)
+
+    def test_batter_prop_name_propagated(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_batter_prop(
+            batter=self._make_batter(),
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertEqual(result.prop_name, "Hits")
+
+    def test_batter_line_propagated(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_batter_prop(
+            batter=self._make_batter(),
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-110,
+            under_odds=-110,
+        )
+        self.assertAlmostEqual(result.line, 0.5)
+
+    def test_batter_with_opponent_throws(self):
+        evaluator = self._make_evaluator()
+        result = evaluator.evaluate_batter_prop(
+            batter=self._make_batter(),
+            prop_name="Hits",
+            line=0.5,
+            over_odds=-110,
+            under_odds=-110,
+            opponent_throws="L",
+        )
+        self.assertIsInstance(result, PropOddsResult)
+
+    def test_batter_invalid_prop_raises(self):
+        evaluator = self._make_evaluator()
+        with self.assertRaises(ValueError):
+            evaluator.evaluate_batter_prop(
+                batter=self._make_batter(),
+                prop_name="Strikeouts",  # batter prop not simulated
+                line=0.5,
+                over_odds=-110,
+                under_odds=-110,
+            )
+
+    # ------------------------------------------------------------------
+    # PropOddsResult properties
+    # ------------------------------------------------------------------
+
+    def test_best_side_over_when_sim_exceeds_novig(self):
+        """When sim_over_prob > no_vig_over_prob, best_side should be 'over'."""
+        result = PropOddsResult(
+            player_name="X", prop_name="Strikeouts", line=5.5,
+            over_odds=-110, under_odds=-110,
+            sim_over_prob=0.60, sim_under_prob=0.40,
+            no_vig_over_prob=0.50, no_vig_under_prob=0.50,
+            over_edge=0.10, under_edge=-0.10,
+            proj_mean=6.2,
+        )
+        self.assertEqual(result.best_side, "over")
+        self.assertAlmostEqual(result.best_edge, 0.10)
+
+    def test_best_side_under_when_sim_under_exceeds_novig(self):
+        """When sim_under_prob > no_vig_under_prob, best_side should be 'under'."""
+        result = PropOddsResult(
+            player_name="X", prop_name="Strikeouts", line=6.5,
+            over_odds=-110, under_odds=-110,
+            sim_over_prob=0.35, sim_under_prob=0.65,
+            no_vig_over_prob=0.50, no_vig_under_prob=0.50,
+            over_edge=-0.15, under_edge=0.15,
+            proj_mean=5.1,
+        )
+        self.assertEqual(result.best_side, "under")
+        self.assertAlmostEqual(result.best_edge, 0.15)
