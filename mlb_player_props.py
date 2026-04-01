@@ -18115,6 +18115,121 @@ PITCHER_TENDENCIES_2026: List[PitcherTendency] = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# 2026 Statcast Correlation Park Factors
+# ---------------------------------------------------------------------------
+
+@dataclass
+class StatcastParkFactor:
+    """A Statcast park-factor entry representing venue-specific hitting environment.
+
+    All factor values are multipliers relative to league average (1.00).
+    Values above 1.00 favor hitters; values below 1.00 favor pitchers.
+
+    Color highlights (park_color property, based on wOBA factor):
+        green  - hitter-friendly park  (wOBA >= 1.02)
+        yellow - neutral park          (0.98 <= wOBA < 1.02)
+        red    - pitcher-friendly park (wOBA < 0.98)
+
+    Attributes
+    ----------
+    park : str
+        Stadium name.
+    team : str
+        Home MLB team.
+    woba : float
+        wOBA park factor.
+    ba : float
+        Batting average park factor.
+    hr : float
+        Home run park factor.
+    singles : float
+        Singles (1B) park factor.
+    doubles : float
+        Doubles (2B) park factor.
+    triples : float
+        Triples (3B) park factor.
+    k : float
+        Strikeout park factor.
+    bb : float
+        Walk park factor.
+    babip : float
+        BABIP park factor.
+    """
+
+    park: str
+    team: str
+    woba: float
+    ba: float
+    hr: float
+    singles: float
+    doubles: float
+    triples: float
+    k: float
+    bb: float
+    babip: float
+
+    @property
+    def park_color(self) -> str:
+        """Return color rating based on wOBA factor: green/yellow/red.
+
+        Returns
+        -------
+        str
+            ``"green"``  (woba >= 1.02),
+            ``"yellow"`` (0.98 <= woba < 1.02), or
+            ``"red"``    (woba < 0.98).
+        """
+        if self.woba >= 1.02:
+            return "green"
+        if self.woba >= 0.98:
+            return "yellow"
+        return "red"
+
+    def __str__(self) -> str:
+        return (
+            f"{self.park:40s} ({self.team:15s})  "
+            f"wOBA={self.woba:.2f}  BA={self.ba:.2f}  HR={self.hr:.2f}  "
+            f"1B={self.singles:.2f}  2B={self.doubles:.2f}  3B={self.triples:.2f}  "
+            f"K={self.k:.2f}  BB={self.bb:.2f}  BABIP={self.babip:.2f}  "
+            f"[{self.park_color}]"
+        )
+
+
+#: 2026 Statcast correlation park factors ordered by descending wOBA factor.
+STATCAST_PARK_FACTORS_2026: List[StatcastParkFactor] = [
+    StatcastParkFactor('Coors Field',                  'Rockies',       1.14, 1.19, 1.08, 1.18, 1.23, 1.77, 0.86, 1.01, 1.15),
+    StatcastParkFactor('Great American Ball Park',     'Reds',          1.05, 1.03, 1.24, 1.00, 0.99, 0.78, 0.99, 1.02, 1.00),
+    StatcastParkFactor('Fenway Park',                  'Red Sox',       1.03, 1.05, 1.00, 1.06, 1.04, 0.98, 0.94, 1.00, 1.03),
+    StatcastParkFactor('Sutter Health Park',           'Athletics',     1.02, 1.02, 1.05, 0.99, 1.08, 0.92, 1.03, 1.01, 1.02),
+    StatcastParkFactor('Target Field',                 'Twins',         1.02, 1.03, 0.94, 1.04, 1.08, 0.87, 0.98, 1.02, 1.04),
+    StatcastParkFactor('Guaranteed Rate Field',        'White Sox',     1.01, 1.01, 1.11, 1.00, 0.98, 0.86, 0.95, 1.00, 0.98),
+    StatcastParkFactor('Chase Field',                  'Diamondbacks',  1.01, 1.04, 0.83, 1.05, 1.10, 1.39, 0.97, 1.00, 1.05),
+    StatcastParkFactor('Dodger Stadium',               'Dodgers',       1.01, 0.99, 1.14, 0.95, 1.02, 0.91, 1.00, 0.99, 0.97),
+    StatcastParkFactor('Comerica Park',                'Tigers',        1.01, 1.00, 1.01, 0.98, 1.02, 1.55, 0.96, 1.00, 0.99),
+    StatcastParkFactor('Kauffman Stadium',             'Royals',        1.01, 1.01, 0.90, 1.00, 1.05, 1.71, 0.97, 1.03, 1.01),
+    StatcastParkFactor('Oriole Park at Camden Yards',  'Orioles',       1.00, 1.00, 1.09, 0.99, 0.96, 0.98, 1.00, 0.98, 0.98),
+    StatcastParkFactor('Progressive Field',            'Indians',       1.00, 1.01, 0.96, 1.04, 0.98, 0.67, 1.00, 1.01, 1.02),
+    StatcastParkFactor('Truist Park',                  'Braves',        1.00, 1.01, 0.94, 1.02, 1.01, 1.06, 1.03, 1.01, 1.03),
+    StatcastParkFactor('Rogers Centre',                'Blue Jays',     1.00, 0.99, 1.09, 0.98, 0.97, 0.70, 1.01, 0.99, 0.98),
+    StatcastParkFactor('PNC Park',                     'Pirates',       1.00, 1.02, 0.83, 1.06, 1.05, 0.88, 0.97, 1.00, 1.03),
+    StatcastParkFactor('Citizens Bank Park',           'Phillies',      0.99, 0.99, 1.05, 0.99, 0.96, 0.90, 1.03, 1.00, 0.99),
+    StatcastParkFactor('Daikin Park',                  'Astros',        0.99, 0.99, 1.05, 1.00, 0.95, 0.81, 1.05, 0.99, 1.00),
+    StatcastParkFactor('Angel Stadium of Anaheim',     'Angels',        0.99, 0.97, 1.08, 0.97, 0.91, 1.18, 1.03, 1.00, 0.97),
+    StatcastParkFactor('Oracle Park',                  'Giants',        0.99, 1.02, 0.88, 1.06, 1.01, 0.82, 0.97, 0.96, 1.02),
+    StatcastParkFactor('American Family Field',        'Brewers',       0.99, 0.97, 1.05, 0.95, 0.97, 1.16, 1.08, 0.99, 0.98),
+    StatcastParkFactor('LoanDepot Park',               'Marlins',       0.98, 0.99, 0.88, 0.99, 1.03, 1.10, 1.02, 1.02, 1.01),
+    StatcastParkFactor('Yankee Stadium',               'Yankees',       0.98, 0.96, 1.05, 0.95, 0.93, 0.92, 0.99, 1.02, 0.95),
+    StatcastParkFactor('Nationals Park',               'Nationals',     0.98, 0.98, 0.93, 1.00, 0.98, 0.86, 0.98, 1.00, 0.98),
+    StatcastParkFactor('Petco Park',                   'Padres',        0.98, 0.96, 1.04, 0.95, 0.96, 0.90, 1.04, 0.99, 0.97),
+    StatcastParkFactor('Busch Stadium',                'Cardinals',     0.98, 0.99, 0.83, 1.03, 1.00, 0.96, 0.97, 1.00, 1.00),
+    StatcastParkFactor('Wrigley Field',                'Cubs',          0.98, 0.98, 0.95, 0.99, 0.94, 1.00, 1.05, 1.00, 0.99),
+    StatcastParkFactor('Citi Field',                   'Mets',          0.97, 0.96, 1.01, 0.96, 0.93, 0.71, 1.03, 1.00, 0.96),
+    StatcastParkFactor('Globe Life Field',             'Rangers',       0.96, 0.96, 0.95, 0.96, 0.96, 0.97, 1.03, 1.00, 0.96),
+    StatcastParkFactor('T-Mobile Park',                'Mariners',      0.96, 0.94, 1.03, 0.93, 0.96, 0.76, 1.07, 0.99, 0.95),
+]
+
+
 def _demo() -> None:  # pragma: no cover
     """Quick demonstration of the simulator."""
     print("MLB Player Props Simulator — Demo")

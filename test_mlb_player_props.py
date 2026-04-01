@@ -13900,3 +13900,113 @@ class TestWebbRegularSeason2025(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# StatcastParkFactor tests
+# ---------------------------------------------------------------------------
+
+from mlb_player_props import (  # noqa: E402
+    StatcastParkFactor,
+    STATCAST_PARK_FACTORS_2026,
+)
+
+
+class TestStatcastParkFactor(unittest.TestCase):
+    """Tests for StatcastParkFactor dataclass and STATCAST_PARK_FACTORS_2026."""
+
+    def test_list_length(self):
+        """There are 29 parks in the dataset."""
+        self.assertEqual(len(STATCAST_PARK_FACTORS_2026), 29)
+
+    def test_coors_field_is_first(self):
+        """Coors Field (highest wOBA) is the first entry."""
+        self.assertEqual(STATCAST_PARK_FACTORS_2026[0].park, 'Coors Field')
+
+    def test_t_mobile_park_is_last(self):
+        """T-Mobile Park (lowest wOBA) is the last entry."""
+        self.assertEqual(STATCAST_PARK_FACTORS_2026[-1].park, 'T-Mobile Park')
+
+    def test_sorted_by_woba_descending(self):
+        """Entries are ordered from highest to lowest wOBA."""
+        woba_values = [p.woba for p in STATCAST_PARK_FACTORS_2026]
+        self.assertEqual(woba_values, sorted(woba_values, reverse=True))
+
+    def test_park_color_green_coors(self):
+        """Coors Field (wOBA=1.14) is green."""
+        coors = STATCAST_PARK_FACTORS_2026[0]
+        self.assertEqual(coors.park_color, 'green')
+
+    def test_park_color_yellow_neutral(self):
+        """Truist Park (wOBA=1.00) is yellow."""
+        truist = next(p for p in STATCAST_PARK_FACTORS_2026 if p.park == 'Truist Park')
+        self.assertEqual(truist.park_color, 'yellow')
+
+    def test_park_color_red_pitcher_friendly(self):
+        """T-Mobile Park (wOBA=0.96) is red."""
+        tmobile = STATCAST_PARK_FACTORS_2026[-1]
+        self.assertEqual(tmobile.park_color, 'red')
+
+    def test_park_color_boundary_green(self):
+        """wOBA exactly 1.02 qualifies as green."""
+        entry = StatcastParkFactor('Test', 'Team', 1.02, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        self.assertEqual(entry.park_color, 'green')
+
+    def test_park_color_boundary_yellow_lower(self):
+        """wOBA exactly 0.98 qualifies as yellow (not red)."""
+        entry = StatcastParkFactor('Test', 'Team', 0.98, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        self.assertEqual(entry.park_color, 'yellow')
+
+    def test_park_color_boundary_yellow_upper(self):
+        """wOBA of 1.019 qualifies as yellow (just below green threshold)."""
+        entry = StatcastParkFactor('Test', 'Team', 1.019, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        self.assertEqual(entry.park_color, 'yellow')
+
+    def test_park_color_boundary_red(self):
+        """wOBA of 0.979 qualifies as red."""
+        entry = StatcastParkFactor('Test', 'Team', 0.979, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        self.assertEqual(entry.park_color, 'red')
+
+    def test_all_parks_have_valid_colors(self):
+        """Every park returns a valid color."""
+        valid = {'green', 'yellow', 'red'}
+        for p in STATCAST_PARK_FACTORS_2026:
+            self.assertIn(p.park_color, valid, msg=f"{p.park} has invalid color")
+
+    def test_str_contains_park_name(self):
+        """__str__ output includes the park name."""
+        coors = STATCAST_PARK_FACTORS_2026[0]
+        self.assertIn('Coors Field', str(coors))
+
+    def test_str_contains_color(self):
+        """__str__ output includes the color in brackets."""
+        coors = STATCAST_PARK_FACTORS_2026[0]
+        self.assertIn('[green]', str(coors))
+
+    def test_coors_woba(self):
+        coors = STATCAST_PARK_FACTORS_2026[0]
+        self.assertAlmostEqual(coors.woba, 1.14)
+
+    def test_coors_hr(self):
+        coors = STATCAST_PARK_FACTORS_2026[0]
+        self.assertAlmostEqual(coors.hr, 1.08)
+
+    def test_great_american_hr(self):
+        """Great American Ball Park has the highest HR factor (1.24)."""
+        gabp = next(p for p in STATCAST_PARK_FACTORS_2026 if 'Great American' in p.park)
+        self.assertAlmostEqual(gabp.hr, 1.24)
+
+    def test_coors_triples(self):
+        """Coors Field has the highest triples factor (1.77)."""
+        coors = STATCAST_PARK_FACTORS_2026[0]
+        self.assertAlmostEqual(coors.triples, 1.77)
+
+    def test_green_parks_count(self):
+        """At least 5 parks are hitter-friendly (green)."""
+        green = [p for p in STATCAST_PARK_FACTORS_2026 if p.park_color == 'green']
+        self.assertGreaterEqual(len(green), 5)
+
+    def test_red_parks_count(self):
+        """At least 3 parks are pitcher-friendly (red)."""
+        red = [p for p in STATCAST_PARK_FACTORS_2026 if p.park_color == 'red']
+        self.assertGreaterEqual(len(red), 3)
