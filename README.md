@@ -36,7 +36,5 @@ python -m mlb_pitcher_props.cli \
 ## Run tests
 
 ```bash
-cd /home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-
-PYTHONPATH=src \
-python -m unittest discover -s tests -v
+PYTHONPATH=src python -m unittest discover -s tests -v
 ```
