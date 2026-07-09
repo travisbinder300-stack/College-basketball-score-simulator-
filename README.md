@@ -17,26 +17,26 @@ This repository has been re-scoped to an MLB pitcher player-prop project.
 
 ## Project layout
 
-- `/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src/mlb_pitcher_props/models.py` - data models
-- `/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src/mlb_pitcher_props/baseline.py` - baseline projection logic
-- `/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src/mlb_pitcher_props/adjustments.py` - weather/context adjustments
-- `/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src/mlb_pitcher_props/odds.py` - market odds + edge math
-- `/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src/mlb_pitcher_props/evaluation.py` - backtesting/calibration scaffold
-- `/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src/mlb_pitcher_props/cli.py` - command line entrypoint
-- `/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/tests` - core unit tests
+- `src/mlb_pitcher_props/models.py` - data models
+- `src/mlb_pitcher_props/baseline.py` - baseline projection logic
+- `src/mlb_pitcher_props/adjustments.py` - weather/context adjustments
+- `src/mlb_pitcher_props/odds.py` - market odds + edge math
+- `src/mlb_pitcher_props/evaluation.py` - backtesting/calibration scaffold
+- `src/mlb_pitcher_props/cli.py` - command line entrypoint
+- `tests` - core unit tests
 
 ## Run the CLI
 
 ```bash
-PYTHONPATH=/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src \
+PYTHONPATH=src \
 python -m mlb_pitcher_props.cli \
-  --input /home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/examples/sample_input.json
+  --input examples/sample_input.json
 ```
 
 ## Run tests
 
 ```bash
 cd /home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-
-PYTHONPATH=/home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/src \
-python -m unittest discover -s /home/runner/work/College-basketball-score-simulator-/College-basketball-score-simulator-/tests -v
+PYTHONPATH=src \
+python -m unittest discover -s tests -v
 ```
