@@ -1,0 +1,24 @@
+{
+  "pitcher": {
+    "pitcher_name": "Sample Pitcher",
+    "expected_outs_baseline": 17.5,
+    "strikeouts_per_out": 0.36,
+    "opponent_contact_multiplier": 0.98,
+    "pitch_count_cap": 92
+  },
+  "weather": {
+    "temperature_f": 67,
+    "wind_mph": 12,
+    "wind_out_to_center": true,
+    "precipitation_risk": 0.1
+  },
+  "market": {
+    "prop_type": "strikeouts",
+    "line": 6.5,
+    "std_dev": 1.8,
+    "odds_over": -105,
+    "odds_under": -115,
+    "odds_format": "american"
+  }
+}
+
