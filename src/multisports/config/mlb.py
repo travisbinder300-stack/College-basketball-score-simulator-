@@ -1,0 +1,25 @@
+"""MLB sport configuration stub."""
+
+from .base import SportConfig
+
+
+MLB_CONFIG = SportConfig(
+    sport="mlb",
+    league="Major League Baseball",
+    prediction_target="total_score",
+    rolling_window=12,
+    rest_cap=10,
+    feature_columns=[
+        "home_rolling_total_12",
+        "away_rolling_total_12",
+        "home_rest_days",
+        "away_rest_days",
+        "home_win_pct_12",
+        "away_win_pct_12",
+        "home_opp_strength_12",
+        "away_opp_strength_12",
+        "is_neutral_site",
+    ],
+    min_train_games=50,
+    model_dir="artifacts",
+)
