@@ -83,3 +83,12 @@ tests/             Unit tests for schema, features, models, evaluation, and full
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
+## Live Data Script
+
+Fetch live scoreboard data and save normalized game rows to JSON:
+
+```bash
+PYTHONPATH=src python scripts/get_live_data.py --sport ncaab --dates 20260722
+```
+
+By default the script writes to `data/live/<sport>_<dates>.json`.
