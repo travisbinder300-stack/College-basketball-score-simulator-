@@ -1,4 +1,4 @@
-"""MLB sport configuration stub."""
+"""MLB sport configuration."""
 
 from .base import SportConfig
 

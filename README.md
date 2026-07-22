@@ -1,12 +1,19 @@
 # Multi-Sports ML Platform
 
-A production-oriented, greenfield machine learning platform for predicting game totals across sports. Version 1 focuses on NBA total-score prediction (home score + away score), which is the shared target designed to generalize to NFL, MLB, and future sports.
+A production-oriented machine learning platform for predicting game totals across major sports leagues. The shared prediction target is **total score** (home + away), which generalizes cleanly across all supported sports.
 
-## Roadmap
+## Supported Sports
 
-- **NBA (v1):** end-to-end data generation, feature engineering, training, evaluation, and prediction
-- **NFL:** config and model-registration stub included for future expansion
-- **MLB:** config and model-registration stub included for future expansion
+| Sport | Key | League | Status | Sample Generator |
+|---|---|---|---|---|
+| NBA | `nba` | National Basketball Association | ✅ Active | `generate_sample_nba_games()` |
+| NFL | `nfl` | National Football League | ✅ Active | `generate_sample_nfl_games()` |
+| MLB | `mlb` | Major League Baseball | ✅ Active | `generate_sample_mlb_games()` |
+| NHL | `nhl` | National Hockey League | ✅ Active | `generate_sample_nhl_games()` |
+| WNBA | `wnba` | Women's National Basketball Association | ✅ Active | `generate_sample_wnba_games()` |
+| NCAAB | `ncaab` | NCAA Division I Men's Basketball | ✅ Active | `generate_sample_ncaab_games()` |
+| NCAAF | `ncaaf` | NCAA Division I Men's Football (FBS) | ✅ Active | `generate_sample_ncaaf_games()` |
+| College Baseball | `ncaa_baseball` | NCAA Division I Baseball | ✅ Active | `generate_sample_ncaa_baseball_games()` |
 
 ## Installation
 
@@ -16,40 +23,63 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-Run the end-to-end NBA pipeline with generated sample data:
+Run the end-to-end pipeline for any supported sport using its generated sample data:
 
-```bash
-PYTHONPATH=src python - <<'PY'
+```python
+# NBA example
 from multisports.config.nba import NBA_CONFIG
 from multisports.data.ingestion import generate_sample_nba_games
 from multisports.pipeline.pipeline import Pipeline
 
-games = generate_sample_nba_games(n=200, seed=42)
-results = Pipeline(NBA_CONFIG).run(games)
+results = Pipeline(NBA_CONFIG).run(generate_sample_nba_games(n=200))
 print(results)
-PY
 ```
+
+```python
+# NHL example
+from multisports.config.nhl import NHL_CONFIG
+from multisports.data.ingestion import generate_sample_nhl_games
+from multisports.pipeline.pipeline import Pipeline
+
+results = Pipeline(NHL_CONFIG).run(generate_sample_nhl_games(n=200))
+print(results)
+```
+
+Replace `NHL_CONFIG` / `generate_sample_nhl_games` with any supported sport's equivalents.
 
 ## Project Structure
 
-- `multisports.config`: sport-specific configuration
-- `multisports.data`: schema, ingestion, and cleaning utilities
-- `multisports.features`: leak-safe feature generation
-- `multisports.models`: baseline and gradient boosting regressors
-- `multisports.training`: evaluation metrics and training loop
-- `multisports.prediction`: inference helper
-- `multisports.pipeline`: orchestration layer
+```
+src/multisports/
+  config/          sport-specific SportConfig instances (nba, nfl, mlb, nhl, wnba, ncaab, ncaaf, ncaa_baseball)
+  data/            Game/Team/Player schema, CSV/JSON loaders, sample data generators
+  features/        Leak-safe rolling feature generation (shift(1) prevents data leakage)
+  models/          MeanBaseline and GradientBoostingRegressor with save/load
+  training/        Time-based train/val split, evaluation metrics (MAE, RMSE, accuracy, calibration)
+  prediction/      Inference helper (Predictor)
+  pipeline/        End-to-end orchestrator: ingest → clean → features → train → evaluate → save
+configs/           YAML config files for each sport
+tests/             Unit tests for schema, features, models, evaluation, and full pipeline
+```
+
+## Key Design Principles
+
+- **No data leakage**: all rolling features use `.shift(1)` — each row only sees past games
+- **Time-based validation only**: 80/20 chronological split, never random
+- **Explicit feature columns**: `SportConfig.feature_columns` is an ordered list; models never silently use wrong features
+- **Sport-isolated logic**: each sport has its own config and can have its own feature generator
 
 ## How to Add a New Sport
 
-1. Create a new `SportConfig` with explicit `feature_columns`.
-2. Register a feature generator in `src/multisports/features/registry.py`.
-3. Register models in `src/multisports/models/registry.py`.
-4. Add ingestion logic or sample-data generation for the new sport.
-5. Add tests covering schema, features, models, and pipeline behavior.
+1. Create `src/multisports/config/<sport>.py` with a `SportConfig` instance
+2. Add a YAML equivalent to `configs/<sport>.yaml`
+3. Add the config to `src/multisports/config/__init__.py`
+4. Add a `generate_sample_<sport>_games()` function to `src/multisports/data/ingestion.py` (or a real data loader)
+5. Add tests covering schema, features, models, and pipeline behavior
 
 ## Testing
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
+

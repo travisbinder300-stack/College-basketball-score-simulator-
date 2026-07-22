@@ -1,11 +1,10 @@
-"""NFL sport configuration."""
+"""NCAA Men's Football (NCAAF) sport configuration."""
 
 from .base import SportConfig
 
-
-NFL_CONFIG = SportConfig(
-    sport="nfl",
-    league="National Football League",
+NCAAF_CONFIG = SportConfig(
+    sport="ncaaf",
+    league="NCAA Division I Men's Football (FBS)",
     prediction_target="total_score",
     rolling_window=6,
     rest_cap=21,
@@ -20,6 +19,6 @@ NFL_CONFIG = SportConfig(
         "away_opp_strength_6",
         "is_neutral_site",
     ],
-    min_train_games=50,
+    min_train_games=30,
     model_dir="artifacts",
 )

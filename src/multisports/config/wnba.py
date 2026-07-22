@@ -1,0 +1,24 @@
+"""WNBA sport configuration."""
+
+from .base import SportConfig
+
+WNBA_CONFIG = SportConfig(
+    sport="wnba",
+    league="Women's National Basketball Association",
+    prediction_target="total_score",
+    rolling_window=8,
+    rest_cap=7,
+    feature_columns=[
+        "home_rolling_total_8",
+        "away_rolling_total_8",
+        "home_rest_days",
+        "away_rest_days",
+        "home_win_pct_8",
+        "away_win_pct_8",
+        "home_opp_strength_8",
+        "away_opp_strength_8",
+        "is_neutral_site",
+    ],
+    min_train_games=30,
+    model_dir="artifacts",
+)

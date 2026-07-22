@@ -1,0 +1,17 @@
+sport: ncaab
+league: NCAA Division I Men's Basketball
+prediction_target: total_score
+rolling_window: 8
+rest_cap: 10
+feature_columns:
+  - home_rolling_total_8
+  - away_rolling_total_8
+  - home_rest_days
+  - away_rest_days
+  - home_win_pct_8
+  - away_win_pct_8
+  - home_opp_strength_8
+  - away_opp_strength_8
+  - is_neutral_site
+min_train_games: 40
+model_dir: artifacts
