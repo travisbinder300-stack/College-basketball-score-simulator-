@@ -93,6 +93,59 @@ PYTHONPATH=src python scripts/get_live_data.py --sport ncaab --dates 20260722
 
 By default the script writes to `data/live/<sport>_<dates>.json`.
 
+## Predictive Rankings Integration (WNBA 2026)
+
+The WNBA pipeline supports optional **predictive power ratings** sourced from
+[TeamRankings](https://www.teamrankings.com/wnba/ranking/predictive-by-other/).
+Each team's rating represents their expected point-differential against an
+average opponent on a neutral court (positive → stronger, negative → weaker).
+
+### Bundled 2026 rankings
+
+A mid-season 2026 snapshot is committed at
+`data/rankings/wnba_2026_predictive.csv` (15 teams including the Toronto Tempo
+and Portland Fire expansion franchises).
+
+### Use rankings in the WNBA pipeline
+
+```python
+from multisports.config.wnba import WNBA_CONFIG
+from multisports.data.ingestion import generate_sample_wnba_games
+from multisports.pipeline.pipeline import Pipeline
+
+results = Pipeline(WNBA_CONFIG).run(
+    generate_sample_wnba_games(n=200),
+    rankings_path="data/rankings/wnba_2026_predictive.csv",
+)
+```
+
+Teams not found in the CSV (e.g. synthetic team IDs) receive the mean rating
+automatically — the pipeline never errors on unknown teams.
+
+### Refresh rankings from TeamRankings
+
+```bash
+PYTHONPATH=src python scripts/fetch_rankings.py --sport wnba --season 2026
+```
+
+This overwrites `data/rankings/wnba_2026_predictive.csv` with fresh data.
+Run it at the start of each week or after a major trade deadline.
+
+| Flag | Description |
+|---|---|
+| `--sport` | Sport key. One of: `mlb`, `nba`, `ncaab`, `ncaaf`, `nfl`, `nhl`, `wnba` |
+| `--season` | Season label used in the default output filename (e.g. `2026`). |
+| `--output` | Custom output path. |
+
+### Load rankings directly
+
+```python
+from multisports.data.rankings import enrich_with_rankings, load_rankings_csv
+
+ratings = load_rankings_csv("data/rankings/wnba_2026_predictive.csv")
+enriched_df = enrich_with_rankings(featured_df, ratings)
+```
+
 ## Scrape Script
 
 Paste any schedule/results page URL and the script will find game rows in the HTML tables, normalize them to the project `Game` schema, and save as JSON:

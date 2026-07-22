@@ -18,6 +18,8 @@ WNBA_CONFIG = SportConfig(
         "home_opp_strength_8",
         "away_opp_strength_8",
         "is_neutral_site",
+        "home_predictive_rating",
+        "away_predictive_rating",
     ],
     min_train_games=30,
     model_dir="artifacts",
