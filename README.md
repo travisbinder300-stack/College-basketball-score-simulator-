@@ -129,6 +129,8 @@ PYTHONPATH=src python scripts/fetch_rankings.py --sport wnba --season 2026
 ```
 
 This overwrites `data/rankings/wnba_2026_predictive.csv` with fresh data.
+The command also prints the current WNBA `home-by-other` rankings from
+[TeamRankings](https://www.teamrankings.com/wnba/ranking/home-by-other/).
 Run it at the start of each week or after a major trade deadline.
 
 | Flag | Description |

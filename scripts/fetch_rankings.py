@@ -21,6 +21,9 @@ default.
 Output columns
 --------------
     rank, team, abbreviation, rating, win_pct, home_win_pct, away_win_pct
+
+The current home-court rankings are also printed after the predictive
+rankings are saved.
 """
 
 from __future__ import annotations
@@ -172,6 +175,62 @@ def fetch_rankings(sport: str) -> List[Dict[str, Any]]:
     return rows
 
 
+def fetch_home_rankings(sport: str) -> List[Dict[str, str]]:
+    """Fetch and return the home-by-other table for *sport*.
+
+    The home rankings are informational output only, so their source columns
+    are preserved rather than coerced into the predictive-ratings schema.
+    """
+    slug = _SPORT_SLUGS.get(sport)
+    if not slug:
+        raise ValueError(
+            f"Unsupported sport {sport!r}. Supported: {sorted(_SPORT_SLUGS)}"
+        )
+    url = f"https://www.teamrankings.com/{slug}/ranking/home-by-other/"
+    print(f"  Fetching {url}")
+    soup = BeautifulSoup(_fetch_html(url), "html.parser")
+
+    for table in soup.find_all("table"):
+        table_rows = table.find_all("tr")
+        if not table_rows:
+            continue
+        headers = [
+            cell.get_text(" ", strip=True)
+            for cell in table_rows[0].find_all(["th", "td"])
+        ]
+        normalized_headers = [header.lower() for header in headers]
+        if not any("home" in header for header in normalized_headers):
+            continue
+        if not any("team" in header for header in normalized_headers):
+            continue
+
+        rows: List[Dict[str, str]] = []
+        for tr in table_rows[1:]:
+            cells = [cell.get_text(" ", strip=True) for cell in tr.find_all(["td", "th"])]
+            if len(cells) != len(headers) or not any(cells):
+                continue
+            rows.append(dict(zip(headers, cells)))
+        if rows:
+            return rows
+
+    raise RuntimeError(
+        f"No home ranking rows found on {url}. "
+        "The page layout may have changed — inspect the HTML and update the parser."
+    )
+
+
+def print_home_rankings(rows: List[Dict[str, str]]) -> None:
+    """Print home ranking rows in the source table's column order."""
+    if not rows:
+        return
+    headers = list(rows[0])
+    print("\nHome-by-other rankings:")
+    print(" | ".join(headers))
+    print("-+-".join("-" * len(header) for header in headers))
+    for row in rows:
+        print(" | ".join(row.get(header, "") for header in headers))
+
+
 def save_rankings_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
     """Write ranking rows to a CSV file."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,6 +272,7 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     rows = fetch_rankings(sport=args.sport)
+    home_rows = fetch_home_rankings(sport=args.sport)
 
     output_path = (
         Path(args.output)
@@ -220,6 +280,7 @@ def main() -> None:
         else Path("data") / "rankings" / f"{args.sport}_{args.season}_predictive.csv"
     )
     save_rankings_csv(rows, output_path)
+    print_home_rankings(home_rows)
     sport_upper = args.sport.upper()
     print(f"\nFetched {len(rows)} team(s) for {sport_upper} {args.season}.")
     print(
