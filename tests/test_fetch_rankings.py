@@ -44,6 +44,20 @@ class FetchHomeRankingsTests(unittest.TestCase):
         printed = "\n".join(str(call.args[0]) for call in output.call_args_list)
         self.assertIn("Home-by-other rankings:", printed)
         self.assertIn("New York Liberty", printed)
+        self.assertIn("Best team: New York Liberty", printed)
+        self.assertIn("Worst team: New York Liberty", printed)
+
+    def test_print_home_rankings_identifies_best_and_worst_by_rank(self) -> None:
+        rows = [
+            {"Rank": "2", "Team": "Minnesota Lynx", "Home Win %": "75.0%"},
+            {"Rank": "1", "Team": "New York Liberty", "Home Win %": "80.0%"},
+        ]
+        with patch("builtins.print") as output:
+            fetch_rankings.print_home_rankings(rows)
+
+        printed = "\n".join(str(call.args[0]) for call in output.call_args_list)
+        self.assertIn("Best team: New York Liberty", printed)
+        self.assertIn("Worst team: Minnesota Lynx", printed)
 
 
 class FetchAwayRankingsTests(unittest.TestCase):
@@ -73,6 +87,8 @@ class FetchAwayRankingsTests(unittest.TestCase):
         printed = "\n".join(str(call.args[0]) for call in output.call_args_list)
         self.assertIn("Away-by-other rankings:", printed)
         self.assertIn("Las Vegas Aces", printed)
+        self.assertIn("Best team: Las Vegas Aces", printed)
+        self.assertIn("Worst team: Las Vegas Aces", printed)
 
 
 if __name__ == "__main__":

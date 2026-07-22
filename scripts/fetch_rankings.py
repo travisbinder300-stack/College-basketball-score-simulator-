@@ -243,12 +243,33 @@ def _print_location_rankings(rows: List[Dict[str, str]], location: str) -> None:
     """Print location ranking rows in the source table's column order."""
     if not rows:
         return
+    ranked_rows = [
+        row
+        for _, row in sorted(
+            enumerate(rows), key=lambda item: _ranking_number(item[1], item[0])
+        )
+    ]
     headers = list(rows[0])
     print(f"\n{location}-by-other rankings:")
     print(" | ".join(headers))
     print("-+-".join("-" * len(header) for header in headers))
     for row in rows:
         print(" | ".join(row.get(header, "") for header in headers))
+    print(f"Best team: {_team_name(ranked_rows[0])}")
+    print(f"Worst team: {_team_name(ranked_rows[-1])}")
+
+
+def _ranking_number(row: Dict[str, str], fallback: int) -> int:
+    """Return a row's numeric rank, or its source position when unavailable."""
+    try:
+        return int(row.get("Rank", "").strip())
+    except (AttributeError, ValueError):
+        return fallback
+
+
+def _team_name(row: Dict[str, str]) -> str:
+    """Return a row's team name using the source table's Team column."""
+    return row.get("Team", row.get("team", "")).strip()
 
 
 def save_rankings_csv(rows: List[Dict[str, Any]], output_path: Path) -> None:
