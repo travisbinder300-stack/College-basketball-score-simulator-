@@ -23,7 +23,7 @@ Output columns
     rank, team, abbreviation, rating, win_pct, home_win_pct, away_win_pct
 
 The current home-court rankings are also printed after the predictive
-rankings are saved.
+rankings are saved, along with away-court rankings.
 """
 
 from __future__ import annotations
@@ -175,10 +175,10 @@ def fetch_rankings(sport: str) -> List[Dict[str, Any]]:
     return rows
 
 
-def fetch_home_rankings(sport: str) -> List[Dict[str, str]]:
-    """Fetch and return the home-by-other table for *sport*.
+def _fetch_location_rankings(sport: str, location: str) -> List[Dict[str, str]]:
+    """Fetch and return a home- or away-by-other table for *sport*.
 
-    The home rankings are informational output only, so their source columns
+    Location rankings are informational output only, so their source columns
     are preserved rather than coerced into the predictive-ratings schema.
     """
     slug = _SPORT_SLUGS.get(sport)
@@ -186,7 +186,7 @@ def fetch_home_rankings(sport: str) -> List[Dict[str, str]]:
         raise ValueError(
             f"Unsupported sport {sport!r}. Supported: {sorted(_SPORT_SLUGS)}"
         )
-    url = f"https://www.teamrankings.com/{slug}/ranking/home-by-other/"
+    url = f"https://www.teamrankings.com/{slug}/ranking/{location}-by-other/"
     print(f"  Fetching {url}")
     soup = BeautifulSoup(_fetch_html(url), "html.parser")
 
@@ -199,7 +199,7 @@ def fetch_home_rankings(sport: str) -> List[Dict[str, str]]:
             for cell in table_rows[0].find_all(["th", "td"])
         ]
         normalized_headers = [header.lower() for header in headers]
-        if not any("home" in header for header in normalized_headers):
+        if not any(location in header for header in normalized_headers):
             continue
         if not any("team" in header for header in normalized_headers):
             continue
@@ -214,17 +214,37 @@ def fetch_home_rankings(sport: str) -> List[Dict[str, str]]:
             return rows
 
     raise RuntimeError(
-        f"No home ranking rows found on {url}. "
+        f"No {location} ranking rows found on {url}. "
         "The page layout may have changed — inspect the HTML and update the parser."
     )
 
 
+def fetch_home_rankings(sport: str) -> List[Dict[str, str]]:
+    """Fetch and return the home-by-other table for *sport*."""
+    return _fetch_location_rankings(sport, "home")
+
+
+def fetch_away_rankings(sport: str) -> List[Dict[str, str]]:
+    """Fetch and return the away-by-other table for *sport*."""
+    return _fetch_location_rankings(sport, "away")
+
+
 def print_home_rankings(rows: List[Dict[str, str]]) -> None:
     """Print home ranking rows in the source table's column order."""
+    _print_location_rankings(rows, "Home")
+
+
+def print_away_rankings(rows: List[Dict[str, str]]) -> None:
+    """Print away ranking rows in the source table's column order."""
+    _print_location_rankings(rows, "Away")
+
+
+def _print_location_rankings(rows: List[Dict[str, str]], location: str) -> None:
+    """Print location ranking rows in the source table's column order."""
     if not rows:
         return
     headers = list(rows[0])
-    print("\nHome-by-other rankings:")
+    print(f"\n{location}-by-other rankings:")
     print(" | ".join(headers))
     print("-+-".join("-" * len(header) for header in headers))
     for row in rows:
@@ -273,6 +293,7 @@ def main() -> None:
     args = _parse_args()
     rows = fetch_rankings(sport=args.sport)
     home_rows = fetch_home_rankings(sport=args.sport)
+    away_rows = fetch_away_rankings(sport=args.sport)
 
     output_path = (
         Path(args.output)
@@ -281,6 +302,7 @@ def main() -> None:
     )
     save_rankings_csv(rows, output_path)
     print_home_rankings(home_rows)
+    print_away_rankings(away_rows)
     sport_upper = args.sport.upper()
     print(f"\nFetched {len(rows)} team(s) for {sport_upper} {args.season}.")
     print(

@@ -46,5 +46,34 @@ class FetchHomeRankingsTests(unittest.TestCase):
         self.assertIn("New York Liberty", printed)
 
 
+class FetchAwayRankingsTests(unittest.TestCase):
+    """Tests for parsing and displaying away-by-other rankings."""
+
+    _HTML = """
+    <table>
+      <tr><th>Rank</th><th>Team</th><th>Away Win %</th></tr>
+      <tr><td>1</td><td>Las Vegas Aces</td><td>70.0%</td></tr>
+    </table>
+    """
+
+    def test_fetch_away_rankings_uses_away_by_other_url(self) -> None:
+        with patch.object(fetch_rankings, "_fetch_html", return_value=self._HTML) as fetch:
+            rows = fetch_rankings.fetch_away_rankings("wnba")
+
+        fetch.assert_called_once_with(
+            "https://www.teamrankings.com/wnba/ranking/away-by-other/"
+        )
+        self.assertEqual(rows[0]["Team"], "Las Vegas Aces")
+
+    def test_print_away_rankings_includes_team_values(self) -> None:
+        rows = [{"Rank": "1", "Team": "Las Vegas Aces", "Away Win %": "70.0%"}]
+        with patch("builtins.print") as output:
+            fetch_rankings.print_away_rankings(rows)
+
+        printed = "\n".join(str(call.args[0]) for call in output.call_args_list)
+        self.assertIn("Away-by-other rankings:", printed)
+        self.assertIn("Las Vegas Aces", printed)
+
+
 if __name__ == "__main__":
     unittest.main()
