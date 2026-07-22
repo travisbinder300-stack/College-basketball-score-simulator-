@@ -95,24 +95,31 @@ By default the script writes to `data/live/<sport>_<dates>.json`.
 
 ## Scrape Script
 
-Scrape historical game scores from Sports-Reference sites (Basketball-Reference, Baseball-Reference, Hockey-Reference, Pro-Football-Reference) and save normalized game rows to JSON:
+Paste any schedule/results page URL and the script will find game rows in the HTML tables, normalize them to the project `Game` schema, and save as JSON:
 
 ```bash
-# NCAAB 2023-24 season
-PYTHONPATH=src python scripts/scrape_data.py --sport ncaab --season 2024
+# Paste the URL of whichever schedule page you want
+PYTHONPATH=src python scripts/scrape_data.py \
+    --url "https://example-site.com/ncaab/2024-schedule" \
+    --sport ncaab --season 2024
 
-# NBA 2023-24, October and November only
-PYTHONPATH=src python scripts/scrape_data.py --sport nba --season 2024 --months 10 11
+# Multiple pages at once
+PYTHONPATH=src python scripts/scrape_data.py \
+    --url "https://example-site.com/page1" "https://example-site.com/page2" \
+    --sport nba --season 2024
 
-# MLB 2024 season
-PYTHONPATH=src python scripts/scrape_data.py --sport mlb --season 2024
+# Custom output path
+PYTHONPATH=src python scripts/scrape_data.py \
+    --url "https://example-site.com/mlb-2024" \
+    --sport mlb --season 2024 \
+    --output data/scraped/mlb_2024.json
 ```
 
 By default the script writes to `data/scraped/<sport>_<season>.json`.
 
 | Flag | Description |
 |---|---|
-| `--sport` | One of: `mlb`, `nba`, `ncaab`, `nfl`, `nhl`, `wnba` |
-| `--season` | Season year (e.g. `2024` = 2023-24 for NBA/NCAAB) |
-| `--months` | Optional month numbers to scrape (1–12). Only used for sports with per-month pages (NBA). |
-| `--output` | Custom output file path |
+| `--url` | **Required.** One or more schedule/results page URLs to scrape (paste in whatever page you like). |
+| `--sport` | Sport key for schema context and default output filename. One of: `mlb`, `nba`, `ncaa_baseball`, `ncaab`, `ncaaf`, `nfl`, `nhl`, `wnba` |
+| `--season` | Season label stored on each game row (e.g. `2024` or `2023-2024`). |
+| `--output` | Custom output file path. |

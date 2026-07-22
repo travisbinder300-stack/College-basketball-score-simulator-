@@ -1,28 +1,35 @@
 #!/usr/bin/env python3
-"""Scrape historical game scores from Sports-Reference sites and save as JSON.
+"""Scrape game scores from any URL you provide and save as JSON.
 
-Supported sports and sources
------------------------------
-  nba        https://www.basketball-reference.com
-  wnba       https://www.basketball-reference.com
-  ncaab      https://www.sports-reference.com/cbb
-  nfl        https://www.pro-football-reference.com
-  mlb        https://www.baseball-reference.com
-  nhl        https://www.hockey-reference.com
-
-Data is scraped from publicly available monthly schedule/results pages and
-normalized into the project's ``Game`` schema, then written to JSON.
+Paste the URL of any schedule/results page and the script will scan every
+HTML table on that page, pick out rows that look like game results (two
+team names + two numeric scores + a date), normalize them into the
+project's ``Game`` schema, and write a JSON file.
 
 Usage
 -----
-    PYTHONPATH=src python scripts/scrape_data.py --sport ncaab --season 2024
-    PYTHONPATH=src python scripts/scrape_data.py --sport nba --season 2024 --months 10 11
+    # Paste in whatever schedule page you want
+    PYTHONPATH=src python scripts/scrape_data.py \\
+        --url "https://example-site.com/ncaab/2024-schedule" \\
+        --sport ncaab --season 2024
+
+    # Multiple pages (e.g. one per month)
+    PYTHONPATH=src python scripts/scrape_data.py \\
+        --url "https://..." "https://..." \\
+        --sport nba --season 2024
+
+    # Custom output path
+    PYTHONPATH=src python scripts/scrape_data.py \\
+        --url "https://..." \\
+        --sport mlb --season 2024 \\
+        --output data/scraped/mlb_2024.json
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import time
 from dataclasses import asdict
 from datetime import date, datetime
@@ -31,78 +38,56 @@ from typing import Any, Dict, List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from bs4 import BeautifulSoup  # type: ignore[import-untyped]
+from bs4 import BeautifulSoup, Tag  # type: ignore[import-untyped]
 
 from multisports.data.schema import Game
 
 
 _USER_AGENT = (
-    "Mozilla/5.0 (compatible; multisports-scraper/1.0; +https://github.com/travisbinder300-stack)"
+    "Mozilla/5.0 (compatible; multisports-scraper/1.0; "
+    "+https://github.com/travisbinder300-stack)"
 )
-_REQUEST_DELAY = 3.0  # seconds between requests — be polite to the server
+_REQUEST_DELAY = 2.0  # seconds between requests — be polite
 
+# Supported sports (used only for schema context and output filename)
+SPORTS = [
+    "mlb",
+    "nba",
+    "ncaa_baseball",
+    "ncaab",
+    "ncaaf",
+    "nfl",
+    "nhl",
+    "wnba",
+]
 
-# ---------------------------------------------------------------------------
-# Site metadata
-# ---------------------------------------------------------------------------
+# Date formats to try when parsing score-page date strings
+_DATE_FORMATS = [
+    "%a, %b %d, %Y",
+    "%B %d, %Y",
+    "%b %d, %Y",
+    "%Y-%m-%d",
+    "%m/%d/%Y",
+    "%m/%d/%y",
+    "%d-%b-%Y",
+]
 
-_SITE_INFO: Dict[str, Dict[str, Any]] = {
-    "nba": {
-        "base": "https://www.basketball-reference.com",
-        "path": "/leagues/NBA_{season}_games-{month}.html",
-        "months": [10, 11, 12, 1, 2, 3, 4, 5, 6],
-        "season_offset": 0,  # season year == year of the *end* of the season
-    },
-    "wnba": {
-        "base": "https://www.basketball-reference.com",
-        "path": "/wnba/years/{season}_games.html",
-        "months": [],  # single-page, no monthly split
-        "season_offset": 0,
-    },
-    "ncaab": {
-        "base": "https://www.sports-reference.com",
-        "path": "/cbb/seasons/men/{season}-schedule.html",
-        "months": [],  # single-page
-        "season_offset": 0,
-    },
-    "nfl": {
-        "base": "https://www.pro-football-reference.com",
-        "path": "/years/{season}/games.htm",
-        "months": [],
-        "season_offset": 0,
-    },
-    "mlb": {
-        "base": "https://www.baseball-reference.com",
-        "path": "/leagues/majors/{season}-schedule.shtml",
-        "months": [],
-        "season_offset": 0,
-    },
-    "nhl": {
-        "base": "https://www.hockey-reference.com",
-        "path": "/leagues/NHL_{season}_games.html",
-        "months": [],
-        "season_offset": 0,
-    },
+# Heuristic: column header words that suggest a date column
+_DATE_HEADERS = {"date", "game date", "game_date", "day", "when"}
+# Heuristic: column header words that suggest score columns
+_SCORE_HEADERS = {
+    "pts", "points", "score", "r", "runs", "g", "goals",
+    "visitor_pts", "home_pts", "away_pts", "away score", "home score",
 }
-
-_MONTH_NAMES = {
-    1: "january",
-    2: "february",
-    3: "march",
-    4: "april",
-    5: "may",
-    6: "june",
-    7: "july",
-    8: "august",
-    9: "september",
-    10: "october",
-    11: "november",
-    12: "december",
+# Heuristic: column header words that suggest team columns
+_TEAM_HEADERS = {
+    "team", "visitor", "home", "away", "home team", "away team",
+    "visitor team", "home_team", "away_team",
 }
 
 
 # ---------------------------------------------------------------------------
-# HTTP helpers
+# HTTP helper
 # ---------------------------------------------------------------------------
 
 def _fetch_html(url: str) -> str:
@@ -114,12 +99,8 @@ def _fetch_html(url: str) -> str:
         raise RuntimeError(f"HTTP error fetching {url!r}: {exc}") from exc
 
 
-def _parse_html(html: str) -> BeautifulSoup:
-    return BeautifulSoup(html, "html.parser")
-
-
 # ---------------------------------------------------------------------------
-# Table parsers
+# Parsing helpers
 # ---------------------------------------------------------------------------
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -130,158 +111,195 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 
 def _safe_date(raw: str) -> Optional[date]:
-    for fmt in ("%a, %b %d, %Y", "%B %d, %Y", "%Y-%m-%d", "%b %d, %Y"):
+    raw = raw.strip()
+    for fmt in _DATE_FORMATS:
         try:
-            return datetime.strptime(raw.strip(), fmt).date()
+            return datetime.strptime(raw, fmt).date()
         except ValueError:
             continue
+    # Try stripping a leading day-of-week ("Mon Nov 6, 2023" → "Nov 6, 2023")
+    cleaned = re.sub(r"^\w{3,},?\s*", "", raw)
+    if cleaned != raw:
+        return _safe_date(cleaned)
     return None
 
 
-def _parse_bref_game_table(
-    soup: BeautifulSoup,
+def _looks_like_score(text: str) -> bool:
+    return bool(re.fullmatch(r"\d{1,3}", text.strip()))
+
+
+def _header_matches(text: str, keyword_set: set[str]) -> bool:
+    return text.strip().lower() in keyword_set
+
+
+# ---------------------------------------------------------------------------
+# Generic table scraper
+# ---------------------------------------------------------------------------
+
+def _extract_games_from_table(
+    table: Tag,
     sport: str,
     season: str,
-    table_id: str = "schedule",
+    url: str,
+    seen_ids: set[str],
+    game_counter: list[int],
 ) -> List[Game]:
-    """Parse a Basketball/Hockey/Pro-Football-Reference schedule table."""
-    table = soup.find("table", id=table_id)
-    if table is None:
+    """Try to extract Game objects from a single <table> element."""
+    rows = table.find_all("tr")
+    if not rows:
+        return []
+
+    # Collect header row
+    header_row = rows[0]
+    headers = [
+        th.get_text(strip=True).lower()
+        for th in header_row.find_all(["th", "td"])
+    ]
+
+    # Identify column indices by heuristic
+    date_col: Optional[int] = None
+    away_col: Optional[int] = None
+    home_col: Optional[int] = None
+    away_score_col: Optional[int] = None
+    home_score_col: Optional[int] = None
+
+    for idx, h in enumerate(headers):
+        if date_col is None and _header_matches(h, _DATE_HEADERS):
+            date_col = idx
+        if h in {"visitor", "away", "away team", "away_team", "visitor team",
+                 "visitor_team_name"}:
+            away_col = idx
+        if h in {"home", "home team", "home_team", "home_team_name"}:
+            home_col = idx
+        if h in {"visitor_pts", "away_pts", "away score", "pts"} and away_score_col is None:
+            away_score_col = idx
+        if h in {"home_pts", "home score"} and home_score_col is None:
+            home_score_col = idx
+
+    # If we can't map at least home/away teams, bail early on this table
+    if away_col is None and home_col is None:
         return []
 
     games: List[Game] = []
-    for row in table.find_all("tr"):
+    for row in rows[1:]:
         cells = row.find_all(["td", "th"])
         if not cells:
             continue
-        # Skip header rows (cells are all <th> with scope="col")
+        # Skip sub-header rows
         if all(c.name == "th" for c in cells):
             continue
-        row_data = {c.get("data-stat", ""): c.get_text(strip=True) for c in cells}
 
-        date_str = row_data.get("date_game") or row_data.get("game_date", "")
-        if not date_str or date_str.lower() in {"date", "playoffs"}:
+        texts = [c.get_text(strip=True) for c in cells]
+        if not any(texts):
             continue
-        game_date = _safe_date(date_str)
+
+        # --- Date ---
+        game_date: Optional[date] = None
+        if date_col is not None and date_col < len(texts):
+            game_date = _safe_date(texts[date_col])
+        if game_date is None:
+            # Try every cell in the row for a parseable date
+            for t in texts:
+                game_date = _safe_date(t)
+                if game_date:
+                    break
         if game_date is None:
             continue
 
-        visitor = row_data.get("visitor_team_name") or row_data.get("away_team", "")
-        home = row_data.get("home_team_name") or row_data.get("home_team", "")
-        visitor_pts = _safe_int(row_data.get("visitor_pts") or row_data.get("away_pts", 0))
-        home_pts = _safe_int(row_data.get("home_pts", 0) or row_data.get("pts", 0))
+        # --- Teams ---
+        away_team = texts[away_col].strip() if away_col is not None and away_col < len(texts) else ""
+        home_team = texts[home_col].strip() if home_col is not None and home_col < len(texts) else ""
 
-        if not visitor or not home:
+        # If either team is blank, try to pull two non-date, non-score text cells
+        if not away_team or not home_team:
+            candidates = [
+                t for t in texts
+                if t and not _looks_like_score(t) and _safe_date(t) is None
+            ]
+            if len(candidates) >= 2:
+                away_team = away_team or candidates[0]
+                home_team = home_team or candidates[1]
+
+        if not away_team or not home_team:
             continue
 
-        venue = row_data.get("game_location", "") or row_data.get("arena", "")
-        neutral = "@" not in str(row_data.get("game_location", "")) and bool(venue)
+        # --- Scores ---
+        away_score = 0
+        home_score = 0
+        if away_score_col is not None and away_score_col < len(texts):
+            away_score = _safe_int(texts[away_score_col])
+        if home_score_col is not None and home_score_col < len(texts):
+            home_score = _safe_int(texts[home_score_col])
+        if away_score == 0 and home_score == 0:
+            # Fallback: grab first two numeric-looking cells
+            numeric = [t for t in texts if _looks_like_score(t)]
+            if len(numeric) >= 2:
+                away_score = _safe_int(numeric[0])
+                home_score = _safe_int(numeric[1])
 
-        row_cells = row.find_all(["td", "th"])
-        game_id_cell = row.find("td", {"data-stat": "date_game"})
-        game_link = game_id_cell.find("a") if game_id_cell else None
-        game_id = game_link["href"].split("/")[-1].replace(".html", "") if game_link and game_link.get("href") else f"{sport}_{game_date}_{visitor[:3]}_{home[:3]}"
+        # --- Venue ---
+        venue_candidates = [
+            h for h in headers
+            if "venue" in h or "arena" in h or "stadium" in h or "location" in h
+        ]
+        venue = ""
+        if venue_candidates:
+            vc_idx = headers.index(venue_candidates[0])
+            if vc_idx < len(texts):
+                venue = texts[vc_idx]
+        venue = venue or "Unknown Venue"
 
-        games.append(
-            Game(
-                id=game_id,
-                sport=sport,
-                date=game_date,
-                season=season,
-                home_team_id=home,
-                away_team_id=visitor,
-                home_score=home_pts,
-                away_score=visitor_pts,
-                venue=venue or "Unknown Venue",
-                is_neutral_site=neutral,
-                home_rest_days=0,
-                away_rest_days=0,
+        # --- Game ID ---
+        game_counter[0] += 1
+        game_id = f"{sport}_{game_date}_{away_team[:4]}_{home_team[:4]}_{game_counter[0]:04d}"
+        # Deduplicate
+        if game_id in seen_ids:
+            continue
+        seen_ids.add(game_id)
+
+        try:
+            games.append(
+                Game(
+                    id=game_id,
+                    sport=sport,
+                    date=game_date,
+                    season=season,
+                    home_team_id=home_team,
+                    away_team_id=away_team,
+                    home_score=home_score,
+                    away_score=away_score,
+                    venue=venue,
+                    is_neutral_site=False,
+                    home_rest_days=0,
+                    away_rest_days=0,
+                )
             )
-        )
+        except (ValueError, TypeError):
+            continue
+
     return games
 
 
-def _parse_baseball_ref_schedule(
-    soup: BeautifulSoup,
-    sport: str,
-    season: str,
-) -> List[Game]:
-    """Parse a Baseball-Reference schedule page."""
-    games: List[Game] = []
-    for row in soup.find_all("p", class_="game"):
-        # BBRef uses <p class="game"> with embedded team/score text
-        text = row.get_text(" ", strip=True)
-        # Fall back to generic table parser if structure differs
-        _ = text  # currently using table fallback below
+def scrape_url(url: str, sport: str, season: str) -> List[Game]:
+    """Fetch *url*, scan all HTML tables, and return normalized Game objects."""
+    print(f"  Fetching {url}")
+    html = _fetch_html(url)
+    soup = BeautifulSoup(html, "html.parser")
 
-    # Try the standard schedule table as fallback
-    return _parse_bref_game_table(soup, sport, season, table_id="schedule")
-
-
-def _parse_cbb_schedule(
-    soup: BeautifulSoup,
-    sport: str,
-    season: str,
-) -> List[Game]:
-    """Parse Sports-Reference CBB schedule (single-page)."""
-    return _parse_bref_game_table(soup, sport, season, table_id="schedule")
-
-
-# ---------------------------------------------------------------------------
-# High-level scraper per sport
-# ---------------------------------------------------------------------------
-
-def _urls_for_sport(sport: str, season: int, months: Optional[List[int]]) -> List[str]:
-    info = _SITE_INFO[sport]
-    base = info["base"]
-    path_tpl = info["path"]
-    default_months = info["months"]
-    selected_months = months if months else default_months
-
-    if selected_months:
-        return [
-            base + path_tpl.format(season=season, month=_MONTH_NAMES[m])
-            for m in selected_months
-        ]
-    # Single-page sports
-    return [base + path_tpl.format(season=season)]
-
-
-def scrape_sport(
-    sport: str,
-    season: int,
-    months: Optional[List[int]] = None,
-) -> List[Game]:
-    """Scrape historical game data for *sport* and *season*."""
-    urls = _urls_for_sport(sport, season, months)
-    season_str = str(season)
     all_games: List[Game] = []
     seen_ids: set[str] = set()
+    counter = [0]
 
-    for url in urls:
-        print(f"  Fetching {url}")
-        try:
-            html = _fetch_html(url)
-        except RuntimeError as exc:
-            print(f"  WARNING: {exc} — skipping")
-            time.sleep(_REQUEST_DELAY)
-            continue
-
-        soup = _parse_html(html)
-
-        if sport == "mlb":
-            games = _parse_baseball_ref_schedule(soup, sport, season_str)
-        elif sport == "ncaab":
-            games = _parse_cbb_schedule(soup, sport, season_str)
-        else:
-            games = _parse_bref_game_table(soup, sport, season_str)
-
-        for game in games:
-            if game.id not in seen_ids:
-                seen_ids.add(game.id)
-                all_games.append(game)
-
-        time.sleep(_REQUEST_DELAY)
+    for table in soup.find_all("table"):
+        games = _extract_games_from_table(
+            table=table,
+            sport=sport,
+            season=season,
+            url=url,
+            seen_ids=seen_ids,
+            game_counter=counter,
+        )
+        all_games.extend(games)
 
     return all_games
 
@@ -292,22 +310,29 @@ def scrape_sport(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Scrape historical game scores from Sports-Reference sites."
+        description=(
+            "Scrape game scores from any schedule/results page you provide.\n"
+            "Paste one or more URLs with --url."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--sport", choices=sorted(_SITE_INFO.keys()), default="ncaab")
+    parser.add_argument(
+        "--url",
+        nargs="+",
+        required=True,
+        metavar="URL",
+        help="One or more schedule/results page URLs to scrape.",
+    )
+    parser.add_argument(
+        "--sport",
+        choices=sorted(SPORTS),
+        default="ncaab",
+        help="Sport key used for schema context and default output filename.",
+    )
     parser.add_argument(
         "--season",
-        type=int,
-        default=datetime.now().year,
-        help="Season year (e.g. 2024 means the 2023-24 season for NBA/NCAAB).",
-    )
-    parser.add_argument(
-        "--months",
-        type=int,
-        nargs="+",
-        default=None,
-        metavar="M",
-        help="Restrict to specific months (1-12). Only relevant for NBA.",
+        default=str(datetime.now().year),
+        help="Season label (e.g. '2024' or '2023-2024') stored on each game row.",
     )
     parser.add_argument(
         "--output",
@@ -319,8 +344,18 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
-    print(f"Scraping {args.sport.upper()} season {args.season} ...")
-    games = scrape_sport(sport=args.sport, season=args.season, months=args.months)
+    all_games: List[Game] = []
+    seen_ids: set[str] = set()
+
+    for i, url in enumerate(args.url):
+        games = scrape_url(url=url, sport=args.sport, season=args.season)
+        for g in games:
+            if g.id not in seen_ids:
+                seen_ids.add(g.id)
+                all_games.append(g)
+        print(f"  → {len(games)} game(s) found")
+        if i < len(args.url) - 1:
+            time.sleep(_REQUEST_DELAY)
 
     output_path = (
         Path(args.output)
@@ -329,11 +364,12 @@ def main() -> None:
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        json.dumps([asdict(g) for g in games], indent=2, default=str),
+        json.dumps([asdict(g) for g in all_games], indent=2, default=str),
         encoding="utf-8",
     )
-    print(f"Saved {len(games)} games to {output_path}")
+    print(f"\nSaved {len(all_games)} total game(s) to {output_path}")
 
 
 if __name__ == "__main__":
     main()
+
