@@ -28,6 +28,10 @@ from typing import Dict, Optional
 import pandas as pd
 
 
+_ABBREVIATION_COL = "abbreviation"
+_RATING_COL = "rating"
+
+
 def load_rankings_csv(path: str) -> Dict[str, float]:
     """Load a predictive-rankings CSV and return an abbreviation → rating map.
 
@@ -46,8 +50,8 @@ def load_rankings_csv(path: str) -> Dict[str, float]:
     with Path(path).open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
-            key = row.get("abbreviation", "").strip().upper()
-            raw = row.get("rating", "").strip()
+            key = row.get(_ABBREVIATION_COL, "").strip().upper()
+            raw = row.get(_RATING_COL, "").strip()
             if key and raw:
                 try:
                     ratings[key] = float(raw)

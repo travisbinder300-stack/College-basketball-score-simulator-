@@ -28,7 +28,6 @@ from __future__ import annotations
 import argparse
 import csv
 import re
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -213,7 +212,6 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
-    time.sleep(0)  # placeholder — polite delay between any future multi-sport loops
     rows = fetch_rankings(sport=args.sport)
 
     output_path = (
@@ -222,10 +220,11 @@ def main() -> None:
         else Path("data") / "rankings" / f"{args.sport}_{args.season}_predictive.csv"
     )
     save_rankings_csv(rows, output_path)
-    print(f"\nFetched {len(rows)} team(s) for {args.sport.upper()} {args.season}.")
+    sport_upper = args.sport.upper()
+    print(f"\nFetched {len(rows)} team(s) for {sport_upper} {args.season}.")
     print(
         f"\nTo use in the pipeline:\n"
-        f"    Pipeline(WNBA_CONFIG).run(games, rankings_path='{output_path}')"
+        f"    Pipeline({sport_upper}_CONFIG).run(games, rankings_path='{output_path}')"
     )
 
 
