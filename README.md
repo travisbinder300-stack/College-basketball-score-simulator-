@@ -92,3 +92,27 @@ PYTHONPATH=src python scripts/get_live_data.py --sport ncaab --dates 20260722
 ```
 
 By default the script writes to `data/live/<sport>_<dates>.json`.
+
+## Scrape Script
+
+Scrape historical game scores from Sports-Reference sites (Basketball-Reference, Baseball-Reference, Hockey-Reference, Pro-Football-Reference) and save normalized game rows to JSON:
+
+```bash
+# NCAAB 2023-24 season
+PYTHONPATH=src python scripts/scrape_data.py --sport ncaab --season 2024
+
+# NBA 2023-24, October and November only
+PYTHONPATH=src python scripts/scrape_data.py --sport nba --season 2024 --months 10 11
+
+# MLB 2024 season
+PYTHONPATH=src python scripts/scrape_data.py --sport mlb --season 2024
+```
+
+By default the script writes to `data/scraped/<sport>_<season>.json`.
+
+| Flag | Description |
+|---|---|
+| `--sport` | One of: `mlb`, `nba`, `ncaab`, `nfl`, `nhl`, `wnba` |
+| `--season` | Season year (e.g. `2024` = 2023-24 for NBA/NCAAB) |
+| `--months` | Optional month numbers to scrape (1–12). Only used for sports with per-month pages (NBA). |
+| `--output` | Custom output file path |
